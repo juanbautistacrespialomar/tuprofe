@@ -28,7 +28,9 @@
   }
   input, select, button, textarea { font-family: inherit; }
 
-  .wrap { height: 100dvh; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; justify-content: safe center; max-width: 440px; width: 100%; margin: 0 auto; padding: 32px 22px calc(32px + env(safe-area-inset-bottom)); }
+  .wrap { height: 100dvh; overflow: hidden; overscroll-behavior: none; display: flex; flex-direction: column; justify-content: safe center; max-width: 440px; width: 100%; margin: 0 auto; padding: 32px 22px calc(32px + env(safe-area-inset-bottom)); }
+  /* En login queda 100% bloqueado. En los registros (más campos + teclado) habilitamos SOLO scroll vertical. */
+  .wrap.scrollable { overflow-y: auto; overflow-x: hidden; }
   .brand { text-align: center; margin-bottom: 30px; }
   .brand .mark { display: inline-flex; width: 74px; height: 74px; border-radius: 18px; overflow: hidden; margin-bottom: 14px; }
   .brand .mark img { width: 100%; height: 100%; display: block; }
@@ -68,6 +70,10 @@
   /* PANEL (centrado también en desktop) */
   .app { display: none; flex-direction: column; height: 100dvh; overflow: hidden; max-width: 560px; margin: 0 auto; border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
   .app.active { display: flex; }
+  /* FIX scroll: estos wrappers deben ser columnas flex que llenen el alto del .app.
+     Si no, el .body { flex:1 } no tiene altura acotada y el overflow:hidden del .app
+     recorta el contenido de abajo (no se puede scrollear). min-height:0 habilita el scroll interno. */
+  #profe-main, #profe-rutina { display: flex; flex-direction: column; flex: 1; min-height: 0; }
   .app-header { flex-shrink: 0; z-index: 5; background: var(--bg); display: flex; align-items: center; justify-content: space-between; padding: calc(14px + env(safe-area-inset-top)) 18px 14px; border-bottom: 1px solid var(--border); }
   .app-header .hi { font-size: 13px; color: var(--muted); }
   .app-header .hi b { display: block; color: var(--text); font-size: 18px; font-weight: 600; margin-top: 1px; }
@@ -79,7 +85,7 @@
   .tab { flex: 1; height: 40px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: 14px; font-weight: 500; cursor: pointer; }
   .tab.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 
-  .body { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 12px 18px calc(24px + env(safe-area-inset-bottom)); }
+  .body { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 12px 18px calc(24px + env(safe-area-inset-bottom)); }
   .tabview { display: none; } .tabview.on { display: block; }
 
   .search { position: relative; margin-bottom: 14px; }
@@ -124,9 +130,9 @@
   .rej button svg { width: 15px; height: 15px; stroke: currentColor; }
   .miniadd { width: 100%; height: 36px; border-radius: 9px; background: transparent; border: 1px dashed var(--border); color: var(--muted); font-size: 13px; cursor: pointer; margin-top: 4px; }
 
-  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: flex-end; z-index: 20; }
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: safe center; justify-content: center; padding: 18px; overflow-y: auto; z-index: 20; }
   .overlay.on { display: flex; }
-  .sheet { background: var(--surface); border-top-left-radius: 22px; border-top-right-radius: 22px; width: 100%; max-width: 480px; margin: 0 auto; padding: 20px 20px calc(24px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border); max-height: 88vh; overflow-y: auto; }
+  .sheet { background: var(--surface); border-radius: 22px; width: 100%; max-width: 460px; margin: auto; padding: 22px 20px; border: 1px solid var(--border); max-height: 90dvh; overflow-y: auto; }
   .sheet h3 { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
   .sheet .field label { color: var(--muted); }
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -141,6 +147,32 @@
   .ac-item:hover { background: var(--surface-2); }
   .ac-item img { width: 52px; height: 36px; border-radius: 7px; object-fit: cover; background: var(--surface-2); }
   .ac-item span { font-size: 13.5px; }
+
+  /* Checkbox "por lado" */
+  .chk { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; cursor: pointer; user-select: none; font-size: 14px; color: var(--text); }
+  .chk input { width: 20px; height: 20px; accent-color: var(--accent); flex: 0 0 auto; }
+  .chk small { color: var(--muted); font-size: 12px; }
+
+  /* Fecha del día */
+  .dia-fecha { font-size: 12px; color: var(--muted); margin-top: 3px; text-transform: capitalize; }
+  .hoy-pill { display: inline-block; background: var(--accent); color: var(--accent-ink); font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; letter-spacing: .5px; margin-left: 8px; vertical-align: middle; text-transform: uppercase; }
+  .dia.hoy { border-color: var(--accent); }
+
+  /* Vista alumno: ejercicio con thumbnail y link a YouTube */
+  .aej { display: flex; gap: 11px; align-items: center; padding: 9px 0; border-top: 1px solid var(--border); }
+  .aej:first-of-type { border-top: none; }
+  .aej a.athumb, .aej .athumb { width: 66px; height: 46px; border-radius: 8px; object-fit: cover; background: var(--surface-2); flex: 0 0 auto; display: block; position: relative; }
+  .aej a.athumb .play { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+  .aej a.athumb .play svg { width: 22px; height: 22px; fill: #fff; filter: drop-shadow(0 1px 3px rgba(0,0,0,.6)); }
+  .aej .athumb.ph { display: flex; align-items: center; justify-content: center; }
+  .aej .athumb.ph svg { width: 20px; height: 20px; stroke: var(--muted); }
+  .aej .ainfo { flex: 1; min-width: 0; }
+  .aej .ainfo .an { font-size: 14px; font-weight: 500; }
+  .aej .ainfo .as { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .aej .ainfo .adone { font-size: 11.5px; color: var(--accent); margin-top: 2px; }
+  .aej .areg { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 11px; background: var(--surface-2); border: 1px solid var(--border); color: var(--muted); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .aej .areg.done { color: var(--accent); border-color: var(--accent); }
+  .aej .areg svg { width: 19px; height: 19px; stroke: currentColor; }
 </style>
 </head>
 <body>
@@ -183,7 +215,7 @@
       <div class="field"><label>Email</label><div class="input-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 7l9 6 9-6"/><rect x="3" y="5" width="18" height="14" rx="2"/></svg><input type="email" id="ra-email" placeholder="nombre@mail.com" autocomplete="email" /></div></div>
       <div class="field"><label>Contraseña</label><div class="input-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><input type="password" id="ra-pass" class="haseye" placeholder="mínimo 8 caracteres" autocomplete="new-password" /><button type="button" class="eye" data-eye="ra-pass" aria-label="Mostrar contraseña"></button></div></div>
       <div class="field"><label>Repetir contraseña</label><div class="input-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><input type="password" id="ra-pass2" class="haseye" placeholder="repetí la contraseña" autocomplete="new-password" /><button type="button" class="eye" data-eye="ra-pass2" aria-label="Mostrar contraseña"></button></div></div>
-      <div class="field"><label>Objetivo (opcional)</label><select id="ra-objetivo"><option value="">Elegí uno...</option><option>Fuerza máxima</option><option>Hipertrofia</option><option>Recomposición corporal</option><option>Rendimiento deportivo</option><option>Otro</option></select></div>
+      <div class="field"><label>Fecha de nacimiento</label><input type="date" id="ra-fecha-nac" /></div>
       <button class="btn" id="ra-btn">Crear cuenta</button>
     </div>
   </div>
@@ -229,10 +261,26 @@
   </div>
 </div>
 
-<!-- ============ PANEL ALUMNO (placeholder) ============ -->
+<!-- ============ PANEL ALUMNO ============ -->
 <div class="app" id="app-alumno">
   <div class="app-header"><div class="hi">Hola<b id="alumno-nombre">Alumno</b></div><div class="icon-btn" id="alumno-salir" title="Salir"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></div></div>
-  <div class="body"><div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></svg><p>Tu rutina va a aparecer acá.<br>La estamos construyendo.</p></div></div>
+  <div class="body"><div id="al-rutina"></div></div>
+</div>
+
+<!-- ============ MODAL registrar carga (alumno) ============ -->
+<div class="overlay" id="carga-overlay">
+  <div class="sheet">
+    <h3 id="carga-title">Registrar</h3>
+    <div class="msg" id="carga-msg"></div>
+    <div class="row2">
+      <div class="field"><label>Peso (kg)</label><input type="number" id="carga-peso" placeholder="20" inputmode="decimal" step="0.5" /></div>
+      <div class="field"><label>Reps hechas</label><input type="text" id="carga-reps" placeholder="10" /></div>
+    </div>
+    <label class="chk"><input type="checkbox" id="carga-completado" checked /> <span>Lo completé</span></label>
+    <div class="field"><label>Nota (opcional)</label><input type="text" id="carga-notas" placeholder="Cómo lo sentiste..." /></div>
+    <button class="btn" id="carga-guardar">Guardar</button>
+    <button class="btn ghost sm" id="carga-cancelar" style="margin-top:10px">Cancelar</button>
+  </div>
 </div>
 
 <!-- ============ MODAL ejercicio de catálogo ============ -->
@@ -253,6 +301,7 @@
   <div class="sheet">
     <h3>Nuevo día</h3>
     <div class="field"><label>Nombre del día</label><input type="text" id="dia-nombre" placeholder="Día 1 - Tren superior" /></div>
+    <div class="field"><label>Fecha (opcional — le aparece al alumno)</label><input type="date" id="dia-fecha" /></div>
     <button class="btn" id="dia-guardar">Agregar día</button>
     <button class="btn ghost sm" id="dia-cancelar" style="margin-top:10px">Cancelar</button>
   </div>
@@ -281,6 +330,7 @@
       <div class="field"><label>Series</label><input type="number" id="rej-series" placeholder="3" inputmode="numeric" /></div>
       <div class="field"><label>Reps</label><input type="text" id="rej-reps" placeholder="8-12 / al fallo" /></div>
     </div>
+    <label class="chk"><input type="checkbox" id="rej-porlado" /> <span>Por lado <small>(cada pierna/brazo)</small></span></label>
     <div class="field"><label>Pausa (opcional)</label><input type="text" id="rej-pausa" placeholder="90s" /></div>
     <button class="btn" id="rej-guardar">Agregar a la rutina</button>
     <button class="btn ghost sm" id="rej-cancelar" style="margin-top:10px">Cancelar</button>
@@ -297,7 +347,7 @@
   </div>
 </div>
 
-<div style="position:fixed;bottom:5px;left:0;right:0;text-align:center;font-size:11px;color:#3a3a3a;pointer-events:none;z-index:1">Tu Profe v9</div>
+<div style="position:fixed;bottom:5px;left:0;right:0;text-align:center;font-size:11px;color:#3a3a3a;pointer-events:none;z-index:1">Tu Profe v10</div>
 
 <script>
   const API = "https://tuprofe-api.juanbautistacrespialomar.workers.dev";
@@ -325,6 +375,7 @@
   const screens = ["s-login", "s-reg-profe", "s-reg-alumno"];
   function showAuth(id) {
     $("auth-wrap").style.display = "flex";
+    $("auth-wrap").classList.toggle("scrollable", id !== "s-login"); // login sin scroll; registros sí
     $("app-profe").classList.remove("active"); $("app-alumno").classList.remove("active");
     screens.forEach((s) => $(s).classList.toggle("active", s === id));
     const subs = { "s-login": "Entrá a tu cuenta", "s-reg-profe": "Creá tu cuenta de profe", "s-reg-alumno": "Creá tu cuenta" };
@@ -359,6 +410,7 @@
       cargarAlumnos();
     } else {
       $("alumno-nombre").textContent = yo.nombre || "Alumno";
+      await cargarMiRutina();
     }
   }
 
@@ -385,7 +437,7 @@
   async function importarBase() { $("cat-importar").disabled = true; $("cat-importar").textContent = "Cargando..."; for (const [nombre, video] of EJERCICIOS_BASE) { try { await api("/catalogo", "POST", { nombre, video }, true); } catch {} } await cargarCatalogo(); }
 
   let editandoId = null;
-  function abrirNuevo() { editandoId = null; $("ex-title").textContent = "Nuevo ejercicio"; $("ex-nombre").value = ""; $("ex-video").value = ""; $("ex-material").value = ""; msg($("ex-msg"), "", ""); $("ex-overlay").classList.add("on"); }
+  function abrirNuevo() { editandoId = null; $("ex-title").textContent = "Nuevo ejercicio"; $("ex-nombre").value = ""; $("ex-video").value = ""; $("ex-material").value = ""; msg($("ex-msg"), "", ""); $("ex-overlay").classList.add("on"); $("ex-nombre").focus(); }
   function abrirEditar(id) { const e = CATALOGO.find((x) => x.id === id); if (!e) return; editandoId = id; $("ex-title").textContent = "Editar ejercicio"; $("ex-nombre").value = e.nombre; $("ex-video").value = e.video_id ? "https://youtu.be/" + e.video_id : ""; $("ex-material").value = e.material || ""; msg($("ex-msg"), "", ""); $("ex-overlay").classList.add("on"); }
   $("cat-agregar").onclick = abrirNuevo;
   $("ex-cancelar").onclick = () => $("ex-overlay").classList.remove("on");
@@ -419,11 +471,11 @@
     const alumnos = await api("/alumnos", "GET", null, true);
     const cont = $("al-lista");
     if (alumnos.length === 0) { cont.innerHTML = pend.length ? "" : `<div class="empty"><p>Todavía no tenés alumnos.<br>Tocá "Invitar alumno" para sumar el primero.</p></div>`; return; }
-    cont.innerHTML = `<div style="font-size:12px;color:var(--muted);margin:16px 0 8px">Tus alumnos (${alumnos.length})</div>` + alumnos.map((a) => `<div class="ex click" data-alumno="${a.id}"><div class="thumb ph" style="width:44px;height:44px;border-radius:50%"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div><div class="info"><div class="n">${esc(a.nombre)}</div><div class="m">${esc(a.objetivo || "Sin objetivo")}</div></div><div class="acts"><button><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg></button></div></div>`).join("");
+    cont.innerHTML = `<div style="font-size:12px;color:var(--muted);margin:16px 0 8px">Tus alumnos (${alumnos.length})</div>` + alumnos.map((a) => `<div class="ex click" data-alumno="${a.id}"><div class="thumb ph" style="width:44px;height:44px;border-radius:50%"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div><div class="info"><div class="n">${esc(a.nombre)}</div><div class="m">${edadDesde(a.fecha_nac) != null ? edadDesde(a.fecha_nac) + " años" : esc(a.objetivo || "Sin datos")}</div></div><div class="acts"><button><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg></button></div></div>`).join("");
     cont.querySelectorAll("[data-alumno]").forEach((el) => (el.onclick = () => abrirAlumno(Number(el.dataset.alumno), el.querySelector(".n").textContent)));
   }
   // Modal invitar
-  $("al-invitar").onclick = () => { $("inv-nota").value = ""; $("inv-overlay").classList.add("on"); };
+  $("al-invitar").onclick = () => { $("inv-nota").value = ""; $("inv-overlay").classList.add("on"); $("inv-nota").focus(); };
   $("inv-cancelar").onclick = () => $("inv-overlay").classList.remove("on");
   $("inv-generar").onclick = async () => {
     $("inv-generar").disabled = true;
@@ -437,16 +489,43 @@
     } catch (e) { alert(e.message); } finally { $("inv-generar").disabled = false; }
   };
 
+  // ---------- Helpers de fecha / edad ----------
+  function fmtFecha(iso) {
+    if (!iso) return "";
+    try { return new Date(iso + "T00:00:00").toLocaleDateString("es-AR", { weekday: "short", day: "numeric", month: "short" }); }
+    catch { return iso; }
+  }
+  const hoyISO = () => new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD local
+  const esHoy = (iso) => !!iso && iso === hoyISO();
+  function edadDesde(iso) {
+    if (!iso) return null;
+    const n = new Date(iso + "T00:00:00"); if (isNaN(n)) return null;
+    const h = new Date(); let e = h.getFullYear() - n.getFullYear();
+    const m = h.getMonth() - n.getMonth();
+    if (m < 0 || (m === 0 && h.getDate() < n.getDate())) e--;
+    return e >= 0 && e < 120 ? e : null;
+  }
+  // Mismo criterio que el backend: días con fecha primero (por fecha), después los sin fecha (por orden).
+  function ordenarRutina(arr) {
+    arr.sort((a, b) => {
+      const af = a.fecha || "", bf = b.fecha || "";
+      if (af && bf) return af < bf ? -1 : af > bf ? 1 : (a.orden || 0) - (b.orden || 0);
+      if (af) return -1; if (bf) return 1;
+      return (a.orden || 0) - (b.orden || 0);
+    });
+    return arr;
+  }
+
   // ---------- RUTINA ----------
   let alumnoActual = null;
   async function abrirAlumno(id, nombre) {
     alumnoActual = { id, nombre };
     $("rut-nombre").textContent = nombre;
     $("profe-main").style.display = "none";
-    $("profe-rutina").style.display = "block";
+    $("profe-rutina").style.display = "flex";
     await cargarRutina();
   }
-  $("rut-volver").onclick = () => { $("profe-rutina").style.display = "none"; $("profe-main").style.display = "block"; };
+  $("rut-volver").onclick = () => { $("profe-rutina").style.display = "none"; $("profe-main").style.display = "flex"; };
 
   let RUTINA = [];
   async function cargarRutina() {
@@ -462,7 +541,8 @@
         const ejs = (b.ejercicios || []).map((e) => `<div class="rej"><div class="rn">${esc(e.nombre)}</div><div class="rs">${e.series ? e.series + "×" : ""}${esc(e.reps || "")}${e.pausa ? " · " + esc(e.pausa) : ""}</div><button data-delrej="${e.id}"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>`).join("");
         return `<div class="bloque"><div class="bloque-head"><span class="bn">${esc(b.nombre)}</span><span class="bp">${b.pausa ? esc(b.pausa) : ""} <button data-delbloque="${b.id}" style="background:none;border:none;color:var(--muted);cursor:pointer;margin-left:4px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button></span></div>${ejs}<button class="miniadd" data-addrej="${b.id}">+ ejercicio</button></div>`;
       }).join("");
-      return `<div class="dia"><div class="dia-head"><span class="dn">${esc(d.nombre)}</span><button data-deldia="${d.id}" style="background:none;border:none;color:var(--muted);cursor:pointer"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button></div><div class="dia-body">${bloques}<button class="miniadd" data-addbloque="${d.id}">+ bloque</button></div></div>`;
+      const fechaHtml = d.fecha ? `<div class="dia-fecha">${esc(fmtFecha(d.fecha))}${esHoy(d.fecha) ? '<span class="hoy-pill">Hoy</span>' : ""}</div>` : "";
+      return `<div class="dia${esHoy(d.fecha) ? " hoy" : ""}"><div class="dia-head"><div style="min-width:0"><span class="dn">${esc(d.nombre)}</span>${fechaHtml}</div><button data-deldia="${d.id}" style="background:none;border:none;color:var(--muted);cursor:pointer;flex-shrink:0"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button></div><div class="dia-body">${bloques}<button class="miniadd" data-addbloque="${d.id}">+ bloque</button></div></div>`;
     }).join("");
     cont.querySelectorAll("[data-deldia]").forEach((b) => (b.onclick = () => borrarNodo("dias", Number(b.dataset.deldia), "¿Borrar el día completo?")));
     cont.querySelectorAll("[data-delbloque]").forEach((b) => (b.onclick = () => borrarNodo("bloques", Number(b.dataset.delbloque), "¿Borrar el bloque?")));
@@ -470,26 +550,57 @@
     cont.querySelectorAll("[data-addbloque]").forEach((b) => (b.onclick = () => abrirBloque(Number(b.dataset.addbloque))));
     cont.querySelectorAll("[data-addrej]").forEach((b) => (b.onclick = () => abrirRej(Number(b.dataset.addrej))));
   }
-  async function borrarNodo(tipo, id, pregunta) { if (pregunta && !confirm(pregunta)) return; await api("/" + tipo + "/" + id, "DELETE", null, true); await cargarRutina(); }
+  async function borrarNodo(tipo, id, pregunta) {
+    if (pregunta && !confirm(pregunta)) return;
+    // Quitamos del modelo local y renderizamos ya (punto 6)
+    if (tipo === "dias") RUTINA = RUTINA.filter((d) => d.id !== id);
+    else if (tipo === "bloques") RUTINA.forEach((d) => { d.bloques = (d.bloques || []).filter((b) => b.id !== id); });
+    else if (tipo === "ejercicios") RUTINA.forEach((d) => (d.bloques || []).forEach((b) => { b.ejercicios = (b.ejercicios || []).filter((e) => e.id !== id); }));
+    renderRutina();
+    try { await api("/" + tipo + "/" + id, "DELETE", null, true); }
+    catch (e) { alert("No se pudo borrar: " + e.message); await cargarRutina(); } // resync si el server rechazó
+  }
 
   // Modal día
-  $("rut-add-dia").onclick = () => { $("dia-nombre").value = "Día " + (RUTINA.length + 1); $("dia-overlay").classList.add("on"); };
+  $("rut-add-dia").onclick = () => { $("dia-nombre").value = "Día " + (RUTINA.length + 1); $("dia-fecha").value = ""; $("dia-overlay").classList.add("on"); $("dia-nombre").focus(); };
   $("dia-cancelar").onclick = () => $("dia-overlay").classList.remove("on");
-  $("dia-guardar").onclick = async () => { const nombre = $("dia-nombre").value.trim(); if (!nombre) return; await api("/dias", "POST", { alumno_id: alumnoActual.id, nombre, orden: RUTINA.length }, true); $("dia-overlay").classList.remove("on"); await cargarRutina(); };
+  $("dia-guardar").onclick = async () => {
+    const nombre = $("dia-nombre").value.trim(); if (!nombre) return;
+    const fecha = $("dia-fecha").value || null;
+    const btn = $("dia-guardar"); btn.disabled = true;
+    try {
+      const r = await api("/dias", "POST", { alumno_id: alumnoActual.id, nombre, orden: RUTINA.length, fecha }, true);
+      $("dia-overlay").classList.remove("on");
+      RUTINA.push({ id: r.id, nombre, orden: RUTINA.length, fecha, bloques: [] });
+      ordenarRutina(RUTINA); renderRutina();
+    } catch (e) { alert(e.message); } finally { btn.disabled = false; }
+  };
 
   // Modal bloque
   let bloqueDiaId = null;
-  function abrirBloque(diaId) { bloqueDiaId = diaId; $("bloque-nombre").value = ""; $("bloque-pausa").value = ""; $("bloque-overlay").classList.add("on"); }
+  function abrirBloque(diaId) { bloqueDiaId = diaId; $("bloque-nombre").value = ""; $("bloque-pausa").value = ""; $("bloque-overlay").classList.add("on"); $("bloque-nombre").focus(); }
   $("bloque-cancelar").onclick = () => $("bloque-overlay").classList.remove("on");
-  $("bloque-guardar").onclick = async () => { const nombre = $("bloque-nombre").value.trim(); if (!nombre) return; const pausa = $("bloque-pausa").value.trim(); await api("/bloques", "POST", { dia_id: bloqueDiaId, nombre, pausa, orden: 0 }, true); $("bloque-overlay").classList.remove("on"); await cargarRutina(); };
+  $("bloque-guardar").onclick = async () => {
+    const nombre = $("bloque-nombre").value.trim(); if (!nombre) return;
+    const pausa = $("bloque-pausa").value.trim();
+    const btn = $("bloque-guardar"); btn.disabled = true;
+    try {
+      const r = await api("/bloques", "POST", { dia_id: bloqueDiaId, nombre, pausa, orden: 0 }, true);
+      $("bloque-overlay").classList.remove("on");
+      const dia = RUTINA.find((d) => d.id === bloqueDiaId);
+      if (dia) { (dia.bloques = dia.bloques || []).push({ id: r.id, dia_id: bloqueDiaId, nombre, pausa: pausa || null, orden: 0, ejercicios: [] }); renderRutina(); }
+      else { await cargarRutina(); }
+    } catch (e) { alert(e.message); } finally { btn.disabled = false; }
+  };
 
   // Modal ejercicio de rutina (autocomplete)
   let rejBloqueId = null, catSeleccionado = null;
   function abrirRej(bloqueId) {
     rejBloqueId = bloqueId; catSeleccionado = null;
     $("rej-buscar").value = ""; $("rej-series").value = ""; $("rej-reps").value = ""; $("rej-pausa").value = "";
+    $("rej-porlado").checked = false;
     $("rej-sel").classList.remove("on"); $("rej-list").classList.remove("on"); $("rej-buscar").style.display = "";
-    msg($("rej-msg"), "", ""); $("rej-overlay").classList.add("on");
+    msg($("rej-msg"), "", ""); $("rej-overlay").classList.add("on"); $("rej-buscar").focus();
   }
   $("rej-cancelar").onclick = () => $("rej-overlay").classList.remove("on");
   $("rej-buscar").oninput = () => {
@@ -509,10 +620,95 @@
   $("rej-guardar").onclick = async () => {
     if (!catSeleccionado) return msg($("rej-msg"), "Elegí un ejercicio del catálogo", "error");
     const series = $("rej-series").value ? Number($("rej-series").value) : null;
-    const reps = $("rej-reps").value.trim(), pausa = $("rej-pausa").value.trim();
+    let reps = $("rej-reps").value.trim();
+    if ($("rej-porlado").checked) reps = reps ? reps + "/lado" : "por lado"; // punto 4
+    const pausa = $("rej-pausa").value.trim();
     $("rej-guardar").disabled = true;
-    try { await api("/ejercicios", "POST", { bloque_id: rejBloqueId, catalogo_id: catSeleccionado.id, series, reps, pausa, orden: 0 }, true); $("rej-overlay").classList.remove("on"); await cargarRutina(); }
+    try {
+      const r = await api("/ejercicios", "POST", { bloque_id: rejBloqueId, catalogo_id: catSeleccionado.id, series, reps, pausa, orden: 0 }, true);
+      $("rej-overlay").classList.remove("on");
+      // alta optimista (punto 6): insertamos en el bloque local sin re-consultar
+      let ok = false;
+      for (const d of RUTINA) {
+        const b = (d.bloques || []).find((x) => x.id === rejBloqueId);
+        if (b) { (b.ejercicios = b.ejercicios || []).push({ id: r.id, bloque_id: rejBloqueId, orden: 0, series, reps: reps || null, pausa: pausa || null, notas: null, catalogo_id: catSeleccionado.id, nombre: catSeleccionado.nombre, material: catSeleccionado.material, video_id: catSeleccionado.video_id }); ok = true; break; }
+      }
+      if (ok) renderRutina(); else await cargarRutina();
+    }
     catch (e) { msg($("rej-msg"), e.message, "error"); } finally { $("rej-guardar").disabled = false; }
+  };
+
+  // ---------- RUTINA DEL ALUMNO (vista) ----------
+  let MI_RUTINA = [];
+  let HECHOS = {}; // ejercicio_id -> última carga registrada (para el ✓)
+  async function cargarMiRutina() {
+    const cont = $("al-rutina");
+    cont.innerHTML = `<div class="empty"><p>Cargando tu rutina...</p></div>`;
+    try {
+      const data = await api("/mi-rutina", "GET", null, true);
+      MI_RUTINA = data.dias || [];
+      HECHOS = {};
+      try {
+        const cargas = await api("/mis-cargas", "GET", null, true);
+        (cargas || []).forEach((c) => { if (!HECHOS[c.ejercicio_id]) HECHOS[c.ejercicio_id] = c; }); // vienen DESC: queda la más reciente
+      } catch {}
+      renderMiRutina();
+    } catch (e) {
+      cont.innerHTML = `<div class="empty"><p>No pudimos cargar tu rutina.<br>${esc(e.message)}</p></div>`;
+    }
+  }
+  function renderMiRutina() {
+    const cont = $("al-rutina");
+    if (!MI_RUTINA.length) {
+      cont.innerHTML = `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></svg><p>Tu profe todavía no te cargó la rutina.<br>Cuando lo haga, aparece acá.</p></div>`;
+      return;
+    }
+    cont.innerHTML = MI_RUTINA.map((d) => {
+      const bloques = (d.bloques || []).map((b) => {
+        const ejs = (b.ejercicios || []).map((e) => {
+          const done = HECHOS[e.id];
+          const thumb = e.video_id
+            ? `<a class="athumb" href="https://www.youtube.com/watch?v=${encodeURIComponent(e.video_id)}" target="_blank" rel="noopener"><img src="${thumbURL(e.video_id)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:8px;display:block"><span class="play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span></a>`
+            : `<div class="athumb ph"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M8 5v14l11-7z"/></svg></div>`;
+          const serie = `${e.series ? e.series + "×" : ""}${esc(e.reps || "")}${e.pausa ? " · " + esc(e.pausa) : ""}`;
+          const doneHtml = done ? `<div class="adone">✓ ${done.peso != null ? esc(String(done.peso)) + "kg" : "hecho"}${done.reps_hechas ? " · " + esc(done.reps_hechas) : ""}</div>` : "";
+          return `<div class="aej">${thumb}<div class="ainfo"><div class="an">${esc(e.nombre)}</div><div class="as">${serie || "&nbsp;"}</div>${doneHtml}</div><button class="areg${done ? " done" : ""}" data-reg="${e.id}" data-nombre="${esc(e.nombre)}" title="Registrar"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button></div>`;
+        }).join("");
+        return `<div class="bloque"><div class="bloque-head"><span class="bn">${esc(b.nombre)}</span><span class="bp">${b.pausa ? esc(b.pausa) : ""}</span></div>${ejs || '<div class="as" style="color:var(--muted);font-size:12px;padding:6px 0">Sin ejercicios</div>'}</div>`;
+      }).join("");
+      const fechaHtml = d.fecha ? `<div class="dia-fecha">${esc(fmtFecha(d.fecha))}${esHoy(d.fecha) ? '<span class="hoy-pill">Hoy</span>' : ""}</div>` : "";
+      return `<div class="dia${esHoy(d.fecha) ? " hoy" : ""}"><div class="dia-head"><div style="min-width:0"><span class="dn">${esc(d.nombre)}</span>${fechaHtml}</div></div><div class="dia-body">${bloques || '<div class="as" style="color:var(--muted);font-size:12px;padding:6px 0">Sin bloques todavía</div>'}</div></div>`;
+    }).join("");
+    cont.querySelectorAll("[data-reg]").forEach((b) => (b.onclick = () => abrirCarga(Number(b.dataset.reg), b.dataset.nombre)));
+  }
+
+  // ---------- Registrar carga (alumno) ----------
+  let cargaEjId = null;
+  function abrirCarga(ejId, nombre) {
+    cargaEjId = ejId;
+    $("carga-title").textContent = nombre || "Registrar";
+    const prev = HECHOS[ejId];
+    $("carga-peso").value = prev && prev.peso != null ? prev.peso : "";
+    $("carga-reps").value = prev && prev.reps_hechas ? prev.reps_hechas : "";
+    $("carga-completado").checked = prev ? !!prev.completado : true;
+    $("carga-notas").value = "";
+    msg($("carga-msg"), "", "");
+    $("carga-overlay").classList.add("on");
+    $("carga-peso").focus();
+  }
+  $("carga-cancelar").onclick = () => $("carga-overlay").classList.remove("on");
+  $("carga-guardar").onclick = async () => {
+    const peso = $("carga-peso").value !== "" ? Number($("carga-peso").value) : null;
+    const reps_hechas = $("carga-reps").value.trim() || null;
+    const completado = $("carga-completado").checked;
+    const notas = $("carga-notas").value.trim() || null;
+    const btn = $("carga-guardar"); btn.disabled = true;
+    try {
+      const r = await api("/cargas", "POST", { ejercicio_id: cargaEjId, peso, reps_hechas, completado, notas }, true);
+      HECHOS[cargaEjId] = { id: r.id, ejercicio_id: cargaEjId, peso, reps_hechas, completado: completado ? 1 : 0, notas };
+      $("carga-overlay").classList.remove("on");
+      renderMiRutina();
+    } catch (e) { msg($("carga-msg"), e.message, "error"); } finally { btn.disabled = false; }
   };
 
   // ---------- Tabs ----------
@@ -522,7 +718,7 @@
   $("login-btn").onclick = async () => { const email = $("login-email").value.trim(), pass = $("login-pass").value; if (!email || !pass) return msg($("login-msg"), "Completá email y contraseña", "error"); $("login-btn").disabled = true; try { const r = await api("/login", "POST", { email, password: pass }); guardarToken(r.token); await entrar(r.rol); } catch (e) { msg($("login-msg"), e.message, "error"); } finally { $("login-btn").disabled = false; } };
   $("rp-btn").onclick = async () => { const nombre = $("rp-nombre").value.trim(), email = $("rp-email").value.trim(), pass = $("rp-pass").value; if (!nombre || !email || !pass) return msg($("rp-msg"), "Completá todos los campos", "error"); if (pass.length < 8) return msg($("rp-msg"), "La contraseña necesita 8 caracteres o más", "error"); if (pass !== $("rp-pass2").value) return msg($("rp-msg"), "Las contraseñas no coinciden", "error"); $("rp-btn").disabled = true; try { const r = await api("/registro/profe", "POST", { nombre, email, password: pass }); guardarToken(r.token); await entrar("profe"); } catch (e) { msg($("rp-msg"), e.message, "error"); } finally { $("rp-btn").disabled = false; } };
   let codigoInvitacion = null;
-  $("ra-btn").onclick = async () => { const nombre = $("ra-nombre").value.trim(), email = $("ra-email").value.trim(), pass = $("ra-pass").value, objetivo = $("ra-objetivo").value || null; if (!nombre || !email || !pass) return msg($("ra-msg"), "Completá nombre, email y contraseña", "error"); if (pass.length < 8) return msg($("ra-msg"), "La contraseña necesita 8 caracteres o más", "error"); if (pass !== $("ra-pass2").value) return msg($("ra-msg"), "Las contraseñas no coinciden", "error"); $("ra-btn").disabled = true; try { const r = await api("/registro/alumno", "POST", { nombre, email, password: pass, codigo_invitacion: codigoInvitacion, objetivo }, false); guardarToken(r.token); await entrar("alumno"); } catch (e) { msg($("ra-msg"), e.message, "error"); } finally { $("ra-btn").disabled = false; } };
+  $("ra-btn").onclick = async () => { const nombre = $("ra-nombre").value.trim(), email = $("ra-email").value.trim(), pass = $("ra-pass").value, fecha_nac = $("ra-fecha-nac").value || null; if (!nombre || !email || !pass) return msg($("ra-msg"), "Completá nombre, email y contraseña", "error"); if (pass.length < 8) return msg($("ra-msg"), "La contraseña necesita 8 caracteres o más", "error"); if (pass !== $("ra-pass2").value) return msg($("ra-msg"), "Las contraseñas no coinciden", "error"); $("ra-btn").disabled = true; try { const r = await api("/registro/alumno", "POST", { nombre, email, password: pass, codigo_invitacion: codigoInvitacion, fecha_nac }, false); guardarToken(r.token); await entrar("alumno"); } catch (e) { msg($("ra-msg"), e.message, "error"); } finally { $("ra-btn").disabled = false; } };
   $("to-registro-profe").onclick = () => showAuth("s-reg-profe");
   $("to-login-1").onclick = () => showAuth("s-login");
   const salir = async () => { try { await api("/logout", "POST", null, true); } catch {} borrarToken(); showAuth("s-login"); };

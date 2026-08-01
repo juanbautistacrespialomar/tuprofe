@@ -99,7 +99,8 @@ CREATE TABLE dias (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
   alumno_id  INTEGER NOT NULL REFERENCES alumnos(id) ON DELETE CASCADE,
   nombre     TEXT NOT NULL,
-  orden      INTEGER NOT NULL DEFAULT 0
+  orden      INTEGER NOT NULL DEFAULT 0,
+  fecha      TEXT              -- fecha asignada por el profe (YYYY-MM-DD), opcional
 );
 
 -- ------------------------------------------------------------
