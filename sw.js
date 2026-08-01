@@ -1,14 +1,19 @@
 // Service worker de Tu Profe.
-// Network-first (siempre trae lo último si hay internet; cache = respaldo offline).
-// NO se auto-actualiza: espera a que el usuario toque "Actualizar" (SKIP_WAITING),
-// así el cambio es controlado y no se recarga solo mientras la usás.
+// AUTO-UPDATE garantizado, sin reinstalar:
+//   - skipWaiting(): la versión nueva se activa de una, no espera.
+//   - message SKIP_WAITING: desbloquea cualquier versión que haya quedado "esperando".
+//   - clients.claim(): toma control de las pestañas abiertas.
+//   - controllerchange en el cliente: recarga la app sola.
+// Network-first: siempre trae lo último si hay internet; cache = respaldo offline.
+//
+// Para publicar: subí el número de CACHE (v6 -> v7 -> ...).
 
-const CACHE = "tuprofe-v3";
+const CACHE = "tuprofe-v6";
 const SHELL = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)));
-  // Sin skipWaiting acá: queda "esperando" hasta que el usuario toque Actualizar.
+  self.skipWaiting();
 });
 
 self.addEventListener("message", (e) => {
