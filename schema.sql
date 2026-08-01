@@ -13,6 +13,7 @@
 --          sesión persistente por token.
 -- ============================================================
 
+DROP TABLE IF EXISTS invitaciones;
 DROP TABLE IF EXISTS sesiones;
 DROP TABLE IF EXISTS cargas;
 DROP TABLE IF EXISTS ejercicios;
@@ -62,6 +63,19 @@ CREATE TABLE sesiones (
   rol         TEXT NOT NULL,
   usuario_id  INTEGER NOT NULL,
   creado      TEXT DEFAULT (datetime('now'))
+);
+
+-- ------------------------------------------------------------
+-- INVITACIONES  (de un solo uso: un link por alumno)
+-- ------------------------------------------------------------
+CREATE TABLE invitaciones (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  profe_id   INTEGER NOT NULL REFERENCES profesores(id) ON DELETE CASCADE,
+  codigo     TEXT UNIQUE NOT NULL,
+  usada      INTEGER NOT NULL DEFAULT 0,
+  alumno_id  INTEGER,
+  nota       TEXT,
+  creada     TEXT DEFAULT (datetime('now'))
 );
 
 -- ------------------------------------------------------------
@@ -133,6 +147,7 @@ CREATE TABLE cargas (
 -- ------------------------------------------------------------
 CREATE INDEX idx_alumnos_profe    ON alumnos(profe_id);
 CREATE INDEX idx_sesiones_usuario ON sesiones(rol, usuario_id);
+CREATE INDEX idx_invitaciones_profe ON invitaciones(profe_id);
 CREATE INDEX idx_catalogo_profe   ON catalogo_ejercicios(profe_id);
 CREATE INDEX idx_dias_alumno      ON dias(alumno_id);
 CREATE INDEX idx_bloques_dia      ON bloques(dia_id);
