@@ -1,14 +1,18 @@
 // Service worker de Tu Profe.
-// Estrategia: NETWORK-FIRST para la app (siempre trae lo último si hay
-// internet), y el cache queda solo como respaldo para usar sin conexión.
-// Así las actualizaciones se ven al recargar, sin quedar pegado a una copia vieja.
+// Network-first (siempre trae lo último si hay internet; cache = respaldo offline).
+// NO se auto-actualiza: espera a que el usuario toque "Actualizar" (SKIP_WAITING),
+// así el cambio es controlado y no se recarga solo mientras la usás.
 
-const CACHE = "tuprofe-v2";
+const CACHE = "tuprofe-v3";
 const SHELL = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)));
-  self.skipWaiting();
+  // Sin skipWaiting acá: queda "esperando" hasta que el usuario toque Actualizar.
+});
+
+self.addEventListener("message", (e) => {
+  if (e.data && e.data.type === "SKIP_WAITING") self.skipWaiting();
 });
 
 self.addEventListener("activate", (e) => {
@@ -22,11 +26,8 @@ self.addEventListener("activate", (e) => {
 
 self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
+  if (url.hostname.endsWith("workers.dev")) return; // API siempre a la red
 
-  // La API siempre va a la red directa (nunca la tocamos)
-  if (url.hostname.endsWith("workers.dev")) return;
-
-  // Navegaciones y HTML: primero red, si falla (offline) usamos el cache
   const esDoc = e.request.mode === "navigate" || e.request.destination === "document";
   if (esDoc) {
     e.respondWith(
@@ -39,7 +40,5 @@ self.addEventListener("fetch", (e) => {
     );
     return;
   }
-
-  // Resto de assets (íconos, etc.): primero cache, si no está, red
   e.respondWith(caches.match(e.request).then((r) => r || fetch(e.request)));
 });

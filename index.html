@@ -253,7 +253,12 @@
   </div>
 </div>
 
-<div style="position:fixed;bottom:5px;left:0;right:0;text-align:center;font-size:11px;color:#3a3a3a;pointer-events:none;z-index:1">Tu Profe v3</div>
+<div id="update-bar" style="display:none;position:fixed;left:0;right:0;bottom:0;z-index:50;align-items:center;justify-content:space-between;gap:12px;background:var(--accent);color:var(--accent-ink);padding:12px 16px calc(12px + env(safe-area-inset-bottom));font-size:14px;font-weight:500">
+  <span>Hay una nueva versión disponible</span>
+  <button id="update-btn" style="background:var(--accent-ink);color:var(--accent);border:none;border-radius:10px;padding:9px 18px;font-weight:600;font-size:14px;cursor:pointer">Actualizar</button>
+</div>
+
+<div style="position:fixed;bottom:5px;left:0;right:0;text-align:center;font-size:11px;color:#3a3a3a;pointer-events:none;z-index:1">Tu Profe v4</div>
 
 <script>
   const API = "https://tuprofe-api.juanbautistacrespialomar.workers.dev";
@@ -479,7 +484,31 @@
   })();
 
   if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+    let waitingWorker = null, recargando = false;
+    const mostrarUpdate = (w) => { waitingWorker = w; $("update-bar").style.display = "flex"; };
+
+    navigator.serviceWorker.register("sw.js").then((reg) => {
+      // ¿Ya hay una versión nueva esperando desde antes?
+      if (reg.waiting && navigator.serviceWorker.controller) mostrarUpdate(reg.waiting);
+      // Detectar cuando se instala una versión nueva
+      reg.addEventListener("updatefound", () => {
+        const nw = reg.installing;
+        if (!nw) return;
+        nw.addEventListener("statechange", () => {
+          if (nw.state === "installed" && navigator.serviceWorker.controller) mostrarUpdate(nw);
+        });
+      });
+      // Chequear si hay update cada vez que volvés a la app
+      document.addEventListener("visibilitychange", () => { if (!document.hidden) reg.update(); });
+    }).catch(() => {});
+
+    // Cuando la nueva versión toma control, recargar una sola vez
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (recargando) return; recargando = true; location.reload();
+    });
+
+    // El botón le pide a la nueva versión que se active
+    $("update-btn").onclick = () => { if (waitingWorker) waitingWorker.postMessage({ type: "SKIP_WAITING" }); };
   }
 </script>
 </body>
