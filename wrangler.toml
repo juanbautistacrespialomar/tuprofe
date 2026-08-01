@@ -12,7 +12,7 @@ compatibility_date = "2026-01-01"
 [[d1_databases]]
 binding = "DB"                       # así se llama dentro del Worker: env.DB
 database_name = "tuprofe-db"
-database_id = "PEGAR-ACA-EL-ID-QUE-TE-DA-CLOUDFLARE"
+database_id = "a22c0b4b-eca8-42ac-9638-1a51537948f8"
 
 # No hace falta ningún secret: las sesiones usan tokens aleatorios
 # guardados en la base, y las contraseñas se hashean con PBKDF2 (nativo).
