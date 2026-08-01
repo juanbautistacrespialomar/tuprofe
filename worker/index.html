@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0a0a0a" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="tuprofe" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<link rel="manifest" href="manifest.json" />
+<title>tuprofe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --surface: #161616;
+    --surface-2: #1e1e1e;
+    --border: #262626;
+    --accent: #c4f000;
+    --accent-ink: #1a2200;
+    --text: #ffffff;
+    --muted: #8a8a8a;
+    --danger: #ff5d5d;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Inter", system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+  .wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    max-width: 440px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 32px 22px calc(32px + env(safe-area-inset-bottom));
+  }
+  .brand { text-align: center; margin-bottom: 30px; }
+  .brand .mark {
+    display: inline-flex; width: 74px; height: 74px;
+    border-radius: 18px; overflow: hidden; margin-bottom: 14px;
+  }
+  .brand .mark img { width: 100%; height: 100%; display: block; }
+  .brand h1 {
+    font-family: "Anton", sans-serif; font-weight: 400;
+    font-size: 40px; letter-spacing: 0.5px; line-height: 1;
+    text-transform: lowercase;
+  }
+  .brand p { color: var(--muted); font-size: 14px; margin-top: 6px; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; padding: 22px 20px;
+  }
+  .field { margin-bottom: 14px; }
+  .field label {
+    display: block; font-size: 12px; color: var(--muted);
+    margin-bottom: 7px; letter-spacing: 0.3px;
+  }
+  .input-wrap { position: relative; display: flex; align-items: center; }
+  .input-wrap svg {
+    position: absolute; left: 13px; width: 18px; height: 18px;
+    stroke: var(--muted); pointer-events: none;
+  }
+  input, select {
+    width: 100%; height: 50px;
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: var(--radius); color: var(--text);
+    font-family: inherit; font-size: 15px;
+    padding: 0 14px 0 42px; outline: none;
+    transition: border-color .15s;
+  }
+  select { padding-left: 14px; appearance: none; }
+  input::placeholder { color: #5c5c5c; }
+  input:focus, select:focus { border-color: var(--accent); }
+
+  .btn {
+    width: 100%; height: 52px; border: none; border-radius: var(--radius);
+    background: var(--accent); color: var(--accent-ink);
+    font-family: "Inter", sans-serif; font-weight: 600; font-size: 16px;
+    cursor: pointer; margin-top: 6px;
+    transition: transform .08s, opacity .15s;
+  }
+  .btn:active { transform: scale(0.985); }
+  .btn:disabled { opacity: .55; cursor: default; }
+  .btn.ghost {
+    background: transparent; color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .switch { text-align: center; margin-top: 18px; font-size: 14px; color: var(--muted); }
+  .switch a { color: var(--accent); text-decoration: none; font-weight: 500; cursor: pointer; }
+
+  .msg { font-size: 13.5px; margin-top: 4px; margin-bottom: 12px; display: none; padding: 10px 12px; border-radius: 10px; }
+  .msg.error { display: block; background: rgba(255,93,93,.1); color: var(--danger); border: 1px solid rgba(255,93,93,.25); }
+  .msg.ok { display: block; background: rgba(196,240,0,.08); color: var(--accent); border: 1px solid rgba(196,240,0,.25); }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  .invite-box {
+    background: var(--surface-2); border: 1px dashed var(--border);
+    border-radius: var(--radius); padding: 14px; margin: 16px 0;
+    text-align: center;
+  }
+  .invite-box .code {
+    font-family: "Anton", sans-serif; font-size: 26px; color: var(--accent);
+    letter-spacing: 2px; margin: 6px 0;
+  }
+  .invite-box small { color: var(--muted); font-size: 12px; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: -8px; margin-bottom: 14px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="brand">
+    <span class="mark">
+      <img src="icon-192.png" alt="tuprofe" />
+    </span>
+    <h1>tuprofe</h1>
+    <p id="brand-sub">Entrá a tu cuenta</p>
+  </div>
+
+  <!-- ================= LOGIN ================= -->
+  <div class="screen active" id="s-login">
+    <div class="card">
+      <div class="msg" id="login-msg"></div>
+      <div class="field">
+        <label>Email</label>
+        <div class="input-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 7l9 6 9-6"/><rect x="3" y="5" width="18" height="14" rx="2"/></svg>
+          <input type="email" id="login-email" placeholder="nombre@mail.com" autocomplete="email" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Contraseña</label>
+        <div class="input-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+          <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" />
+        </div>
+      </div>
+      <button class="btn" id="login-btn">Entrar</button>
+    </div>
+    <div class="switch">¿Sos profe y no tenés cuenta? <a id="to-registro-profe">Crear cuenta</a></div>
+  </div>
+
+  <!-- ============= REGISTRO PROFE ============= -->
+  <div class="screen" id="s-reg-profe">
+    <div class="card">
+      <div class="msg" id="rp-msg"></div>
+      <div class="field">
+        <label>Tu nombre</label>
+        <div class="input-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+          <input type="text" id="rp-nombre" placeholder="Francisco Diberti" autocomplete="name" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <div class="input-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 7l9 6 9-6"/><rect x="3" y="5" width="18" height="14" rx="2"/></svg>
+          <input type="email" id="rp-email" placeholder="nombre@mail.com" autocomplete="email" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Contraseña</label>
+        <div class="input-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+          <input type="password" id="rp-pass" placeholder="mínimo 8 caracteres" autocomplete="new-password" />
+        </div>
+      </div>
+      <button class="btn" id="rp-btn">Crear cuenta</button>
+    </div>
+    <div class="switch">¿Ya tenés cuenta? <a id="to-login-1">Entrar</a></div>
+  </div>
+
+  <!-- ============= REGISTRO ALUMNO ============= -->
+  <div class="screen" id="s-reg-alumno">
+    <div class="card">
+      <div class="msg" id="ra-msg"></div>
+      <p class="hint">Te invitó tu profe. Creá tu cuenta para ver tu rutina.</p>
+      <div class="field">
+        <label>Tu nombre</label>
+        <div class="input-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+          <input type="text" id="ra-nombre" placeholder="Tu nombre" autocomplete="name" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <div class="input-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 7l9 6 9-6"/><rect x="3" y="5" width="18" height="14" rx="2"/></svg>
+          <input type="email" id="ra-email" placeholder="nombre@mail.com" autocomplete="email" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Contraseña</label>
+        <div class="input-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+          <input type="password" id="ra-pass" placeholder="mínimo 8 caracteres" autocomplete="new-password" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Objetivo (opcional)</label>
+        <select id="ra-objetivo">
+          <option value="">Elegí uno...</option>
+          <option>Fuerza máxima</option>
+          <option>Hipertrofia</option>
+          <option>Recomposición corporal</option>
+          <option>Rendimiento deportivo</option>
+          <option>Otro</option>
+        </select>
+      </div>
+      <button class="btn" id="ra-btn">Crear cuenta</button>
+    </div>
+  </div>
+
+  <!-- ============= POST-LOGIN (placeholder) ============= -->
+  <div class="screen" id="s-home">
+    <div class="card">
+      <div class="msg ok" style="display:block">¡Entraste! <span id="home-hola"></span></div>
+      <div id="home-profe" style="display:none">
+        <p style="color:var(--muted);font-size:14px;margin:8px 0 4px">Este es el link para invitar a tus alumnos:</p>
+        <div class="invite-box">
+          <small>Tu código de invitación</small>
+          <div class="code" id="home-codigo">—</div>
+          <button class="btn ghost" id="copiar-link" style="height:44px;font-size:14px">Copiar link de invitación</button>
+        </div>
+        <p style="color:var(--muted);font-size:13px">Tu panel para armar el catálogo y las rutinas está en construcción. Lo hacemos en el próximo paso.</p>
+      </div>
+      <div id="home-alumno" style="display:none">
+        <p style="color:var(--muted);font-size:14px;margin:8px 0">Tu rutina de entrenamiento va a aparecer acá. La estamos construyendo.</p>
+      </div>
+      <button class="btn ghost" id="salir-btn" style="margin-top:16px">Salir</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ====== Config ======
+  const API = "https://tuprofe-api.juanbautistacrespialomar.workers.dev";
+  const TOKEN_KEY = "tuprofe_token";
+
+  // ====== Helpers ======
+  const $ = (id) => document.getElementById(id);
+  const screens = ["s-login", "s-reg-profe", "s-reg-alumno", "s-home"];
+  function show(id) {
+    screens.forEach((s) => $(s).classList.toggle("active", s === id));
+    // el subtítulo de la marca cambia según la pantalla
+    const subs = {
+      "s-login": "Entrá a tu cuenta",
+      "s-reg-profe": "Creá tu cuenta de profe",
+      "s-reg-alumno": "Creá tu cuenta",
+      "s-home": "",
+    };
+    $("brand-sub").textContent = subs[id] || "";
+  }
+  function msg(el, text, type) {
+    el.textContent = text;
+    el.className = "msg " + (type || "");
+  }
+  function token() { return localStorage.getItem(TOKEN_KEY); }
+  function guardarToken(t) { localStorage.setItem(TOKEN_KEY, t); }
+  function borrarToken() { localStorage.removeItem(TOKEN_KEY); }
+
+  async function api(path, method, body, auth) {
+    const headers = { "Content-Type": "application/json" };
+    if (auth) headers["Authorization"] = "Bearer " + token();
+    const res = await fetch(API + path, {
+      method: method || "GET",
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "Algo salió mal");
+    return data;
+  }
+
+  // ====== Entrar a la app según el rol ======
+  function entrar(datos) {
+    show("s-home");
+    $("home-hola").textContent = datos.nombre ? "Hola, " + datos.nombre : "";
+    const esProfe = datos.rol === "profe";
+    $("home-profe").style.display = esProfe ? "block" : "none";
+    $("home-alumno").style.display = esProfe ? "none" : "block";
+    if (esProfe && datos.codigo_invitacion) {
+      $("home-codigo").textContent = datos.codigo_invitacion;
+      const link = location.origin + location.pathname + "?invita=" + datos.codigo_invitacion;
+      $("copiar-link").onclick = async () => {
+        try {
+          await navigator.clipboard.writeText(link);
+          $("copiar-link").textContent = "¡Link copiado!";
+          setTimeout(() => ($("copiar-link").textContent = "Copiar link de invitación"), 1800);
+        } catch { prompt("Copiá este link:", link); }
+      };
+    }
+  }
+
+  // ====== LOGIN ======
+  $("login-btn").onclick = async () => {
+    const email = $("login-email").value.trim();
+    const pass = $("login-pass").value;
+    if (!email || !pass) return msg($("login-msg"), "Completá email y contraseña", "error");
+    $("login-btn").disabled = true;
+    try {
+      const r = await api("/login", "POST", { email, password: pass });
+      guardarToken(r.token);
+      const yo = await api("/yo", "GET", null, true);
+      entrar(yo);
+    } catch (e) {
+      msg($("login-msg"), e.message, "error");
+    } finally {
+      $("login-btn").disabled = false;
+    }
+  };
+
+  // ====== REGISTRO PROFE ======
+  $("rp-btn").onclick = async () => {
+    const nombre = $("rp-nombre").value.trim();
+    const email = $("rp-email").value.trim();
+    const pass = $("rp-pass").value;
+    if (!nombre || !email || !pass) return msg($("rp-msg"), "Completá todos los campos", "error");
+    if (pass.length < 8) return msg($("rp-msg"), "La contraseña necesita 8 caracteres o más", "error");
+    $("rp-btn").disabled = true;
+    try {
+      const r = await api("/registro/profe", "POST", { nombre, email, password: pass });
+      guardarToken(r.token);
+      entrar({ rol: "profe", nombre, codigo_invitacion: r.codigo_invitacion });
+    } catch (e) {
+      msg($("rp-msg"), e.message, "error");
+    } finally {
+      $("rp-btn").disabled = false;
+    }
+  };
+
+  // ====== REGISTRO ALUMNO ======
+  let codigoInvitacion = null;
+  $("ra-btn").onclick = async () => {
+    const nombre = $("ra-nombre").value.trim();
+    const email = $("ra-email").value.trim();
+    const pass = $("ra-pass").value;
+    const objetivo = $("ra-objetivo").value || null;
+    if (!nombre || !email || !pass) return msg($("ra-msg"), "Completá nombre, email y contraseña", "error");
+    if (pass.length < 8) return msg($("ra-msg"), "La contraseña necesita 8 caracteres o más", "error");
+    $("ra-btn").disabled = true;
+    try {
+      const r = await api("/registro/alumno", "POST", {
+        nombre, email, password: pass, codigo_invitacion: codigoInvitacion, objetivo,
+      });
+      guardarToken(r.token);
+      entrar({ rol: "alumno", nombre });
+    } catch (e) {
+      msg($("ra-msg"), e.message, "error");
+    } finally {
+      $("ra-btn").disabled = false;
+    }
+  };
+
+  // ====== Navegación entre pantallas ======
+  $("to-registro-profe").onclick = () => show("s-reg-profe");
+  $("to-login-1").onclick = () => show("s-login");
+  $("salir-btn").onclick = async () => {
+    try { await api("/logout", "POST", null, true); } catch {}
+    borrarToken();
+    show("s-login");
+  };
+
+  // ====== Arranque ======
+  (async function init() {
+    // ¿Vino por link de invitación?  ?invita=INV-XXXX
+    const params = new URLSearchParams(location.search);
+    const invita = params.get("invita");
+
+    // ¿Ya hay sesión guardada? -> entrar directo
+    if (token()) {
+      try {
+        const yo = await api("/yo", "GET", null, true);
+        entrar(yo);
+        return;
+      } catch {
+        borrarToken(); // token viejo/inválido
+      }
+    }
+
+    if (invita) {
+      codigoInvitacion = invita;
+      show("s-reg-alumno");
+    } else {
+      show("s-login");
+    }
+  })();
+
+  // ====== Service worker (para instalar la app) ======
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+    });
+  }
+</script>
+</body>
+</html>
