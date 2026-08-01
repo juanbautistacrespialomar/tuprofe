@@ -120,9 +120,19 @@ async function ejercicioEsDelAlumno(id, alumnoId, env) {
 
 // Rutina anidada: días -> bloques -> ejercicios (con datos del catálogo)
 async function armarRutina(alumnoId, env) {
-  const dias = (await env.DB.prepare(
-    "SELECT id, nombre, orden FROM dias WHERE alumno_id = ? ORDER BY orden"
-  ).bind(alumnoId).all()).results;
+  // Con fecha si la migración ya corrió; si no, degradamos sin romper.
+  // Orden: primero los días CON fecha (en orden de fecha), después los sin fecha (por 'orden').
+  let dias;
+  try {
+    dias = (await env.DB.prepare(
+      "SELECT id, nombre, orden, fecha FROM dias WHERE alumno_id = ? ORDER BY (fecha IS NULL), fecha, orden"
+    ).bind(alumnoId).all()).results;
+  } catch (e) {
+    dias = (await env.DB.prepare(
+      "SELECT id, nombre, orden FROM dias WHERE alumno_id = ? ORDER BY orden"
+    ).bind(alumnoId).all()).results;
+    for (const d of dias) d.fecha = null;
+  }
 
   const bloques = (await env.DB.prepare(
     `SELECT b.id, b.dia_id, b.nombre, b.orden, b.pausa
@@ -323,7 +333,7 @@ export default {
       // --- ALUMNOS ---
       if (path === "/alumnos" && method === "GET" && esProfe) {
         const { results } = await env.DB.prepare(
-          "SELECT id, nombre, email, objetivo, creado FROM alumnos WHERE profe_id = ? ORDER BY nombre"
+          "SELECT id, nombre, email, fecha_nac, objetivo, creado FROM alumnos WHERE profe_id = ? ORDER BY nombre"
         ).bind(sesion.id).all();
         return json(results);
       }
@@ -351,18 +361,30 @@ export default {
 
       // --- DÍAS ---
       if (path === "/dias" && method === "POST" && esProfe) {
-        const { alumno_id, nombre, orden } = await request.json();
+        const { alumno_id, nombre, orden, fecha } = await request.json();
         if (!(await alumnoEsDelProfe(alumno_id, sesion.id, env))) return json({ error: "No es tu alumno" }, 403);
-        const r = await env.DB.prepare("INSERT INTO dias (alumno_id, nombre, orden) VALUES (?, ?, ?)")
-          .bind(alumno_id, nombre, orden || 0).run();
+        let r;
+        try {
+          r = await env.DB.prepare("INSERT INTO dias (alumno_id, nombre, orden, fecha) VALUES (?, ?, ?, ?)")
+            .bind(alumno_id, nombre, orden || 0, fecha || null).run();
+        } catch (e) {
+          // Migración de `fecha` todavía no corrida: guardamos el día igual (sin fecha).
+          r = await env.DB.prepare("INSERT INTO dias (alumno_id, nombre, orden) VALUES (?, ?, ?)")
+            .bind(alumno_id, nombre, orden || 0).run();
+        }
         return json({ id: r.meta.last_row_id }, 201);
       }
       if (seg[0] === "dias" && seg.length === 2 && method === "PUT" && esProfe) {
         const diaId = Number(seg[1]);
         if (!(await diaEsDelProfe(diaId, sesion.id, env))) return json({ error: "No autorizado" }, 403);
-        const { nombre, orden } = await request.json();
-        await env.DB.prepare("UPDATE dias SET nombre = ?, orden = ? WHERE id = ?")
-          .bind(nombre, orden || 0, diaId).run();
+        const { nombre, orden, fecha } = await request.json();
+        try {
+          await env.DB.prepare("UPDATE dias SET nombre = ?, orden = ?, fecha = ? WHERE id = ?")
+            .bind(nombre, orden || 0, fecha || null, diaId).run();
+        } catch (e) {
+          await env.DB.prepare("UPDATE dias SET nombre = ?, orden = ? WHERE id = ?")
+            .bind(nombre, orden || 0, diaId).run();
+        }
         return json({ ok: true });
       }
       if (seg[0] === "dias" && seg.length === 2 && method === "DELETE" && esProfe) {
