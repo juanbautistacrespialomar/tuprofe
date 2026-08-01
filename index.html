@@ -15,400 +15,468 @@
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
 <style>
   :root {
-    --bg: #0a0a0a;
-    --surface: #161616;
-    --surface-2: #1e1e1e;
-    --border: #262626;
-    --accent: #c4f000;
-    --accent-ink: #1a2200;
-    --text: #ffffff;
-    --muted: #8a8a8a;
-    --danger: #ff5d5d;
-    --radius: 14px;
+    --bg: #0a0a0a; --surface: #161616; --surface-2: #1e1e1e; --border: #262626;
+    --accent: #c4f000; --accent-ink: #1a2200;
+    --text: #ffffff; --muted: #8a8a8a; --danger: #ff5d5d; --radius: 14px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   html, body { height: 100%; }
   body {
-    background: var(--bg);
-    color: var(--text);
+    background: var(--bg); color: var(--text);
     font-family: "Inter", system-ui, -apple-system, sans-serif;
-    -webkit-font-smoothing: antialiased;
-    min-height: 100dvh;
-    display: flex;
-    flex-direction: column;
+    -webkit-font-smoothing: antialiased; min-height: 100dvh;
   }
+  input, select, button, textarea { font-family: inherit; }
+
+  /* ---------- AUTH ---------- */
   .wrap {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    max-width: 440px;
-    width: 100%;
-    margin: 0 auto;
+    min-height: 100dvh; display: flex; flex-direction: column; justify-content: center;
+    max-width: 440px; width: 100%; margin: 0 auto;
     padding: 32px 22px calc(32px + env(safe-area-inset-bottom));
   }
   .brand { text-align: center; margin-bottom: 30px; }
-  .brand .mark {
-    display: inline-flex; width: 74px; height: 74px;
-    border-radius: 18px; overflow: hidden; margin-bottom: 14px;
-  }
+  .brand .mark { display: inline-flex; width: 74px; height: 74px; border-radius: 18px; overflow: hidden; margin-bottom: 14px; }
   .brand .mark img { width: 100%; height: 100%; display: block; }
-  .brand h1 {
-    font-family: "Anton", sans-serif; font-weight: 400;
-    font-size: 40px; letter-spacing: 0.5px; line-height: 1;
-  }
+  .brand h1 { font-family: "Anton", sans-serif; font-weight: 400; font-size: 40px; letter-spacing: 0.5px; line-height: 1; }
   .brand p { color: var(--muted); font-size: 14px; margin-top: 6px; }
 
-  .card {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 20px; padding: 22px 20px;
-  }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 22px 20px; }
   .field { margin-bottom: 14px; }
-  .field label {
-    display: block; font-size: 12px; color: var(--muted);
-    margin-bottom: 7px; letter-spacing: 0.3px;
-  }
+  .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 7px; letter-spacing: 0.3px; }
   .input-wrap { position: relative; display: flex; align-items: center; }
-  .input-wrap svg {
-    position: absolute; left: 13px; width: 18px; height: 18px;
-    stroke: var(--muted); pointer-events: none;
+  .input-wrap svg { position: absolute; left: 13px; width: 18px; height: 18px; stroke: var(--muted); pointer-events: none; }
+  input, select, textarea {
+    width: 100%; background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: var(--radius); color: var(--text); font-size: 15px; outline: none; transition: border-color .15s;
   }
-  input, select {
-    width: 100%; height: 50px;
-    background: var(--surface-2); border: 1px solid var(--border);
-    border-radius: var(--radius); color: var(--text);
-    font-family: inherit; font-size: 15px;
-    padding: 0 14px 0 42px; outline: none;
-    transition: border-color .15s;
-  }
-  select { padding-left: 14px; appearance: none; }
-  input::placeholder { color: #5c5c5c; }
-  input:focus, select:focus { border-color: var(--accent); }
+  input, select { height: 50px; padding: 0 14px; }
+  .input-wrap input { padding-left: 42px; }
+  select { appearance: none; }
+  textarea { padding: 12px 14px; min-height: 74px; resize: vertical; }
+  input::placeholder, textarea::placeholder { color: #5c5c5c; }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
 
-  .btn {
-    width: 100%; height: 52px; border: none; border-radius: var(--radius);
-    background: var(--accent); color: var(--accent-ink);
-    font-family: "Inter", sans-serif; font-weight: 600; font-size: 16px;
-    cursor: pointer; margin-top: 6px;
-    transition: transform .08s, opacity .15s;
-  }
+  .btn { width: 100%; height: 52px; border: none; border-radius: var(--radius); background: var(--accent); color: var(--accent-ink); font-weight: 600; font-size: 16px; cursor: pointer; transition: transform .08s, opacity .15s; }
   .btn:active { transform: scale(0.985); }
-  .btn:disabled { opacity: .55; cursor: default; }
-  .btn.ghost {
-    background: transparent; color: var(--text);
-    border: 1px solid var(--border);
-  }
+  .btn:disabled { opacity: .55; }
+  .btn.ghost { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  .btn.sm { height: 44px; font-size: 14px; }
 
   .switch { text-align: center; margin-top: 18px; font-size: 14px; color: var(--muted); }
   .switch a { color: var(--accent); text-decoration: none; font-weight: 500; cursor: pointer; }
-
-  .msg { font-size: 13.5px; margin-top: 4px; margin-bottom: 12px; display: none; padding: 10px 12px; border-radius: 10px; }
+  .msg { font-size: 13.5px; margin-bottom: 12px; display: none; padding: 10px 12px; border-radius: 10px; }
   .msg.error { display: block; background: rgba(255,93,93,.1); color: var(--danger); border: 1px solid rgba(255,93,93,.25); }
   .msg.ok { display: block; background: rgba(196,240,0,.08); color: var(--accent); border: 1px solid rgba(196,240,0,.25); }
+  .hint { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
 
   .screen { display: none; }
   .screen.active { display: block; }
 
-  .invite-box {
-    background: var(--surface-2); border: 1px dashed var(--border);
-    border-radius: var(--radius); padding: 14px; margin: 16px 0;
-    text-align: center;
+  /* ---------- PANEL (profe/alumno) ---------- */
+  .app { display: none; flex-direction: column; min-height: 100dvh; }
+  .app.active { display: flex; }
+  .app-header {
+    position: sticky; top: 0; z-index: 5; background: var(--bg);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: calc(14px + env(safe-area-inset-top)) 18px 14px; border-bottom: 1px solid var(--border);
   }
-  .invite-box .code {
-    font-family: "Anton", sans-serif; font-size: 26px; color: var(--accent);
-    letter-spacing: 2px; margin: 6px 0;
-  }
+  .app-header .hi { font-size: 13px; color: var(--muted); }
+  .app-header .hi b { display: block; color: var(--text); font-size: 18px; font-weight: 600; margin-top: 1px; }
+  .icon-btn { width: 40px; height: 40px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .icon-btn svg { width: 20px; height: 20px; stroke: currentColor; }
+
+  .tabs { display: flex; gap: 8px; padding: 14px 18px 4px; }
+  .tab { flex: 1; height: 40px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: 14px; font-weight: 500; cursor: pointer; }
+  .tab.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+
+  .body { flex: 1; padding: 12px 18px calc(24px + env(safe-area-inset-bottom)); }
+  .tabview { display: none; }
+  .tabview.on { display: block; }
+
+  .search { position: relative; margin-bottom: 14px; }
+  .search svg { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; stroke: var(--muted); }
+  .search input { padding-left: 42px; }
+
+  .toolbar { display: flex; gap: 8px; margin-bottom: 14px; }
+
+  .ex { display: flex; gap: 12px; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; margin-bottom: 10px; }
+  .ex .thumb { width: 74px; height: 52px; border-radius: 9px; object-fit: cover; background: var(--surface-2); flex-shrink: 0; }
+  .ex .thumb.ph { display: flex; align-items: center; justify-content: center; }
+  .ex .thumb.ph svg { width: 22px; height: 22px; stroke: var(--muted); }
+  .ex .info { flex: 1; min-width: 0; }
+  .ex .info .n { font-size: 14.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ex .info .m { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .ex .acts { display: flex; gap: 4px; }
+  .ex .acts button { width: 34px; height: 34px; border-radius: 9px; background: var(--surface-2); border: 1px solid var(--border); color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .ex .acts button svg { width: 16px; height: 16px; stroke: currentColor; }
+
+  .empty { text-align: center; padding: 40px 20px; color: var(--muted); }
+  .empty svg { width: 42px; height: 42px; stroke: var(--border); margin-bottom: 14px; }
+  .empty p { font-size: 14px; margin-bottom: 18px; }
+
+  .invite-box { background: var(--surface); border: 1px dashed var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 18px; text-align: center; }
   .invite-box small { color: var(--muted); font-size: 12px; }
-  .hint { font-size: 12px; color: var(--muted); margin-top: -8px; margin-bottom: 14px; }
-  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .invite-box .code { font-family: "Anton", sans-serif; font-size: 26px; color: var(--accent); letter-spacing: 2px; margin: 6px 0 12px; }
+
+  /* ---------- MODAL ---------- */
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: flex-end; z-index: 20; }
+  .overlay.on { display: flex; }
+  .sheet { background: var(--surface); border-top-left-radius: 22px; border-top-right-radius: 22px; width: 100%; max-width: 480px; margin: 0 auto; padding: 20px 20px calc(24px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border); }
+  .sheet h3 { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
+  .sheet .field label { color: var(--muted); }
 </style>
 </head>
 <body>
-<div class="wrap">
 
+<!-- ============ AUTH ============ -->
+<div class="wrap" id="auth-wrap">
   <div class="brand">
-    <span class="mark">
-      <img src="icon-192.png" alt="tuprofe" />
-    </span>
+    <span class="mark"><img src="icon-192.png" alt="Tu Profe" /></span>
     <h1>Tu Profe</h1>
     <p id="brand-sub">Entrá a tu cuenta</p>
   </div>
 
-  <!-- ================= LOGIN ================= -->
   <div class="screen active" id="s-login">
     <div class="card">
       <div class="msg" id="login-msg"></div>
-      <div class="field">
-        <label>Email</label>
-        <div class="input-wrap">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 7l9 6 9-6"/><rect x="3" y="5" width="18" height="14" rx="2"/></svg>
-          <input type="email" id="login-email" placeholder="nombre@mail.com" autocomplete="email" />
-        </div>
-      </div>
-      <div class="field">
-        <label>Contraseña</label>
-        <div class="input-wrap">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-          <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" />
-        </div>
-      </div>
+      <div class="field"><label>Email</label><div class="input-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 7l9 6 9-6"/><rect x="3" y="5" width="18" height="14" rx="2"/></svg>
+        <input type="email" id="login-email" placeholder="nombre@mail.com" autocomplete="email" /></div></div>
+      <div class="field"><label>Contraseña</label><div class="input-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" /></div></div>
       <button class="btn" id="login-btn">Entrar</button>
     </div>
     <div class="switch">¿Sos profe y no tenés cuenta? <a id="to-registro-profe">Crear cuenta</a></div>
   </div>
 
-  <!-- ============= REGISTRO PROFE ============= -->
   <div class="screen" id="s-reg-profe">
     <div class="card">
       <div class="msg" id="rp-msg"></div>
-      <div class="field">
-        <label>Tu nombre</label>
-        <div class="input-wrap">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
-          <input type="text" id="rp-nombre" placeholder="Francisco Diberti" autocomplete="name" />
-        </div>
-      </div>
-      <div class="field">
-        <label>Email</label>
-        <div class="input-wrap">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 7l9 6 9-6"/><rect x="3" y="5" width="18" height="14" rx="2"/></svg>
-          <input type="email" id="rp-email" placeholder="nombre@mail.com" autocomplete="email" />
-        </div>
-      </div>
-      <div class="field">
-        <label>Contraseña</label>
-        <div class="input-wrap">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-          <input type="password" id="rp-pass" placeholder="mínimo 8 caracteres" autocomplete="new-password" />
-        </div>
-      </div>
+      <div class="field"><label>Tu nombre</label><div class="input-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+        <input type="text" id="rp-nombre" placeholder="Francisco Diberti" autocomplete="name" /></div></div>
+      <div class="field"><label>Email</label><div class="input-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 7l9 6 9-6"/><rect x="3" y="5" width="18" height="14" rx="2"/></svg>
+        <input type="email" id="rp-email" placeholder="nombre@mail.com" autocomplete="email" /></div></div>
+      <div class="field"><label>Contraseña</label><div class="input-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        <input type="password" id="rp-pass" placeholder="mínimo 8 caracteres" autocomplete="new-password" /></div></div>
       <button class="btn" id="rp-btn">Crear cuenta</button>
     </div>
     <div class="switch">¿Ya tenés cuenta? <a id="to-login-1">Entrar</a></div>
   </div>
 
-  <!-- ============= REGISTRO ALUMNO ============= -->
   <div class="screen" id="s-reg-alumno">
     <div class="card">
       <div class="msg" id="ra-msg"></div>
       <p class="hint">Te invitó tu profe. Creá tu cuenta para ver tu rutina.</p>
-      <div class="field">
-        <label>Tu nombre</label>
-        <div class="input-wrap">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
-          <input type="text" id="ra-nombre" placeholder="Tu nombre" autocomplete="name" />
-        </div>
-      </div>
-      <div class="field">
-        <label>Email</label>
-        <div class="input-wrap">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 7l9 6 9-6"/><rect x="3" y="5" width="18" height="14" rx="2"/></svg>
-          <input type="email" id="ra-email" placeholder="nombre@mail.com" autocomplete="email" />
-        </div>
-      </div>
-      <div class="field">
-        <label>Contraseña</label>
-        <div class="input-wrap">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-          <input type="password" id="ra-pass" placeholder="mínimo 8 caracteres" autocomplete="new-password" />
-        </div>
-      </div>
-      <div class="field">
-        <label>Objetivo (opcional)</label>
-        <select id="ra-objetivo">
-          <option value="">Elegí uno...</option>
-          <option>Fuerza máxima</option>
-          <option>Hipertrofia</option>
-          <option>Recomposición corporal</option>
-          <option>Rendimiento deportivo</option>
-          <option>Otro</option>
-        </select>
-      </div>
+      <div class="field"><label>Tu nombre</label><div class="input-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+        <input type="text" id="ra-nombre" placeholder="Tu nombre" autocomplete="name" /></div></div>
+      <div class="field"><label>Email</label><div class="input-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 7l9 6 9-6"/><rect x="3" y="5" width="18" height="14" rx="2"/></svg>
+        <input type="email" id="ra-email" placeholder="nombre@mail.com" autocomplete="email" /></div></div>
+      <div class="field"><label>Contraseña</label><div class="input-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        <input type="password" id="ra-pass" placeholder="mínimo 8 caracteres" autocomplete="new-password" /></div></div>
+      <div class="field"><label>Objetivo (opcional)</label>
+        <select id="ra-objetivo"><option value="">Elegí uno...</option><option>Fuerza máxima</option><option>Hipertrofia</option><option>Recomposición corporal</option><option>Rendimiento deportivo</option><option>Otro</option></select></div>
       <button class="btn" id="ra-btn">Crear cuenta</button>
     </div>
   </div>
+</div>
 
-  <!-- ============= POST-LOGIN (placeholder) ============= -->
-  <div class="screen" id="s-home">
-    <div class="card">
-      <div class="msg ok" style="display:block">¡Entraste! <span id="home-hola"></span></div>
-      <div id="home-profe" style="display:none">
-        <p style="color:var(--muted);font-size:14px;margin:8px 0 4px">Este es el link para invitar a tus alumnos:</p>
-        <div class="invite-box">
-          <small>Tu código de invitación</small>
-          <div class="code" id="home-codigo">—</div>
-          <button class="btn ghost" id="copiar-link" style="height:44px;font-size:14px">Copiar link de invitación</button>
-        </div>
-        <p style="color:var(--muted);font-size:13px">Tu panel para armar el catálogo y las rutinas está en construcción. Lo hacemos en el próximo paso.</p>
-      </div>
-      <div id="home-alumno" style="display:none">
-        <p style="color:var(--muted);font-size:14px;margin:8px 0">Tu rutina de entrenamiento va a aparecer acá. La estamos construyendo.</p>
-      </div>
-      <button class="btn ghost" id="salir-btn" style="margin-top:16px">Salir</button>
+<!-- ============ PANEL PROFE ============ -->
+<div class="app" id="app-profe">
+  <div class="app-header">
+    <div class="hi">Hola<b id="profe-nombre">Profe</b></div>
+    <div class="icon-btn" id="profe-salir" title="Salir">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
     </div>
   </div>
+  <div class="tabs">
+    <button class="tab on" data-tab="catalogo">Ejercicios</button>
+    <button class="tab" data-tab="alumnos">Alumnos</button>
+  </div>
+  <div class="body">
+    <!-- CATÁLOGO -->
+    <div class="tabview on" id="tv-catalogo">
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+        <input type="text" id="cat-buscar" placeholder="Buscar ejercicio..." />
+      </div>
+      <div class="toolbar">
+        <button class="btn sm" id="cat-agregar">+ Agregar ejercicio</button>
+      </div>
+      <div id="cat-lista"></div>
+    </div>
+    <!-- ALUMNOS -->
+    <div class="tabview" id="tv-alumnos">
+      <div class="invite-box">
+        <small>Link de invitación para tus alumnos</small>
+        <div class="code" id="al-codigo">—</div>
+        <button class="btn sm" id="al-copiar">Copiar link</button>
+      </div>
+      <div id="al-lista"></div>
+    </div>
+  </div>
+</div>
 
+<!-- ============ PANEL ALUMNO (placeholder) ============ -->
+<div class="app" id="app-alumno">
+  <div class="app-header">
+    <div class="hi">Hola<b id="alumno-nombre">Alumno</b></div>
+    <div class="icon-btn" id="alumno-salir" title="Salir">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+    </div>
+  </div>
+  <div class="body">
+    <div class="empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></svg>
+      <p>Tu rutina va a aparecer acá.<br>La estamos construyendo.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL agregar/editar ejercicio ============ -->
+<div class="overlay" id="ex-overlay">
+  <div class="sheet">
+    <h3 id="ex-title">Nuevo ejercicio</h3>
+    <div class="msg" id="ex-msg"></div>
+    <div class="field"><label>Nombre</label><input type="text" id="ex-nombre" placeholder="Sentadilla copa" /></div>
+    <div class="field"><label>Link de YouTube</label><input type="text" id="ex-video" placeholder="https://youtu.be/..." /></div>
+    <div class="field"><label>Material (opcional)</label><input type="text" id="ex-material" placeholder="Banda elástica, mancuerna..." /></div>
+    <button class="btn" id="ex-guardar">Guardar</button>
+    <button class="btn ghost sm" id="ex-cancelar" style="margin-top:10px">Cancelar</button>
+  </div>
 </div>
 
 <script>
-  // ====== Config ======
   const API = "https://tuprofe-api.juanbautistacrespialomar.workers.dev";
   const TOKEN_KEY = "tuprofe_token";
-
-  // ====== Helpers ======
   const $ = (id) => document.getElementById(id);
-  const screens = ["s-login", "s-reg-profe", "s-reg-alumno", "s-home"];
-  function show(id) {
+
+  // Los 14 ejercicios base para importar de una
+  const EJERCICIOS_BASE = [
+    ["Movilidad de tórax con banda", "https://youtu.be/W1mD-jhSnvc"],
+    ["Extensiones torácicas", "https://youtu.be/O2lna0HSBxM"],
+    ["Spider + rotación torácica", "https://youtu.be/2mIjftiyjro"],
+    ["Anti-extensión dead bug con banda", "https://youtu.be/iW_CtYtzbeU"],
+    ["Pallof press con banda abajo/arriba", "https://youtu.be/re8jjy_UTqY"],
+    ["Plancha alta + pase", "https://youtu.be/Xsv1axZT-5c"],
+    ["Remo invertido supino", "https://youtu.be/qsuX-k5-v2I"],
+    ["Dorsal prono en máquina", "https://youtu.be/55X8yLezpwc"],
+    ["Vuelos laterales", "https://youtu.be/wPkosHeBUGc"],
+    ["Sentadilla copa", "https://youtu.be/3ChBarbMYKY"],
+    ["Estocadas atrás + press hombros", "https://youtu.be/ZGDasLQrJ8s"],
+    ["Camilla de isquios", "https://youtu.be/B6t8MvbTtew"],
+    ["Biceps con soga", "https://youtu.be/VnyPUkrxBR0"],
+    ["Curl biceps alternado", "https://youtu.be/e9nzjkmPRXY"],
+  ];
+
+  const screens = ["s-login", "s-reg-profe", "s-reg-alumno"];
+  function showAuth(id) {
+    $("auth-wrap").style.display = "flex";
+    $("app-profe").classList.remove("active");
+    $("app-alumno").classList.remove("active");
     screens.forEach((s) => $(s).classList.toggle("active", s === id));
-    // el subtítulo de la marca cambia según la pantalla
-    const subs = {
-      "s-login": "Entrá a tu cuenta",
-      "s-reg-profe": "Creá tu cuenta de profe",
-      "s-reg-alumno": "Creá tu cuenta",
-      "s-home": "",
-    };
+    const subs = { "s-login": "Entrá a tu cuenta", "s-reg-profe": "Creá tu cuenta de profe", "s-reg-alumno": "Creá tu cuenta" };
     $("brand-sub").textContent = subs[id] || "";
   }
-  function msg(el, text, type) {
-    el.textContent = text;
-    el.className = "msg " + (type || "");
+  function showApp(rol) {
+    $("auth-wrap").style.display = "none";
+    $("app-profe").classList.toggle("active", rol === "profe");
+    $("app-alumno").classList.toggle("active", rol === "alumno");
   }
-  function token() { return localStorage.getItem(TOKEN_KEY); }
-  function guardarToken(t) { localStorage.setItem(TOKEN_KEY, t); }
-  function borrarToken() { localStorage.removeItem(TOKEN_KEY); }
+  function msg(el, text, type) { el.textContent = text; el.className = "msg " + (type || ""); }
+  const token = () => localStorage.getItem(TOKEN_KEY);
+  const guardarToken = (t) => localStorage.setItem(TOKEN_KEY, t);
+  const borrarToken = () => localStorage.removeItem(TOKEN_KEY);
 
   async function api(path, method, body, auth) {
     const headers = { "Content-Type": "application/json" };
     if (auth) headers["Authorization"] = "Bearer " + token();
-    const res = await fetch(API + path, {
-      method: method || "GET",
-      headers,
-      body: body ? JSON.stringify(body) : undefined,
-    });
+    const res = await fetch(API + path, { method: method || "GET", headers, body: body ? JSON.stringify(body) : undefined });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || "Algo salió mal");
     return data;
   }
+  function videoIdDe(url) {
+    if (!url) return null;
+    const m = String(url).match(/(?:v=|youtu\.be\/|shorts\/|embed\/)([A-Za-z0-9_-]{11})/);
+    return m ? m[1] : (/^[A-Za-z0-9_-]{11}$/.test(url) ? url : null);
+  }
 
-  // ====== Entrar a la app según el rol ======
-  function entrar(datos) {
-    show("s-home");
-    $("home-hola").textContent = datos.nombre ? "Hola, " + datos.nombre : "";
-    const esProfe = datos.rol === "profe";
-    $("home-profe").style.display = esProfe ? "block" : "none";
-    $("home-alumno").style.display = esProfe ? "none" : "block";
-    if (esProfe && datos.codigo_invitacion) {
-      $("home-codigo").textContent = datos.codigo_invitacion;
-      const link = location.origin + location.pathname + "?invita=" + datos.codigo_invitacion;
-      $("copiar-link").onclick = async () => {
-        try {
-          await navigator.clipboard.writeText(link);
-          $("copiar-link").textContent = "¡Link copiado!";
-          setTimeout(() => ($("copiar-link").textContent = "Copiar link de invitación"), 1800);
-        } catch { prompt("Copiá este link:", link); }
+  // ---------- Entrar según rol ----------
+  async function entrar(rol) {
+    showApp(rol);
+    if (rol === "profe") {
+      const yo = await api("/yo", "GET", null, true);
+      $("profe-nombre").textContent = yo.nombre || "Profe";
+      $("al-codigo").textContent = yo.codigo_invitacion || "—";
+      const link = location.origin + location.pathname + "?invita=" + yo.codigo_invitacion;
+      $("al-copiar").onclick = async () => {
+        try { await navigator.clipboard.writeText(link); $("al-copiar").textContent = "¡Copiado!"; setTimeout(() => ($("al-copiar").textContent = "Copiar link"), 1600); }
+        catch { prompt("Copiá este link:", link); }
       };
+      cargarCatalogo();
+      cargarAlumnos();
+    } else {
+      const yo = await api("/yo", "GET", null, true);
+      $("alumno-nombre").textContent = yo.nombre || "Alumno";
     }
   }
 
-  // ====== LOGIN ======
+  // ---------- CATÁLOGO ----------
+  let CATALOGO = [];
+  async function cargarCatalogo() {
+    CATALOGO = await api("/catalogo", "GET", null, true);
+    renderCatalogo();
+  }
+  function renderCatalogo() {
+    const q = $("cat-buscar").value.trim().toLowerCase();
+    const lista = q ? CATALOGO.filter((e) => e.nombre.toLowerCase().includes(q)) : CATALOGO;
+    const cont = $("cat-lista");
+    if (CATALOGO.length === 0) {
+      cont.innerHTML = `<div class="empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+        <p>Todavía no tenés ejercicios.<br>Cargá tu biblioteca para armar rutinas.</p>
+        <button class="btn" id="cat-importar">Cargar 14 ejercicios base</button></div>`;
+      $("cat-importar").onclick = importarBase;
+      return;
+    }
+    if (lista.length === 0) { cont.innerHTML = `<div class="empty"><p>Ningún ejercicio coincide con "${q}".</p></div>`; return; }
+    cont.innerHTML = lista.map((e) => {
+      const thumb = e.video_id
+        ? `<img class="thumb" src="https://img.youtube.com/vi/${e.video_id}/mqdefault.jpg" alt="" />`
+        : `<div class="thumb ph"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M8 5v14l11-7z"/></svg></div>`;
+      return `<div class="ex">${thumb}
+        <div class="info"><div class="n">${e.nombre}</div><div class="m">${e.material || "Sin material"}</div></div>
+        <div class="acts">
+          <button data-edit="${e.id}"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M4 20h4L18 10l-4-4L4 16z"/></svg></button>
+          <button data-del="${e.id}"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button>
+        </div></div>`;
+    }).join("");
+    cont.querySelectorAll("[data-edit]").forEach((b) => (b.onclick = () => abrirEditar(Number(b.dataset.edit))));
+    cont.querySelectorAll("[data-del]").forEach((b) => (b.onclick = () => borrarEjercicio(Number(b.dataset.del))));
+  }
+  $("cat-buscar").oninput = renderCatalogo;
+
+  async function importarBase() {
+    $("cat-importar").disabled = true;
+    $("cat-importar").textContent = "Cargando...";
+    for (const [nombre, video] of EJERCICIOS_BASE) {
+      try { await api("/catalogo", "POST", { nombre, video }, true); } catch {}
+    }
+    await cargarCatalogo();
+  }
+
+  // Modal de ejercicio (crear o editar)
+  let editandoId = null;
+  function abrirNuevo() {
+    editandoId = null;
+    $("ex-title").textContent = "Nuevo ejercicio";
+    $("ex-nombre").value = ""; $("ex-video").value = ""; $("ex-material").value = "";
+    msg($("ex-msg"), "", ""); $("ex-overlay").classList.add("on");
+  }
+  function abrirEditar(id) {
+    const e = CATALOGO.find((x) => x.id === id);
+    if (!e) return;
+    editandoId = id;
+    $("ex-title").textContent = "Editar ejercicio";
+    $("ex-nombre").value = e.nombre;
+    $("ex-video").value = e.video_id ? "https://youtu.be/" + e.video_id : "";
+    $("ex-material").value = e.material || "";
+    msg($("ex-msg"), "", ""); $("ex-overlay").classList.add("on");
+  }
+  $("cat-agregar").onclick = abrirNuevo;
+  $("ex-cancelar").onclick = () => $("ex-overlay").classList.remove("on");
+  $("ex-guardar").onclick = async () => {
+    const nombre = $("ex-nombre").value.trim();
+    const video = $("ex-video").value.trim();
+    const material = $("ex-material").value.trim();
+    if (!nombre) return msg($("ex-msg"), "Poné un nombre", "error");
+    $("ex-guardar").disabled = true;
+    try {
+      if (editandoId) await api("/catalogo/" + editandoId, "PUT", { nombre, video, material }, true);
+      else await api("/catalogo", "POST", { nombre, video, material }, true);
+      $("ex-overlay").classList.remove("on");
+      await cargarCatalogo();
+    } catch (e) { msg($("ex-msg"), e.message, "error"); }
+    finally { $("ex-guardar").disabled = false; }
+  };
+  async function borrarEjercicio(id) {
+    const e = CATALOGO.find((x) => x.id === id);
+    if (!confirm(`¿Borrar "${e.nombre}" del catálogo?`)) return;
+    await api("/catalogo/" + id, "DELETE", null, true);
+    await cargarCatalogo();
+  }
+
+  // ---------- ALUMNOS ----------
+  async function cargarAlumnos() {
+    const alumnos = await api("/alumnos", "GET", null, true);
+    const cont = $("al-lista");
+    if (alumnos.length === 0) { cont.innerHTML = `<div class="empty"><p>Todavía no tenés alumnos.<br>Compartí tu link de invitación.</p></div>`; return; }
+    cont.innerHTML = alumnos.map((a) => `<div class="ex">
+      <div class="thumb ph" style="width:44px;height:44px;border-radius:50%"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div>
+      <div class="info"><div class="n">${a.nombre}</div><div class="m">${a.objetivo || "Sin objetivo"}</div></div>
+    </div>`).join("");
+  }
+
+  // ---------- Tabs ----------
+  document.querySelectorAll(".tab").forEach((t) => {
+    t.onclick = () => {
+      document.querySelectorAll(".tab").forEach((x) => x.classList.toggle("on", x === t));
+      $("tv-catalogo").classList.toggle("on", t.dataset.tab === "catalogo");
+      $("tv-alumnos").classList.toggle("on", t.dataset.tab === "alumnos");
+    };
+  });
+
+  // ---------- AUTH handlers ----------
   $("login-btn").onclick = async () => {
-    const email = $("login-email").value.trim();
-    const pass = $("login-pass").value;
+    const email = $("login-email").value.trim(), pass = $("login-pass").value;
     if (!email || !pass) return msg($("login-msg"), "Completá email y contraseña", "error");
     $("login-btn").disabled = true;
-    try {
-      const r = await api("/login", "POST", { email, password: pass });
-      guardarToken(r.token);
-      const yo = await api("/yo", "GET", null, true);
-      entrar(yo);
-    } catch (e) {
-      msg($("login-msg"), e.message, "error");
-    } finally {
-      $("login-btn").disabled = false;
-    }
+    try { const r = await api("/login", "POST", { email, password: pass }); guardarToken(r.token); await entrar(r.rol); }
+    catch (e) { msg($("login-msg"), e.message, "error"); } finally { $("login-btn").disabled = false; }
   };
-
-  // ====== REGISTRO PROFE ======
   $("rp-btn").onclick = async () => {
-    const nombre = $("rp-nombre").value.trim();
-    const email = $("rp-email").value.trim();
-    const pass = $("rp-pass").value;
+    const nombre = $("rp-nombre").value.trim(), email = $("rp-email").value.trim(), pass = $("rp-pass").value;
     if (!nombre || !email || !pass) return msg($("rp-msg"), "Completá todos los campos", "error");
     if (pass.length < 8) return msg($("rp-msg"), "La contraseña necesita 8 caracteres o más", "error");
     $("rp-btn").disabled = true;
-    try {
-      const r = await api("/registro/profe", "POST", { nombre, email, password: pass });
-      guardarToken(r.token);
-      entrar({ rol: "profe", nombre, codigo_invitacion: r.codigo_invitacion });
-    } catch (e) {
-      msg($("rp-msg"), e.message, "error");
-    } finally {
-      $("rp-btn").disabled = false;
-    }
+    try { const r = await api("/registro/profe", "POST", { nombre, email, password: pass }); guardarToken(r.token); await entrar("profe"); }
+    catch (e) { msg($("rp-msg"), e.message, "error"); } finally { $("rp-btn").disabled = false; }
   };
-
-  // ====== REGISTRO ALUMNO ======
   let codigoInvitacion = null;
   $("ra-btn").onclick = async () => {
-    const nombre = $("ra-nombre").value.trim();
-    const email = $("ra-email").value.trim();
-    const pass = $("ra-pass").value;
-    const objetivo = $("ra-objetivo").value || null;
+    const nombre = $("ra-nombre").value.trim(), email = $("ra-email").value.trim(), pass = $("ra-pass").value, objetivo = $("ra-objetivo").value || null;
     if (!nombre || !email || !pass) return msg($("ra-msg"), "Completá nombre, email y contraseña", "error");
     if (pass.length < 8) return msg($("ra-msg"), "La contraseña necesita 8 caracteres o más", "error");
     $("ra-btn").disabled = true;
-    try {
-      const r = await api("/registro/alumno", "POST", {
-        nombre, email, password: pass, codigo_invitacion: codigoInvitacion, objetivo,
-      });
-      guardarToken(r.token);
-      entrar({ rol: "alumno", nombre });
-    } catch (e) {
-      msg($("ra-msg"), e.message, "error");
-    } finally {
-      $("ra-btn").disabled = false;
-    }
+    try { const r = await api("/registro/alumno", "POST", { nombre, email, password: pass, codigo_invitacion: codigoInvitacion, objetivo }, false); guardarToken(r.token); await entrar("alumno"); }
+    catch (e) { msg($("ra-msg"), e.message, "error"); } finally { $("ra-btn").disabled = false; }
   };
+  $("to-registro-profe").onclick = () => showAuth("s-reg-profe");
+  $("to-login-1").onclick = () => showAuth("s-login");
+  const salir = async () => { try { await api("/logout", "POST", null, true); } catch {} borrarToken(); showAuth("s-login"); };
+  $("profe-salir").onclick = salir;
+  $("alumno-salir").onclick = salir;
 
-  // ====== Navegación entre pantallas ======
-  $("to-registro-profe").onclick = () => show("s-reg-profe");
-  $("to-login-1").onclick = () => show("s-login");
-  $("salir-btn").onclick = async () => {
-    try { await api("/logout", "POST", null, true); } catch {}
-    borrarToken();
-    show("s-login");
-  };
-
-  // ====== Arranque ======
+  // ---------- Arranque ----------
   (async function init() {
-    // ¿Vino por link de invitación?  ?invita=INV-XXXX
-    const params = new URLSearchParams(location.search);
-    const invita = params.get("invita");
-
-    // ¿Ya hay sesión guardada? -> entrar directo
+    const invita = new URLSearchParams(location.search).get("invita");
     if (token()) {
-      try {
-        const yo = await api("/yo", "GET", null, true);
-        entrar(yo);
-        return;
-      } catch {
-        borrarToken(); // token viejo/inválido
-      }
+      try { const yo = await api("/yo", "GET", null, true); await entrar(yo.rol); return; }
+      catch { borrarToken(); }
     }
-
-    if (invita) {
-      codigoInvitacion = invita;
-      show("s-reg-alumno");
-    } else {
-      show("s-login");
-    }
+    if (invita) { codigoInvitacion = invita; showAuth("s-reg-alumno"); }
+    else showAuth("s-login");
   })();
 
-  // ====== Service worker (para instalar la app) ======
   if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => {
-      navigator.serviceWorker.register("sw.js").catch(() => {});
-    });
+    window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
   }
 </script>
 </body>
