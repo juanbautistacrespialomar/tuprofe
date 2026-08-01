@@ -24,17 +24,11 @@
   body {
     background: var(--bg); color: var(--text);
     font-family: "Inter", system-ui, -apple-system, sans-serif;
-    -webkit-font-smoothing: antialiased; min-height: 100dvh;
-    overscroll-behavior: none;
+    -webkit-font-smoothing: antialiased; min-height: 100dvh; overscroll-behavior: none;
   }
   input, select, button, textarea { font-family: inherit; }
 
-  /* ---------- AUTH ---------- */
-  .wrap {
-    min-height: 100dvh; display: flex; flex-direction: column; justify-content: center;
-    max-width: 440px; width: 100%; margin: 0 auto;
-    padding: 32px 22px calc(32px + env(safe-area-inset-bottom));
-  }
+  .wrap { min-height: 100dvh; display: flex; flex-direction: column; justify-content: center; max-width: 440px; width: 100%; margin: 0 auto; padding: 32px 22px calc(32px + env(safe-area-inset-bottom)); }
   .brand { text-align: center; margin-bottom: 30px; }
   .brand .mark { display: inline-flex; width: 74px; height: 74px; border-radius: 18px; overflow: hidden; margin-bottom: 14px; }
   .brand .mark img { width: 100%; height: 100%; display: block; }
@@ -46,14 +40,10 @@
   .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 7px; letter-spacing: 0.3px; }
   .input-wrap { position: relative; display: flex; align-items: center; }
   .input-wrap svg { position: absolute; left: 13px; width: 18px; height: 18px; stroke: var(--muted); pointer-events: none; }
-  input, select, textarea {
-    width: 100%; background: var(--surface-2); border: 1px solid var(--border);
-    border-radius: var(--radius); color: var(--text); font-size: 15px; outline: none; transition: border-color .15s;
-  }
+  input, select, textarea { width: 100%; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-size: 15px; outline: none; transition: border-color .15s; }
   input, select { height: 50px; padding: 0 14px; }
   .input-wrap input { padding-left: 42px; }
   select { appearance: none; }
-  textarea { padding: 12px 14px; min-height: 74px; resize: vertical; }
   input::placeholder, textarea::placeholder { color: #5c5c5c; }
   input:focus, select:focus, textarea:focus { border-color: var(--accent); }
 
@@ -70,20 +60,16 @@
   .msg.ok { display: block; background: rgba(196,240,0,.08); color: var(--accent); border: 1px solid rgba(196,240,0,.25); }
   .hint { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
 
-  .screen { display: none; }
-  .screen.active { display: block; }
+  .screen { display: none; } .screen.active { display: block; }
 
-  /* ---------- PANEL (profe/alumno) ---------- */
-  .app { display: none; flex-direction: column; min-height: 100dvh; }
+  /* PANEL (centrado también en desktop) */
+  .app { display: none; flex-direction: column; min-height: 100dvh; max-width: 560px; margin: 0 auto; border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
   .app.active { display: flex; }
-  .app-header {
-    position: sticky; top: 0; z-index: 5; background: var(--bg);
-    display: flex; align-items: center; justify-content: space-between;
-    padding: calc(14px + env(safe-area-inset-top)) 18px 14px; border-bottom: 1px solid var(--border);
-  }
+  .app-header { position: sticky; top: 0; z-index: 5; background: var(--bg); display: flex; align-items: center; justify-content: space-between; padding: calc(14px + env(safe-area-inset-top)) 18px 14px; border-bottom: 1px solid var(--border); }
   .app-header .hi { font-size: 13px; color: var(--muted); }
   .app-header .hi b { display: block; color: var(--text); font-size: 18px; font-weight: 600; margin-top: 1px; }
-  .icon-btn { width: 40px; height: 40px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .app-header .title { font-size: 18px; font-weight: 600; }
+  .icon-btn { width: 40px; height: 40px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
   .icon-btn svg { width: 20px; height: 20px; stroke: currentColor; }
 
   .tabs { display: flex; gap: 8px; padding: 14px 18px 4px; }
@@ -91,13 +77,11 @@
   .tab.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 
   .body { flex: 1; padding: 12px 18px calc(24px + env(safe-area-inset-bottom)); }
-  .tabview { display: none; }
-  .tabview.on { display: block; }
+  .tabview { display: none; } .tabview.on { display: block; }
 
   .search { position: relative; margin-bottom: 14px; }
   .search svg { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; stroke: var(--muted); }
   .search input { padding-left: 42px; }
-
   .toolbar { display: flex; gap: 8px; margin-bottom: 14px; }
 
   .ex { display: flex; gap: 12px; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; margin-bottom: 10px; }
@@ -110,6 +94,7 @@
   .ex .acts { display: flex; gap: 4px; }
   .ex .acts button { width: 34px; height: 34px; border-radius: 9px; background: var(--surface-2); border: 1px solid var(--border); color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; }
   .ex .acts button svg { width: 16px; height: 16px; stroke: currentColor; }
+  .ex.click { cursor: pointer; }
 
   .empty { text-align: center; padding: 40px 20px; color: var(--muted); }
   .empty svg { width: 42px; height: 42px; stroke: var(--border); margin-bottom: 14px; }
@@ -119,12 +104,40 @@
   .invite-box small { color: var(--muted); font-size: 12px; }
   .invite-box .code { font-family: "Anton", sans-serif; font-size: 26px; color: var(--accent); letter-spacing: 2px; margin: 6px 0 12px; }
 
-  /* ---------- MODAL ---------- */
+  /* Rutina: días y bloques */
+  .dia { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 14px; overflow: hidden; }
+  .dia-head { display: flex; align-items: center; justify-content: space-between; padding: 13px 14px; border-bottom: 1px solid var(--border); }
+  .dia-head .dn { font-size: 15px; font-weight: 600; }
+  .dia-body { padding: 12px 14px; }
+  .bloque { border: 1px solid var(--border); border-radius: 11px; padding: 11px; margin-bottom: 10px; background: var(--surface-2); }
+  .bloque-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .bloque-head .bn { font-size: 13.5px; font-weight: 600; color: var(--accent); }
+  .bloque-head .bp { font-size: 12px; color: var(--muted); }
+  .rej { display: flex; align-items: center; justify-content: space-between; padding: 7px 0; border-top: 1px solid var(--border); font-size: 13.5px; }
+  .rej:first-of-type { border-top: none; }
+  .rej .rn { flex: 1; min-width: 0; }
+  .rej .rs { color: var(--muted); font-size: 12px; margin-left: 8px; white-space: nowrap; }
+  .rej button { background: none; border: none; color: var(--muted); cursor: pointer; margin-left: 6px; }
+  .rej button svg { width: 15px; height: 15px; stroke: currentColor; }
+  .miniadd { width: 100%; height: 36px; border-radius: 9px; background: transparent; border: 1px dashed var(--border); color: var(--muted); font-size: 13px; cursor: pointer; margin-top: 4px; }
+
   .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: flex-end; z-index: 20; }
   .overlay.on { display: flex; }
-  .sheet { background: var(--surface); border-top-left-radius: 22px; border-top-right-radius: 22px; width: 100%; max-width: 480px; margin: 0 auto; padding: 20px 20px calc(24px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border); }
+  .sheet { background: var(--surface); border-top-left-radius: 22px; border-top-right-radius: 22px; width: 100%; max-width: 480px; margin: 0 auto; padding: 20px 20px calc(24px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border); max-height: 88vh; overflow-y: auto; }
   .sheet h3 { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
   .sheet .field label { color: var(--muted); }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* Autocomplete */
+  .ac-sel { background: var(--surface-2); border: 1px solid var(--accent); border-radius: var(--radius); padding: 10px 12px; font-size: 14px; margin-bottom: 14px; display: none; align-items: center; justify-content: space-between; }
+  .ac-sel.on { display: flex; }
+  .ac-list { border: 1px solid var(--border); border-radius: var(--radius); margin-top: -6px; margin-bottom: 14px; max-height: 210px; overflow-y: auto; display: none; }
+  .ac-list.on { display: block; }
+  .ac-item { display: flex; gap: 10px; align-items: center; padding: 8px 10px; cursor: pointer; border-bottom: 1px solid var(--border); }
+  .ac-item:last-child { border-bottom: none; }
+  .ac-item:hover { background: var(--surface-2); }
+  .ac-item img { width: 52px; height: 36px; border-radius: 7px; object-fit: cover; background: var(--surface-2); }
+  .ac-item span { font-size: 13.5px; }
 </style>
 </head>
 <body>
@@ -140,12 +153,8 @@
   <div class="screen active" id="s-login">
     <div class="card">
       <div class="msg" id="login-msg"></div>
-      <div class="field"><label>Email</label><div class="input-wrap">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 7l9 6 9-6"/><rect x="3" y="5" width="18" height="14" rx="2"/></svg>
-        <input type="email" id="login-email" placeholder="nombre@mail.com" autocomplete="email" /></div></div>
-      <div class="field"><label>Contraseña</label><div class="input-wrap">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-        <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" /></div></div>
+      <div class="field"><label>Email</label><div class="input-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 7l9 6 9-6"/><rect x="3" y="5" width="18" height="14" rx="2"/></svg><input type="email" id="login-email" placeholder="nombre@mail.com" autocomplete="email" /></div></div>
+      <div class="field"><label>Contraseña</label><div class="input-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" /></div></div>
       <button class="btn" id="login-btn">Entrar</button>
     </div>
     <div class="switch">¿Sos profe y no tenés cuenta? <a id="to-registro-profe">Crear cuenta</a></div>
@@ -154,15 +163,9 @@
   <div class="screen" id="s-reg-profe">
     <div class="card">
       <div class="msg" id="rp-msg"></div>
-      <div class="field"><label>Tu nombre</label><div class="input-wrap">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
-        <input type="text" id="rp-nombre" placeholder="Francisco Diberti" autocomplete="name" /></div></div>
-      <div class="field"><label>Email</label><div class="input-wrap">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 7l9 6 9-6"/><rect x="3" y="5" width="18" height="14" rx="2"/></svg>
-        <input type="email" id="rp-email" placeholder="nombre@mail.com" autocomplete="email" /></div></div>
-      <div class="field"><label>Contraseña</label><div class="input-wrap">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-        <input type="password" id="rp-pass" placeholder="mínimo 8 caracteres" autocomplete="new-password" /></div></div>
+      <div class="field"><label>Tu nombre</label><div class="input-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg><input type="text" id="rp-nombre" placeholder="Francisco Diberti" autocomplete="name" /></div></div>
+      <div class="field"><label>Email</label><div class="input-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 7l9 6 9-6"/><rect x="3" y="5" width="18" height="14" rx="2"/></svg><input type="email" id="rp-email" placeholder="nombre@mail.com" autocomplete="email" /></div></div>
+      <div class="field"><label>Contraseña</label><div class="input-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><input type="password" id="rp-pass" placeholder="mínimo 8 caracteres" autocomplete="new-password" /></div></div>
       <button class="btn" id="rp-btn">Crear cuenta</button>
     </div>
     <div class="switch">¿Ya tenés cuenta? <a id="to-login-1">Entrar</a></div>
@@ -172,17 +175,10 @@
     <div class="card">
       <div class="msg" id="ra-msg"></div>
       <p class="hint">Te invitó tu profe. Creá tu cuenta para ver tu rutina.</p>
-      <div class="field"><label>Tu nombre</label><div class="input-wrap">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
-        <input type="text" id="ra-nombre" placeholder="Tu nombre" autocomplete="name" /></div></div>
-      <div class="field"><label>Email</label><div class="input-wrap">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 7l9 6 9-6"/><rect x="3" y="5" width="18" height="14" rx="2"/></svg>
-        <input type="email" id="ra-email" placeholder="nombre@mail.com" autocomplete="email" /></div></div>
-      <div class="field"><label>Contraseña</label><div class="input-wrap">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-        <input type="password" id="ra-pass" placeholder="mínimo 8 caracteres" autocomplete="new-password" /></div></div>
-      <div class="field"><label>Objetivo (opcional)</label>
-        <select id="ra-objetivo"><option value="">Elegí uno...</option><option>Fuerza máxima</option><option>Hipertrofia</option><option>Recomposición corporal</option><option>Rendimiento deportivo</option><option>Otro</option></select></div>
+      <div class="field"><label>Tu nombre</label><div class="input-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg><input type="text" id="ra-nombre" placeholder="Tu nombre" autocomplete="name" /></div></div>
+      <div class="field"><label>Email</label><div class="input-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 7l9 6 9-6"/><rect x="3" y="5" width="18" height="14" rx="2"/></svg><input type="email" id="ra-email" placeholder="nombre@mail.com" autocomplete="email" /></div></div>
+      <div class="field"><label>Contraseña</label><div class="input-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><input type="password" id="ra-pass" placeholder="mínimo 8 caracteres" autocomplete="new-password" /></div></div>
+      <div class="field"><label>Objetivo (opcional)</label><select id="ra-objetivo"><option value="">Elegí uno...</option><option>Fuerza máxima</option><option>Hipertrofia</option><option>Recomposición corporal</option><option>Rendimiento deportivo</option><option>Otro</option></select></div>
       <button class="btn" id="ra-btn">Crear cuenta</button>
     </div>
   </div>
@@ -190,57 +186,50 @@
 
 <!-- ============ PANEL PROFE ============ -->
 <div class="app" id="app-profe">
-  <div class="app-header">
-    <div class="hi">Hola<b id="profe-nombre">Profe</b></div>
-    <div class="icon-btn" id="profe-salir" title="Salir">
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+  <!-- vista principal -->
+  <div id="profe-main">
+    <div class="app-header">
+      <div class="hi">Hola<b id="profe-nombre">Profe</b></div>
+      <div class="icon-btn" id="profe-salir" title="Salir"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></div>
+    </div>
+    <div class="tabs">
+      <button class="tab on" data-tab="catalogo">Ejercicios</button>
+      <button class="tab" data-tab="alumnos">Alumnos</button>
+    </div>
+    <div class="body">
+      <div class="tabview on" id="tv-catalogo">
+        <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input type="text" id="cat-buscar" placeholder="Buscar ejercicio..." /></div>
+        <div class="toolbar"><button class="btn sm" id="cat-agregar">+ Agregar ejercicio</button></div>
+        <div id="cat-lista"></div>
+      </div>
+      <div class="tabview" id="tv-alumnos">
+        <div class="invite-box"><small>Link de invitación para tus alumnos</small><div class="code" id="al-codigo">—</div><button class="btn sm" id="al-copiar">Copiar link</button></div>
+        <div id="al-lista"></div>
+      </div>
     </div>
   </div>
-  <div class="tabs">
-    <button class="tab on" data-tab="catalogo">Ejercicios</button>
-    <button class="tab" data-tab="alumnos">Alumnos</button>
-  </div>
-  <div class="body">
-    <!-- CATÁLOGO -->
-    <div class="tabview on" id="tv-catalogo">
-      <div class="search">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
-        <input type="text" id="cat-buscar" placeholder="Buscar ejercicio..." />
-      </div>
-      <div class="toolbar">
-        <button class="btn sm" id="cat-agregar">+ Agregar ejercicio</button>
-      </div>
-      <div id="cat-lista"></div>
+
+  <!-- vista rutina de un alumno -->
+  <div id="profe-rutina" style="display:none">
+    <div class="app-header">
+      <div class="icon-btn" id="rut-volver" title="Volver"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></div>
+      <div class="title" id="rut-nombre">Rutina</div>
+      <div style="width:40px"></div>
     </div>
-    <!-- ALUMNOS -->
-    <div class="tabview" id="tv-alumnos">
-      <div class="invite-box">
-        <small>Link de invitación para tus alumnos</small>
-        <div class="code" id="al-codigo">—</div>
-        <button class="btn sm" id="al-copiar">Copiar link</button>
-      </div>
-      <div id="al-lista"></div>
+    <div class="body">
+      <div id="rut-dias"></div>
+      <button class="btn sm" id="rut-add-dia" style="margin-top:6px">+ Agregar día</button>
     </div>
   </div>
 </div>
 
 <!-- ============ PANEL ALUMNO (placeholder) ============ -->
 <div class="app" id="app-alumno">
-  <div class="app-header">
-    <div class="hi">Hola<b id="alumno-nombre">Alumno</b></div>
-    <div class="icon-btn" id="alumno-salir" title="Salir">
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-    </div>
-  </div>
-  <div class="body">
-    <div class="empty">
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></svg>
-      <p>Tu rutina va a aparecer acá.<br>La estamos construyendo.</p>
-    </div>
-  </div>
+  <div class="app-header"><div class="hi">Hola<b id="alumno-nombre">Alumno</b></div><div class="icon-btn" id="alumno-salir" title="Salir"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></div></div>
+  <div class="body"><div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></svg><p>Tu rutina va a aparecer acá.<br>La estamos construyendo.</p></div></div>
 </div>
 
-<!-- ============ MODAL agregar/editar ejercicio ============ -->
+<!-- ============ MODAL ejercicio de catálogo ============ -->
 <div class="overlay" id="ex-overlay">
   <div class="sheet">
     <h3 id="ex-title">Nuevo ejercicio</h3>
@@ -253,14 +242,53 @@
   </div>
 </div>
 
-<div style="position:fixed;bottom:5px;left:0;right:0;text-align:center;font-size:11px;color:#3a3a3a;pointer-events:none;z-index:1">Tu Profe v6</div>
+<!-- ============ MODAL día ============ -->
+<div class="overlay" id="dia-overlay">
+  <div class="sheet">
+    <h3>Nuevo día</h3>
+    <div class="field"><label>Nombre del día</label><input type="text" id="dia-nombre" placeholder="Día 1 - Tren superior" /></div>
+    <button class="btn" id="dia-guardar">Agregar día</button>
+    <button class="btn ghost sm" id="dia-cancelar" style="margin-top:10px">Cancelar</button>
+  </div>
+</div>
+
+<!-- ============ MODAL bloque ============ -->
+<div class="overlay" id="bloque-overlay">
+  <div class="sheet">
+    <h3>Nuevo bloque</h3>
+    <div class="field"><label>Nombre del bloque</label><input type="text" id="bloque-nombre" placeholder="Fuerza - Tracción horizontal" /></div>
+    <div class="field"><label>Pausa del bloque (opcional)</label><input type="text" id="bloque-pausa" placeholder="2'" /></div>
+    <button class="btn" id="bloque-guardar">Agregar bloque</button>
+    <button class="btn ghost sm" id="bloque-cancelar" style="margin-top:10px">Cancelar</button>
+  </div>
+</div>
+
+<!-- ============ MODAL ejercicio de rutina (autocomplete) ============ -->
+<div class="overlay" id="rej-overlay">
+  <div class="sheet">
+    <h3>Agregar ejercicio</h3>
+    <div class="msg" id="rej-msg"></div>
+    <div class="field"><label>Buscá en tu catálogo</label><input type="text" id="rej-buscar" placeholder="Escribí el nombre..." /></div>
+    <div class="ac-list" id="rej-list"></div>
+    <div class="ac-sel" id="rej-sel"><span id="rej-sel-nombre"></span><button style="background:none;border:none;color:var(--muted);cursor:pointer" id="rej-sel-x">cambiar</button></div>
+    <div class="row2">
+      <div class="field"><label>Series</label><input type="number" id="rej-series" placeholder="3" inputmode="numeric" /></div>
+      <div class="field"><label>Reps</label><input type="text" id="rej-reps" placeholder="8-12 / al fallo" /></div>
+    </div>
+    <div class="field"><label>Pausa (opcional)</label><input type="text" id="rej-pausa" placeholder="90s" /></div>
+    <button class="btn" id="rej-guardar">Agregar a la rutina</button>
+    <button class="btn ghost sm" id="rej-cancelar" style="margin-top:10px">Cancelar</button>
+  </div>
+</div>
+
+<div style="position:fixed;bottom:5px;left:0;right:0;text-align:center;font-size:11px;color:#3a3a3a;pointer-events:none;z-index:1">Tu Profe v7</div>
 
 <script>
   const API = "https://tuprofe-api.juanbautistacrespialomar.workers.dev";
   const TOKEN_KEY = "tuprofe_token";
   const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
-  // Los 14 ejercicios base para importar de una
   const EJERCICIOS_BASE = [
     ["Movilidad de tórax con banda", "https://youtu.be/W1mD-jhSnvc"],
     ["Extensiones torácicas", "https://youtu.be/O2lna0HSBxM"],
@@ -281,8 +309,7 @@
   const screens = ["s-login", "s-reg-profe", "s-reg-alumno"];
   function showAuth(id) {
     $("auth-wrap").style.display = "flex";
-    $("app-profe").classList.remove("active");
-    $("app-alumno").classList.remove("active");
+    $("app-profe").classList.remove("active"); $("app-alumno").classList.remove("active");
     screens.forEach((s) => $(s).classList.toggle("active", s === id));
     const subs = { "s-login": "Entrá a tu cuenta", "s-reg-profe": "Creá tu cuenta de profe", "s-reg-alumno": "Creá tu cuenta" };
     $("brand-sub").textContent = subs[id] || "";
@@ -292,7 +319,7 @@
     $("app-profe").classList.toggle("active", rol === "profe");
     $("app-alumno").classList.toggle("active", rol === "alumno");
   }
-  function msg(el, text, type) { el.textContent = text; el.className = "msg " + (type || ""); }
+  function msg(el, t, tipo) { el.textContent = t; el.className = "msg " + (tipo || ""); }
   const token = () => localStorage.getItem(TOKEN_KEY);
   const guardarToken = (t) => localStorage.setItem(TOKEN_KEY, t);
   const borrarToken = () => localStorage.removeItem(TOKEN_KEY);
@@ -305,17 +332,12 @@
     if (!res.ok) throw new Error(data.error || "Algo salió mal");
     return data;
   }
-  function videoIdDe(url) {
-    if (!url) return null;
-    const m = String(url).match(/(?:v=|youtu\.be\/|shorts\/|embed\/)([A-Za-z0-9_-]{11})/);
-    return m ? m[1] : (/^[A-Za-z0-9_-]{11}$/.test(url) ? url : null);
-  }
+  const thumbURL = (id) => `https://img.youtube.com/vi/${id}/mqdefault.jpg`;
 
-  // ---------- Entrar según rol ----------
   async function entrar(rol) {
     showApp(rol);
+    const yo = await api("/yo", "GET", null, true);
     if (rol === "profe") {
-      const yo = await api("/yo", "GET", null, true);
       $("profe-nombre").textContent = yo.nombre || "Profe";
       $("al-codigo").textContent = yo.codigo_invitacion || "—";
       const link = location.origin + location.pathname + "?invita=" + yo.codigo_invitacion;
@@ -323,181 +345,163 @@
         try { await navigator.clipboard.writeText(link); $("al-copiar").textContent = "¡Copiado!"; setTimeout(() => ($("al-copiar").textContent = "Copiar link"), 1600); }
         catch { prompt("Copiá este link:", link); }
       };
-      cargarCatalogo();
+      await cargarCatalogo();
       cargarAlumnos();
     } else {
-      const yo = await api("/yo", "GET", null, true);
       $("alumno-nombre").textContent = yo.nombre || "Alumno";
     }
   }
 
   // ---------- CATÁLOGO ----------
   let CATALOGO = [];
-  async function cargarCatalogo() {
-    CATALOGO = await api("/catalogo", "GET", null, true);
-    renderCatalogo();
-  }
+  async function cargarCatalogo() { CATALOGO = await api("/catalogo", "GET", null, true); renderCatalogo(); }
   function renderCatalogo() {
     const q = $("cat-buscar").value.trim().toLowerCase();
     const lista = q ? CATALOGO.filter((e) => e.nombre.toLowerCase().includes(q)) : CATALOGO;
     const cont = $("cat-lista");
     if (CATALOGO.length === 0) {
-      cont.innerHTML = `<div class="empty">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
-        <p>Todavía no tenés ejercicios.<br>Cargá tu biblioteca para armar rutinas.</p>
-        <button class="btn" id="cat-importar">Cargar 14 ejercicios base</button></div>`;
-      $("cat-importar").onclick = importarBase;
-      return;
+      cont.innerHTML = `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M4 7h16M4 12h16M4 17h10"/></svg><p>Todavía no tenés ejercicios.<br>Cargá tu biblioteca para armar rutinas.</p><button class="btn" id="cat-importar">Cargar 14 ejercicios base</button></div>`;
+      $("cat-importar").onclick = importarBase; return;
     }
-    if (lista.length === 0) { cont.innerHTML = `<div class="empty"><p>Ningún ejercicio coincide con "${q}".</p></div>`; return; }
+    if (lista.length === 0) { cont.innerHTML = `<div class="empty"><p>Ningún ejercicio coincide con "${esc(q)}".</p></div>`; return; }
     cont.innerHTML = lista.map((e) => {
-      const thumb = e.video_id
-        ? `<img class="thumb" src="https://img.youtube.com/vi/${e.video_id}/mqdefault.jpg" alt="" />`
-        : `<div class="thumb ph"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M8 5v14l11-7z"/></svg></div>`;
-      return `<div class="ex">${thumb}
-        <div class="info"><div class="n">${e.nombre}</div><div class="m">${e.material || "Sin material"}</div></div>
-        <div class="acts">
-          <button data-edit="${e.id}"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M4 20h4L18 10l-4-4L4 16z"/></svg></button>
-          <button data-del="${e.id}"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button>
-        </div></div>`;
+      const thumb = e.video_id ? `<img class="thumb" src="${thumbURL(e.video_id)}" alt="" />` : `<div class="thumb ph"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M8 5v14l11-7z"/></svg></div>`;
+      return `<div class="ex">${thumb}<div class="info"><div class="n">${esc(e.nombre)}</div><div class="m">${esc(e.material || "Sin material")}</div></div><div class="acts"><button data-edit="${e.id}"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M4 20h4L18 10l-4-4L4 16z"/></svg></button><button data-del="${e.id}"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button></div></div>`;
     }).join("");
     cont.querySelectorAll("[data-edit]").forEach((b) => (b.onclick = () => abrirEditar(Number(b.dataset.edit))));
     cont.querySelectorAll("[data-del]").forEach((b) => (b.onclick = () => borrarEjercicio(Number(b.dataset.del))));
   }
   $("cat-buscar").oninput = renderCatalogo;
+  async function importarBase() { $("cat-importar").disabled = true; $("cat-importar").textContent = "Cargando..."; for (const [nombre, video] of EJERCICIOS_BASE) { try { await api("/catalogo", "POST", { nombre, video }, true); } catch {} } await cargarCatalogo(); }
 
-  async function importarBase() {
-    $("cat-importar").disabled = true;
-    $("cat-importar").textContent = "Cargando...";
-    for (const [nombre, video] of EJERCICIOS_BASE) {
-      try { await api("/catalogo", "POST", { nombre, video }, true); } catch {}
-    }
-    await cargarCatalogo();
-  }
-
-  // Modal de ejercicio (crear o editar)
   let editandoId = null;
-  function abrirNuevo() {
-    editandoId = null;
-    $("ex-title").textContent = "Nuevo ejercicio";
-    $("ex-nombre").value = ""; $("ex-video").value = ""; $("ex-material").value = "";
-    msg($("ex-msg"), "", ""); $("ex-overlay").classList.add("on");
-  }
-  function abrirEditar(id) {
-    const e = CATALOGO.find((x) => x.id === id);
-    if (!e) return;
-    editandoId = id;
-    $("ex-title").textContent = "Editar ejercicio";
-    $("ex-nombre").value = e.nombre;
-    $("ex-video").value = e.video_id ? "https://youtu.be/" + e.video_id : "";
-    $("ex-material").value = e.material || "";
-    msg($("ex-msg"), "", ""); $("ex-overlay").classList.add("on");
-  }
+  function abrirNuevo() { editandoId = null; $("ex-title").textContent = "Nuevo ejercicio"; $("ex-nombre").value = ""; $("ex-video").value = ""; $("ex-material").value = ""; msg($("ex-msg"), "", ""); $("ex-overlay").classList.add("on"); }
+  function abrirEditar(id) { const e = CATALOGO.find((x) => x.id === id); if (!e) return; editandoId = id; $("ex-title").textContent = "Editar ejercicio"; $("ex-nombre").value = e.nombre; $("ex-video").value = e.video_id ? "https://youtu.be/" + e.video_id : ""; $("ex-material").value = e.material || ""; msg($("ex-msg"), "", ""); $("ex-overlay").classList.add("on"); }
   $("cat-agregar").onclick = abrirNuevo;
   $("ex-cancelar").onclick = () => $("ex-overlay").classList.remove("on");
   $("ex-guardar").onclick = async () => {
-    const nombre = $("ex-nombre").value.trim();
-    const video = $("ex-video").value.trim();
-    const material = $("ex-material").value.trim();
+    const nombre = $("ex-nombre").value.trim(), video = $("ex-video").value.trim(), material = $("ex-material").value.trim();
     if (!nombre) return msg($("ex-msg"), "Poné un nombre", "error");
     $("ex-guardar").disabled = true;
-    try {
-      if (editandoId) await api("/catalogo/" + editandoId, "PUT", { nombre, video, material }, true);
-      else await api("/catalogo", "POST", { nombre, video, material }, true);
-      $("ex-overlay").classList.remove("on");
-      await cargarCatalogo();
-    } catch (e) { msg($("ex-msg"), e.message, "error"); }
-    finally { $("ex-guardar").disabled = false; }
+    try { if (editandoId) await api("/catalogo/" + editandoId, "PUT", { nombre, video, material }, true); else await api("/catalogo", "POST", { nombre, video, material }, true); $("ex-overlay").classList.remove("on"); await cargarCatalogo(); }
+    catch (e) { msg($("ex-msg"), e.message, "error"); } finally { $("ex-guardar").disabled = false; }
   };
-  async function borrarEjercicio(id) {
-    const e = CATALOGO.find((x) => x.id === id);
-    if (!confirm(`¿Borrar "${e.nombre}" del catálogo?`)) return;
-    await api("/catalogo/" + id, "DELETE", null, true);
-    await cargarCatalogo();
-  }
+  async function borrarEjercicio(id) { const e = CATALOGO.find((x) => x.id === id); if (!confirm(`¿Borrar "${e.nombre}" del catálogo?`)) return; await api("/catalogo/" + id, "DELETE", null, true); await cargarCatalogo(); }
 
   // ---------- ALUMNOS ----------
   async function cargarAlumnos() {
     const alumnos = await api("/alumnos", "GET", null, true);
     const cont = $("al-lista");
     if (alumnos.length === 0) { cont.innerHTML = `<div class="empty"><p>Todavía no tenés alumnos.<br>Compartí tu link de invitación.</p></div>`; return; }
-    cont.innerHTML = alumnos.map((a) => `<div class="ex">
-      <div class="thumb ph" style="width:44px;height:44px;border-radius:50%"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div>
-      <div class="info"><div class="n">${a.nombre}</div><div class="m">${a.objetivo || "Sin objetivo"}</div></div>
-    </div>`).join("");
+    cont.innerHTML = alumnos.map((a) => `<div class="ex click" data-alumno="${a.id}"><div class="thumb ph" style="width:44px;height:44px;border-radius:50%"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div><div class="info"><div class="n">${esc(a.nombre)}</div><div class="m">${esc(a.objetivo || "Sin objetivo")}</div></div><div class="acts"><button><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg></button></div></div>`).join("");
+    cont.querySelectorAll("[data-alumno]").forEach((el) => (el.onclick = () => abrirAlumno(Number(el.dataset.alumno), el.querySelector(".n").textContent)));
   }
 
-  // ---------- Tabs ----------
-  document.querySelectorAll(".tab").forEach((t) => {
-    t.onclick = () => {
-      document.querySelectorAll(".tab").forEach((x) => x.classList.toggle("on", x === t));
-      $("tv-catalogo").classList.toggle("on", t.dataset.tab === "catalogo");
-      $("tv-alumnos").classList.toggle("on", t.dataset.tab === "alumnos");
-    };
-  });
+  // ---------- RUTINA ----------
+  let alumnoActual = null;
+  async function abrirAlumno(id, nombre) {
+    alumnoActual = { id, nombre };
+    $("rut-nombre").textContent = nombre;
+    $("profe-main").style.display = "none";
+    $("profe-rutina").style.display = "block";
+    await cargarRutina();
+  }
+  $("rut-volver").onclick = () => { $("profe-rutina").style.display = "none"; $("profe-main").style.display = "block"; };
 
-  // ---------- AUTH handlers ----------
-  $("login-btn").onclick = async () => {
-    const email = $("login-email").value.trim(), pass = $("login-pass").value;
-    if (!email || !pass) return msg($("login-msg"), "Completá email y contraseña", "error");
-    $("login-btn").disabled = true;
-    try { const r = await api("/login", "POST", { email, password: pass }); guardarToken(r.token); await entrar(r.rol); }
-    catch (e) { msg($("login-msg"), e.message, "error"); } finally { $("login-btn").disabled = false; }
+  let RUTINA = [];
+  async function cargarRutina() {
+    const data = await api("/alumnos/" + alumnoActual.id, "GET", null, true);
+    RUTINA = data.dias || [];
+    renderRutina();
+  }
+  function renderRutina() {
+    const cont = $("rut-dias");
+    if (RUTINA.length === 0) { cont.innerHTML = `<div class="empty"><p>Esta rutina está vacía.<br>Agregá el primer día para empezar.</p></div>`; return; }
+    cont.innerHTML = RUTINA.map((d) => {
+      const bloques = (d.bloques || []).map((b) => {
+        const ejs = (b.ejercicios || []).map((e) => `<div class="rej"><div class="rn">${esc(e.nombre)}</div><div class="rs">${e.series ? e.series + "×" : ""}${esc(e.reps || "")}${e.pausa ? " · " + esc(e.pausa) : ""}</div><button data-delrej="${e.id}"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>`).join("");
+        return `<div class="bloque"><div class="bloque-head"><span class="bn">${esc(b.nombre)}</span><span class="bp">${b.pausa ? esc(b.pausa) : ""} <button data-delbloque="${b.id}" style="background:none;border:none;color:var(--muted);cursor:pointer;margin-left:4px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button></span></div>${ejs}<button class="miniadd" data-addrej="${b.id}">+ ejercicio</button></div>`;
+      }).join("");
+      return `<div class="dia"><div class="dia-head"><span class="dn">${esc(d.nombre)}</span><button data-deldia="${d.id}" style="background:none;border:none;color:var(--muted);cursor:pointer"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button></div><div class="dia-body">${bloques}<button class="miniadd" data-addbloque="${d.id}">+ bloque</button></div></div>`;
+    }).join("");
+    cont.querySelectorAll("[data-deldia]").forEach((b) => (b.onclick = () => borrarNodo("dias", Number(b.dataset.deldia), "¿Borrar el día completo?")));
+    cont.querySelectorAll("[data-delbloque]").forEach((b) => (b.onclick = () => borrarNodo("bloques", Number(b.dataset.delbloque), "¿Borrar el bloque?")));
+    cont.querySelectorAll("[data-delrej]").forEach((b) => (b.onclick = () => borrarNodo("ejercicios", Number(b.dataset.delrej), null)));
+    cont.querySelectorAll("[data-addbloque]").forEach((b) => (b.onclick = () => abrirBloque(Number(b.dataset.addbloque))));
+    cont.querySelectorAll("[data-addrej]").forEach((b) => (b.onclick = () => abrirRej(Number(b.dataset.addrej))));
+  }
+  async function borrarNodo(tipo, id, pregunta) { if (pregunta && !confirm(pregunta)) return; await api("/" + tipo + "/" + id, "DELETE", null, true); await cargarRutina(); }
+
+  // Modal día
+  $("rut-add-dia").onclick = () => { $("dia-nombre").value = "Día " + (RUTINA.length + 1); $("dia-overlay").classList.add("on"); };
+  $("dia-cancelar").onclick = () => $("dia-overlay").classList.remove("on");
+  $("dia-guardar").onclick = async () => { const nombre = $("dia-nombre").value.trim(); if (!nombre) return; await api("/dias", "POST", { alumno_id: alumnoActual.id, nombre, orden: RUTINA.length }, true); $("dia-overlay").classList.remove("on"); await cargarRutina(); };
+
+  // Modal bloque
+  let bloqueDiaId = null;
+  function abrirBloque(diaId) { bloqueDiaId = diaId; $("bloque-nombre").value = ""; $("bloque-pausa").value = ""; $("bloque-overlay").classList.add("on"); }
+  $("bloque-cancelar").onclick = () => $("bloque-overlay").classList.remove("on");
+  $("bloque-guardar").onclick = async () => { const nombre = $("bloque-nombre").value.trim(); if (!nombre) return; const pausa = $("bloque-pausa").value.trim(); await api("/bloques", "POST", { dia_id: bloqueDiaId, nombre, pausa, orden: 0 }, true); $("bloque-overlay").classList.remove("on"); await cargarRutina(); };
+
+  // Modal ejercicio de rutina (autocomplete)
+  let rejBloqueId = null, catSeleccionado = null;
+  function abrirRej(bloqueId) {
+    rejBloqueId = bloqueId; catSeleccionado = null;
+    $("rej-buscar").value = ""; $("rej-series").value = ""; $("rej-reps").value = ""; $("rej-pausa").value = "";
+    $("rej-sel").classList.remove("on"); $("rej-list").classList.remove("on"); $("rej-buscar").style.display = "";
+    msg($("rej-msg"), "", ""); $("rej-overlay").classList.add("on");
+  }
+  $("rej-cancelar").onclick = () => $("rej-overlay").classList.remove("on");
+  $("rej-buscar").oninput = () => {
+    const q = $("rej-buscar").value.trim().toLowerCase();
+    if (!q) { $("rej-list").classList.remove("on"); return; }
+    const res = CATALOGO.filter((e) => e.nombre.toLowerCase().includes(q)).slice(0, 8);
+    if (res.length === 0) { $("rej-list").innerHTML = `<div class="ac-item"><span style="color:var(--muted)">Nada en el catálogo. Cargalo primero en Ejercicios.</span></div>`; $("rej-list").classList.add("on"); return; }
+    $("rej-list").innerHTML = res.map((e) => `<div class="ac-item" data-cat="${e.id}">${e.video_id ? `<img src="${thumbURL(e.video_id)}" alt="">` : ""}<span>${esc(e.nombre)}</span></div>`).join("");
+    $("rej-list").classList.add("on");
+    $("rej-list").querySelectorAll("[data-cat]").forEach((el) => (el.onclick = () => {
+      catSeleccionado = CATALOGO.find((c) => c.id === Number(el.dataset.cat));
+      $("rej-sel-nombre").textContent = catSeleccionado.nombre;
+      $("rej-sel").classList.add("on"); $("rej-list").classList.remove("on"); $("rej-buscar").style.display = "none";
+    }));
   };
-  $("rp-btn").onclick = async () => {
-    const nombre = $("rp-nombre").value.trim(), email = $("rp-email").value.trim(), pass = $("rp-pass").value;
-    if (!nombre || !email || !pass) return msg($("rp-msg"), "Completá todos los campos", "error");
-    if (pass.length < 8) return msg($("rp-msg"), "La contraseña necesita 8 caracteres o más", "error");
-    $("rp-btn").disabled = true;
-    try { const r = await api("/registro/profe", "POST", { nombre, email, password: pass }); guardarToken(r.token); await entrar("profe"); }
-    catch (e) { msg($("rp-msg"), e.message, "error"); } finally { $("rp-btn").disabled = false; }
+  $("rej-sel-x").onclick = () => { catSeleccionado = null; $("rej-sel").classList.remove("on"); $("rej-buscar").style.display = ""; $("rej-buscar").value = ""; $("rej-buscar").focus(); };
+  $("rej-guardar").onclick = async () => {
+    if (!catSeleccionado) return msg($("rej-msg"), "Elegí un ejercicio del catálogo", "error");
+    const series = $("rej-series").value ? Number($("rej-series").value) : null;
+    const reps = $("rej-reps").value.trim(), pausa = $("rej-pausa").value.trim();
+    $("rej-guardar").disabled = true;
+    try { await api("/ejercicios", "POST", { bloque_id: rejBloqueId, catalogo_id: catSeleccionado.id, series, reps, pausa, orden: 0 }, true); $("rej-overlay").classList.remove("on"); await cargarRutina(); }
+    catch (e) { msg($("rej-msg"), e.message, "error"); } finally { $("rej-guardar").disabled = false; }
   };
+
+  // ---------- Tabs ----------
+  document.querySelectorAll(".tab").forEach((t) => { t.onclick = () => { document.querySelectorAll(".tab").forEach((x) => x.classList.toggle("on", x === t)); $("tv-catalogo").classList.toggle("on", t.dataset.tab === "catalogo"); $("tv-alumnos").classList.toggle("on", t.dataset.tab === "alumnos"); }; });
+
+  // ---------- AUTH ----------
+  $("login-btn").onclick = async () => { const email = $("login-email").value.trim(), pass = $("login-pass").value; if (!email || !pass) return msg($("login-msg"), "Completá email y contraseña", "error"); $("login-btn").disabled = true; try { const r = await api("/login", "POST", { email, password: pass }); guardarToken(r.token); await entrar(r.rol); } catch (e) { msg($("login-msg"), e.message, "error"); } finally { $("login-btn").disabled = false; } };
+  $("rp-btn").onclick = async () => { const nombre = $("rp-nombre").value.trim(), email = $("rp-email").value.trim(), pass = $("rp-pass").value; if (!nombre || !email || !pass) return msg($("rp-msg"), "Completá todos los campos", "error"); if (pass.length < 8) return msg($("rp-msg"), "La contraseña necesita 8 caracteres o más", "error"); $("rp-btn").disabled = true; try { const r = await api("/registro/profe", "POST", { nombre, email, password: pass }); guardarToken(r.token); await entrar("profe"); } catch (e) { msg($("rp-msg"), e.message, "error"); } finally { $("rp-btn").disabled = false; } };
   let codigoInvitacion = null;
-  $("ra-btn").onclick = async () => {
-    const nombre = $("ra-nombre").value.trim(), email = $("ra-email").value.trim(), pass = $("ra-pass").value, objetivo = $("ra-objetivo").value || null;
-    if (!nombre || !email || !pass) return msg($("ra-msg"), "Completá nombre, email y contraseña", "error");
-    if (pass.length < 8) return msg($("ra-msg"), "La contraseña necesita 8 caracteres o más", "error");
-    $("ra-btn").disabled = true;
-    try { const r = await api("/registro/alumno", "POST", { nombre, email, password: pass, codigo_invitacion: codigoInvitacion, objetivo }, false); guardarToken(r.token); await entrar("alumno"); }
-    catch (e) { msg($("ra-msg"), e.message, "error"); } finally { $("ra-btn").disabled = false; }
-  };
+  $("ra-btn").onclick = async () => { const nombre = $("ra-nombre").value.trim(), email = $("ra-email").value.trim(), pass = $("ra-pass").value, objetivo = $("ra-objetivo").value || null; if (!nombre || !email || !pass) return msg($("ra-msg"), "Completá nombre, email y contraseña", "error"); if (pass.length < 8) return msg($("ra-msg"), "La contraseña necesita 8 caracteres o más", "error"); $("ra-btn").disabled = true; try { const r = await api("/registro/alumno", "POST", { nombre, email, password: pass, codigo_invitacion: codigoInvitacion, objetivo }, false); guardarToken(r.token); await entrar("alumno"); } catch (e) { msg($("ra-msg"), e.message, "error"); } finally { $("ra-btn").disabled = false; } };
   $("to-registro-profe").onclick = () => showAuth("s-reg-profe");
   $("to-login-1").onclick = () => showAuth("s-login");
   const salir = async () => { try { await api("/logout", "POST", null, true); } catch {} borrarToken(); showAuth("s-login"); };
-  $("profe-salir").onclick = salir;
-  $("alumno-salir").onclick = salir;
+  $("profe-salir").onclick = salir; $("alumno-salir").onclick = salir;
 
   // ---------- Arranque ----------
   (async function init() {
     const invita = new URLSearchParams(location.search).get("invita");
-    if (token()) {
-      try { const yo = await api("/yo", "GET", null, true); await entrar(yo.rol); return; }
-      catch { borrarToken(); }
-    }
-    if (invita) { codigoInvitacion = invita; showAuth("s-reg-alumno"); }
-    else showAuth("s-login");
+    if (token()) { try { const yo = await api("/yo", "GET", null, true); await entrar(yo.rol); return; } catch { borrarToken(); } }
+    if (invita) { codigoInvitacion = invita; showAuth("s-reg-alumno"); } else showAuth("s-login");
   })();
 
+  // ---------- Auto-update ----------
   if ("serviceWorker" in navigator) {
     let recargando = false;
-    // Cuando la versión nueva toma control, recargar sola (una sola vez)
-    navigator.serviceWorker.addEventListener("controllerchange", () => {
-      if (recargando) return; recargando = true; location.reload();
-    });
-    // updateViaCache:"none" => el navegador nunca usa su copia vieja del sw.js
+    navigator.serviceWorker.addEventListener("controllerchange", () => { if (recargando) return; recargando = true; location.reload(); });
     navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((reg) => {
-      // Si quedó una versión "esperando" de antes, la desbloqueamos
       if (reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
-      // Cuando se instala una versión nueva, la activamos apenas está lista
-      reg.addEventListener("updatefound", () => {
-        const nw = reg.installing;
-        if (!nw) return;
-        nw.addEventListener("statechange", () => {
-          if (nw.state === "installed" && navigator.serviceWorker.controller) {
-            nw.postMessage({ type: "SKIP_WAITING" });
-          }
-        });
-      });
+      reg.addEventListener("updatefound", () => { const nw = reg.installing; if (!nw) return; nw.addEventListener("statechange", () => { if (nw.state === "installed" && navigator.serviceWorker.controller) nw.postMessage({ type: "SKIP_WAITING" }); }); });
       reg.update();
       document.addEventListener("visibilitychange", () => { if (!document.hidden) reg.update(); });
       setInterval(() => reg.update(), 60000);
