@@ -1,4 +1,4 @@
-# tuprofe
+# Tu Profe
 
 App de rutinas para profes de gimnasio. El profe arma la rutina de cada
 alumno (días → bloques → ejercicios, con video de YouTube y series/reps);
