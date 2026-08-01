@@ -184,15 +184,24 @@ export default {
           return json({ error: "Datos incompletos o email inválido" }, 400);
         if (password.length < 8)
           return json({ error: "La contraseña debe tener al menos 8 caracteres" }, 400);
-        const profe = await env.DB.prepare("SELECT id FROM profesores WHERE codigo_invitacion = ?")
+
+        // La invitación es de un solo uso
+        const inv = await env.DB.prepare("SELECT id, profe_id, usada FROM invitaciones WHERE codigo = ?")
           .bind(codigo_invitacion).first();
-        if (!profe) return json({ error: "Link de invitación inválido" }, 400);
+        if (!inv) return json({ error: "Link de invitación inválido" }, 400);
+        if (inv.usada) return json({ error: "Este link de invitación ya fue usado" }, 409);
         if (await emailEnUso(email, env)) return json({ error: "Ese email ya está registrado" }, 409);
+
         const { hash, salt } = await hashPassword(password);
         const r = await env.DB.prepare(
           `INSERT INTO alumnos (profe_id, nombre, email, password_hash, password_salt, fecha_nac, objetivo, observaciones)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-        ).bind(profe.id, nombre, email, hash, salt, fecha_nac || null, objetivo || null, observaciones || null).run();
+        ).bind(inv.profe_id, nombre, email, hash, salt, fecha_nac || null, objetivo || null, observaciones || null).run();
+
+        // Quemar la invitación: no la puede usar nadie más
+        await env.DB.prepare("UPDATE invitaciones SET usada = 1, alumno_id = ? WHERE id = ?")
+          .bind(r.meta.last_row_id, inv.id).run();
+
         const token = await crearSesion("alumno", r.meta.last_row_id, env);
         return json({ token, rol: "alumno", id: r.meta.last_row_id }, 201);
       }
@@ -240,10 +249,29 @@ export default {
       }
 
       // ================= PROFE =================
-      if (path === "/mi-invitacion" && method === "GET" && esProfe) {
-        const p = await env.DB.prepare("SELECT codigo_invitacion FROM profesores WHERE id = ?")
-          .bind(sesion.id).first();
-        return json({ codigo_invitacion: p.codigo_invitacion });
+      // Generar una invitación de un solo uso
+      if (path === "/invitaciones" && method === "POST" && esProfe) {
+        const { nota } = await request.json().catch(() => ({}));
+        const codigo = genCodigo("INV");
+        const r = await env.DB.prepare("INSERT INTO invitaciones (profe_id, codigo, nota) VALUES (?, ?, ?)")
+          .bind(sesion.id, codigo, nota || null).run();
+        return json({ id: r.meta.last_row_id, codigo }, 201);
+      }
+      // Listar invitaciones del profe (pendientes primero)
+      if (path === "/invitaciones" && method === "GET" && esProfe) {
+        const { results } = await env.DB.prepare(
+          "SELECT id, codigo, usada, nota, creada FROM invitaciones WHERE profe_id = ? ORDER BY usada, creada DESC"
+        ).bind(sesion.id).all();
+        return json(results);
+      }
+      // Cancelar una invitación no usada
+      if (seg[0] === "invitaciones" && seg.length === 2 && method === "DELETE" && esProfe) {
+        const invId = Number(seg[1]);
+        const inv = await env.DB.prepare("SELECT profe_id, usada FROM invitaciones WHERE id = ?").bind(invId).first();
+        if (!inv || inv.profe_id !== sesion.id) return json({ error: "No autorizado" }, 403);
+        if (inv.usada) return json({ error: "Esa invitación ya fue usada" }, 409);
+        await env.DB.prepare("DELETE FROM invitaciones WHERE id = ?").bind(invId).run();
+        return json({ ok: true });
       }
 
       // --- CATÁLOGO (la biblioteca del profe) ---
