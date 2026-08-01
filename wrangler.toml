@@ -1,0 +1,21 @@
+# ============================================================
+#  Config de Cloudflare para el Worker (la API) + la base D1
+# ============================================================
+name = "coach-app-api"
+main = "worker/index.js"
+compatibility_date = "2026-01-01"
+
+# --- Base de datos D1 ---
+# Después de crear la base con:
+#     npx wrangler d1 create coach-app-db
+# Cloudflare te devuelve un database_id: pegalo acá abajo.
+[[d1_databases]]
+binding = "DB"                       # así se llama dentro del Worker: env.DB
+database_name = "coach-app-db"
+database_id = "PEGAR-ACA-EL-ID-QUE-TE-DA-CLOUDFLARE"
+
+# --- Variables ---
+# El código de admin NO va acá (sería público en el repo).
+# Se setea como secret, encriptado, con:
+#     npx wrangler secret put ADMIN_CODE
+# y lo leés en el Worker como env.ADMIN_CODE
