@@ -1,22 +1,28 @@
 // ============================================================
-//  COACH APP · Worker (la API que corre en Cloudflare)
+//  tuprofe · Worker (la API que corre en Cloudflare)
 // ------------------------------------------------------------
-//  Este archivo es el cimiento: maneja el LOGIN por código y
-//  resuelve el ROL de quien entra (admin / profe / alumno).
-//  Los endpoints de rutinas (días, bloques, ejercicios, cargas)
-//  se agregan en el próximo paso sobre esta misma base.
+//  Acceso: email + contraseña (hasheada), invitación de alumnos
+//  por código del profe, y sesión persistente por token.
+//
+//  Público (sin token):
+//    POST /registro/profe    { nombre, email, password }
+//    POST /registro/alumno   { nombre, email, password, codigo_invitacion, ... }
+//    POST /login             { email, password }
+//
+//  Con token (header Authorization: Bearer <token>):
+//    GET  /yo                quién soy (para el arranque de la app)
+//    POST /logout            cierra la sesión de este dispositivo
+//    GET  /mi-invitacion     (profe) su código/link para invitar alumnos
+//    GET  /alumnos           (profe) sus alumnos
+//    GET  /mi-rutina         (alumno) su rutina
 // ============================================================
 
-// --- CORS: durante desarrollo el front puede estar en otro dominio.
-//     En producción, si servís el front desde Cloudflare Pages en el
-//     mismo dominio, casi ni lo vas a necesitar, pero no molesta.
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
 
-// Helper para responder JSON siempre con los headers de CORS.
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -24,8 +30,48 @@ function json(data, status = 200) {
   });
 }
 
-// Genera un código tipo "ALU-9F3M" o "PROF-X7K2".
-// Sin caracteres confusos (0/O, 1/I) para que sea fácil de dictar.
+// ------------------------------------------------------------
+//  Helpers de seguridad
+// ------------------------------------------------------------
+
+// ArrayBuffer <-> hex
+function bufToHex(buf) {
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+function hexToBuf(hex) {
+  const arr = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < arr.length; i++) arr[i] = parseInt(hex.substr(i * 2, 2), 16);
+  return arr;
+}
+
+// Hashea la contraseña con PBKDF2 (nativo en Workers). Nunca guardamos
+// la contraseña; guardamos este hash + su salt. Para verificar, se
+// re-hashea con el mismo salt y se compara.
+async function hashPassword(password, saltHex) {
+  const enc = new TextEncoder();
+  const salt = saltHex ? hexToBuf(saltHex) : crypto.getRandomValues(new Uint8Array(16));
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw", enc.encode(password), "PBKDF2", false, ["deriveBits"]
+  );
+  const bits = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" },
+    keyMaterial, 256
+  );
+  return { hash: bufToHex(bits), salt: bufToHex(salt) };
+}
+
+async function verifyPassword(password, saltHex, hashHex) {
+  const { hash } = await hashPassword(password, saltHex);
+  return hash === hashHex;
+}
+
+// Token de sesión aleatorio (32 bytes = 64 hex). Se guarda en la base
+// y en el celu; mientras exista, la app no vuelve a pedir login.
+function genToken() {
+  return bufToHex(crypto.getRandomValues(new Uint8Array(32)));
+}
+
+// Código de invitación tipo "INV-X7K2" (sin caracteres confusos).
 function genCodigo(prefijo) {
   const abc = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let s = "";
@@ -33,45 +79,35 @@ function genCodigo(prefijo) {
   return `${prefijo}-${s}`;
 }
 
-// ------------------------------------------------------------
-//  resolverRol: el corazón del sistema de acceso.
-//  Recibe un código y averigua QUIÉN es.
-//  Devuelve { rol, id, profeId } o null si el código no existe.
-// ------------------------------------------------------------
-async function resolverRol(codigo, env) {
-  if (!codigo) return null;
+const emailOk = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e || "");
 
-  // 1) ¿Es el admin? (el código vive como secret, no en la base)
-  if (codigo === env.ADMIN_CODE) {
-    return { rol: "admin", id: 0, profeId: null };
-  }
-
-  // 2) ¿Es un profe?
-  const profe = await env.DB
-    .prepare("SELECT id FROM profesores WHERE codigo_acceso = ?")
-    .bind(codigo)
-    .first();
-  if (profe) {
-    return { rol: "profe", id: profe.id, profeId: profe.id };
-  }
-
-  // 3) ¿Es un alumno?
-  const alumno = await env.DB
-    .prepare("SELECT id, profe_id FROM alumnos WHERE codigo_acceso = ?")
-    .bind(codigo)
-    .first();
-  if (alumno) {
-    return { rol: "alumno", id: alumno.id, profeId: alumno.profe_id };
-  }
-
-  // 4) No existe
-  return null;
+// ¿Este email ya está usado por algún profe o alumno? (email único global)
+async function emailEnUso(email, env) {
+  const p = await env.DB.prepare("SELECT 1 FROM profesores WHERE email = ?").bind(email).first();
+  if (p) return true;
+  const a = await env.DB.prepare("SELECT 1 FROM alumnos WHERE email = ?").bind(email).first();
+  return !!a;
 }
 
-// Saca el código del header Authorization ("Bearer PROF-XXXX" o directo).
-function codigoDelHeader(request) {
-  const h = request.headers.get("Authorization") || "";
-  return h.replace(/^Bearer\s+/i, "").trim();
+// Crea una sesión y devuelve el token
+async function crearSesion(rol, usuarioId, env) {
+  const token = genToken();
+  await env.DB
+    .prepare("INSERT INTO sesiones (token, rol, usuario_id) VALUES (?, ?, ?)")
+    .bind(token, rol, usuarioId)
+    .run();
+  return token;
+}
+
+// Resuelve el token del header a una sesión: { rol, id } o null
+async function resolverSesion(request, env) {
+  const token = (request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
+  if (!token) return null;
+  const s = await env.DB
+    .prepare("SELECT rol, usuario_id FROM sesiones WHERE token = ?")
+    .bind(token)
+    .first();
+  return s ? { rol: s.rol, id: s.usuario_id } : null;
 }
 
 // ============================================================
@@ -79,93 +115,150 @@ function codigoDelHeader(request) {
 // ============================================================
 export default {
   async fetch(request, env) {
-    // Preflight de CORS
-    if (request.method === "OPTIONS") {
-      return new Response(null, { headers: CORS });
-    }
+    if (request.method === "OPTIONS") return new Response(null, { headers: CORS });
 
     const url = new URL(request.url);
     const path = url.pathname;
     const method = request.method;
 
     try {
-      // --------------------------------------------------------
-      //  POST /login  { codigo }
-      //  Única ruta pública. Devuelve el rol para que el front
-      //  sepa qué vista mostrar.
-      // --------------------------------------------------------
-      if (path === "/login" && method === "POST") {
-        const { codigo } = await request.json();
-        const sesion = await resolverRol(codigo, env);
-        if (!sesion) return json({ error: "Código inválido" }, 401);
-        return json(sesion);
-      }
-
-      // --------------------------------------------------------
-      //  De acá para abajo, TODO requiere código válido.
-      //  Resolvemos el rol una sola vez y lo reusamos.
-      // --------------------------------------------------------
-      const sesion = await resolverRol(codigoDelHeader(request), env);
-      if (!sesion) return json({ error: "No autorizado" }, 401);
-
       // ========================================================
-      //  ADMIN: crear profes
+      //  PÚBLICO
       // ========================================================
-      if (path === "/profes" && method === "POST") {
-        if (sesion.rol !== "admin") return json({ error: "Solo admin" }, 403);
-        const { nombre } = await request.json();
-        if (!nombre) return json({ error: "Falta el nombre" }, 400);
 
-        const codigo = genCodigo("PROF");
+      // --- Registro de PROFE (abierto) ---
+      if (path === "/registro/profe" && method === "POST") {
+        const { nombre, email, password } = await request.json();
+        if (!nombre || !emailOk(email) || !password)
+          return json({ error: "Datos incompletos o email inválido" }, 400);
+        if (password.length < 8)
+          return json({ error: "La contraseña debe tener al menos 8 caracteres" }, 400);
+        if (await emailEnUso(email, env))
+          return json({ error: "Ese email ya está registrado" }, 409);
+
+        const { hash, salt } = await hashPassword(password);
+        const codigoInv = genCodigo("INV");
         const r = await env.DB
-          .prepare("INSERT INTO profesores (nombre, codigo_acceso) VALUES (?, ?)")
-          .bind(nombre, codigo)
+          .prepare(`INSERT INTO profesores (nombre, email, password_hash, password_salt, codigo_invitacion)
+                    VALUES (?, ?, ?, ?, ?)`)
+          .bind(nombre, email, hash, salt, codigoInv)
           .run();
 
-        return json({ id: r.meta.last_row_id, nombre, codigo_acceso: codigo }, 201);
+        const token = await crearSesion("profe", r.meta.last_row_id, env);
+        return json({ token, rol: "profe", id: r.meta.last_row_id, codigo_invitacion: codigoInv }, 201);
       }
 
-      if (path === "/profes" && method === "GET") {
-        if (sesion.rol !== "admin") return json({ error: "Solo admin" }, 403);
-        const { results } = await env.DB
-          .prepare("SELECT id, nombre, codigo_acceso, creado FROM profesores ORDER BY creado DESC")
-          .all();
-        return json(results);
+      // --- Registro de ALUMNO (por link de invitación del profe) ---
+      if (path === "/registro/alumno" && method === "POST") {
+        const { nombre, email, password, codigo_invitacion, fecha_nac, objetivo, observaciones } =
+          await request.json();
+        if (!nombre || !emailOk(email) || !password || !codigo_invitacion)
+          return json({ error: "Datos incompletos o email inválido" }, 400);
+        if (password.length < 8)
+          return json({ error: "La contraseña debe tener al menos 8 caracteres" }, 400);
+
+        // El código de invitación nos dice a qué profe pertenece
+        const profe = await env.DB
+          .prepare("SELECT id FROM profesores WHERE codigo_invitacion = ?")
+          .bind(codigo_invitacion)
+          .first();
+        if (!profe) return json({ error: "Link de invitación inválido" }, 400);
+
+        if (await emailEnUso(email, env))
+          return json({ error: "Ese email ya está registrado" }, 409);
+
+        const { hash, salt } = await hashPassword(password);
+        const r = await env.DB
+          .prepare(`INSERT INTO alumnos (profe_id, nombre, email, password_hash, password_salt, fecha_nac, objetivo, observaciones)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+          .bind(profe.id, nombre, email, hash, salt, fecha_nac || null, objetivo || null, observaciones || null)
+          .run();
+
+        const token = await crearSesion("alumno", r.meta.last_row_id, env);
+        return json({ token, rol: "alumno", id: r.meta.last_row_id }, 201);
+      }
+
+      // --- Login (sirve para profe y alumno) ---
+      if (path === "/login" && method === "POST") {
+        const { email, password } = await request.json();
+        if (!emailOk(email) || !password) return json({ error: "Datos incompletos" }, 400);
+
+        // Buscamos primero en profes, después en alumnos
+        let rol = "profe";
+        let user = await env.DB
+          .prepare("SELECT id, password_hash, password_salt FROM profesores WHERE email = ?")
+          .bind(email)
+          .first();
+        if (!user) {
+          rol = "alumno";
+          user = await env.DB
+            .prepare("SELECT id, password_hash, password_salt FROM alumnos WHERE email = ?")
+            .bind(email)
+            .first();
+        }
+        if (!user) return json({ error: "Email o contraseña incorrectos" }, 401);
+
+        const ok = await verifyPassword(password, user.password_salt, user.password_hash);
+        if (!ok) return json({ error: "Email o contraseña incorrectos" }, 401);
+
+        const token = await crearSesion(rol, user.id, env);
+        return json({ token, rol, id: user.id });
       }
 
       // ========================================================
-      //  PROFE: gestionar SUS alumnos (aislamiento por profe_id)
+      //  DE ACÁ EN ADELANTE: requiere token válido
       // ========================================================
+      const sesion = await resolverSesion(request, env);
+      if (!sesion) return json({ error: "No autorizado" }, 401);
+
+      // --- Quién soy (el front lo llama al abrir con el token guardado) ---
+      if (path === "/yo" && method === "GET") {
+        if (sesion.rol === "profe") {
+          const p = await env.DB
+            .prepare("SELECT id, nombre, email, codigo_invitacion FROM profesores WHERE id = ?")
+            .bind(sesion.id)
+            .first();
+          return json({ rol: "profe", ...p });
+        } else {
+          const a = await env.DB
+            .prepare("SELECT id, nombre, email, objetivo, profe_id FROM alumnos WHERE id = ?")
+            .bind(sesion.id)
+            .first();
+          return json({ rol: "alumno", ...a });
+        }
+      }
+
+      // --- Logout (borra la sesión de este dispositivo) ---
+      if (path === "/logout" && method === "POST") {
+        const token = (request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
+        await env.DB.prepare("DELETE FROM sesiones WHERE token = ?").bind(token).run();
+        return json({ ok: true });
+      }
+
+      // ========================================================
+      //  PROFE
+      // ========================================================
+      if (path === "/mi-invitacion" && method === "GET") {
+        if (sesion.rol !== "profe") return json({ error: "Solo profe" }, 403);
+        const p = await env.DB
+          .prepare("SELECT codigo_invitacion FROM profesores WHERE id = ?")
+          .bind(sesion.id)
+          .first();
+        return json({ codigo_invitacion: p.codigo_invitacion });
+      }
+
       if (path === "/alumnos" && method === "GET") {
         if (sesion.rol !== "profe") return json({ error: "Solo profe" }, 403);
         const { results } = await env.DB
-          .prepare(`SELECT id, nombre, codigo_acceso, objetivo, creado
+          .prepare(`SELECT id, nombre, email, objetivo, creado
                     FROM alumnos WHERE profe_id = ? ORDER BY nombre`)
-          .bind(sesion.profeId)               // <- clave del multi-tenant
+          .bind(sesion.id)                    // <- multi-tenant: solo SUS alumnos
           .all();
         return json(results);
       }
 
-      if (path === "/alumnos" && method === "POST") {
-        if (sesion.rol !== "profe") return json({ error: "Solo profe" }, 403);
-        const { nombre, fecha_nac, objetivo, observaciones } = await request.json();
-        if (!nombre) return json({ error: "Falta el nombre" }, 400);
-
-        const codigo = genCodigo("ALU");
-        const r = await env.DB
-          .prepare(`INSERT INTO alumnos (profe_id, nombre, codigo_acceso, fecha_nac, objetivo, observaciones)
-                    VALUES (?, ?, ?, ?, ?, ?)`)
-          .bind(sesion.profeId, nombre, codigo, fecha_nac || null, objetivo || null, observaciones || null)
-          .run();
-
-        // Devolvemos el código para que el profe se lo pase al alumno
-        return json({ id: r.meta.last_row_id, nombre, codigo_acceso: codigo }, 201);
-      }
-
       // ========================================================
-      //  ALUMNO: ver su propia rutina
-      //  (por ahora devuelve el esqueleto; los días/bloques/ejercicios
-      //   se llenan en el próximo paso)
+      //  ALUMNO
       // ========================================================
       if (path === "/mi-rutina" && method === "GET") {
         if (sesion.rol !== "alumno") return json({ error: "Solo alumno" }, 403);
@@ -177,9 +270,7 @@ export default {
       }
 
       // --------------------------------------------------------
-      //  TODO próximo paso:
-      //    POST/PUT/DELETE  /dias  /bloques  /ejercicios
-      //    POST /cargas   ·  GET /mis-cargas  ·  GET /alumnos/:id/cargas
+      //  TODO próximo paso: CRUD de días / bloques / ejercicios / cargas
       // --------------------------------------------------------
 
       return json({ error: "Ruta no encontrada" }, 404);

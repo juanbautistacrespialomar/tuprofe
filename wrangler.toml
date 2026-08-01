@@ -14,8 +14,5 @@ binding = "DB"                       # así se llama dentro del Worker: env.DB
 database_name = "tuprofe-db"
 database_id = "PEGAR-ACA-EL-ID-QUE-TE-DA-CLOUDFLARE"
 
-# --- Variables ---
-# El código de admin NO va acá (sería público en el repo).
-# Se setea como secret, encriptado, con:
-#     npx wrangler secret put ADMIN_CODE
-# y lo leés en el Worker como env.ADMIN_CODE
+# No hace falta ningún secret: las sesiones usan tokens aleatorios
+# guardados en la base, y las contraseñas se hashean con PBKDF2 (nativo).

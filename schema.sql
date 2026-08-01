@@ -1,19 +1,19 @@
 -- ============================================================
---  COACH APP · Esquema de la base de datos (Cloudflare D1 / SQLite)
+--  tuprofe · Esquema de la base de datos (Cloudflare D1 / SQLite)
 -- ============================================================
 --  Jerarquía:  Profe -> Alumno -> Día -> Bloque -> Ejercicio -> Cargas
 --
---  Roles y acceso:
---    - ADMIN  = un código guardado como variable secreta en el Worker
---               (NO vive en la base). Con él se crean profes.
---    - PROFE  = fila en la tabla `profesores`, código PROF-xxxx
---    - ALUMNO = fila en la tabla `alumnos`,     código ALU-xxxx
---
---  Multi-tenant: cada profe solo ve SUS alumnos (filtro por profe_id).
+--  Acceso (NUEVO modelo):
+--    - Profe:  se registra solo con email + contraseña. Registro abierto.
+--    - Alumno: se registra con email + contraseña, pero entrando por el
+--              LINK DE INVITACIÓN de su profe (así queda vinculado a él).
+--    - Login persistente: al registrarse/loguearse se crea una SESIÓN
+--              (un token) que el celu guarda. No vuelve a pedir login
+--              hasta que borren la app.
+--    - Las contraseñas se guardan HASHEADAS (nunca en texto plano).
 -- ============================================================
 
--- Para poder correr este script varias veces sin romper nada durante
--- el desarrollo, borramos y recreamos. OJO: en producción no querés esto.
+DROP TABLE IF EXISTS sesiones;
 DROP TABLE IF EXISTS cargas;
 DROP TABLE IF EXISTS ejercicios;
 DROP TABLE IF EXISTS bloques;
@@ -22,13 +22,16 @@ DROP TABLE IF EXISTS alumnos;
 DROP TABLE IF EXISTS profesores;
 
 -- ------------------------------------------------------------
--- PROFESORES  (los "inquilinos" de la plataforma)
+-- PROFESORES
 -- ------------------------------------------------------------
 CREATE TABLE profesores (
-  id             INTEGER PRIMARY KEY AUTOINCREMENT,
-  nombre         TEXT NOT NULL,
-  codigo_acceso  TEXT UNIQUE NOT NULL,          -- "PROF-X7K2", con esto entra el profe
-  creado         TEXT DEFAULT (datetime('now'))
+  id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+  nombre             TEXT NOT NULL,
+  email              TEXT UNIQUE NOT NULL,
+  password_hash      TEXT NOT NULL,             -- hash PBKDF2 (hex)
+  password_salt      TEXT NOT NULL,             -- salt único por usuario (hex)
+  codigo_invitacion  TEXT UNIQUE NOT NULL,      -- "INV-X7K2", va en el link para sus alumnos
+  creado             TEXT DEFAULT (datetime('now'))
 );
 
 -- ------------------------------------------------------------
@@ -38,8 +41,10 @@ CREATE TABLE alumnos (
   id             INTEGER PRIMARY KEY AUTOINCREMENT,
   profe_id       INTEGER NOT NULL REFERENCES profesores(id) ON DELETE CASCADE,
   nombre         TEXT NOT NULL,
-  codigo_acceso  TEXT UNIQUE NOT NULL,          -- "ALU-9F3M", el profe se lo pasa
-  fecha_nac      TEXT,                           -- ISO 'YYYY-MM-DD'
+  email          TEXT UNIQUE NOT NULL,
+  password_hash  TEXT NOT NULL,
+  password_salt  TEXT NOT NULL,
+  fecha_nac      TEXT,
   objetivo       TEXT CHECK (objetivo IN (
                     'Fuerza máxima',
                     'Hipertrofia',
@@ -47,74 +52,78 @@ CREATE TABLE alumnos (
                     'Rendimiento deportivo',
                     'Otro'
                  )),
-  observaciones  TEXT,                           -- lesiones, condiciones para el profe
+  observaciones  TEXT,
   creado         TEXT DEFAULT (datetime('now'))
 );
 
 -- ------------------------------------------------------------
--- DÍAS  (Día 1, Día 2... de la rutina de un alumno)
+-- SESIONES  (login persistente: un token por dispositivo logueado)
+-- ------------------------------------------------------------
+CREATE TABLE sesiones (
+  token       TEXT PRIMARY KEY,                 -- string aleatorio, lo guarda el celu
+  rol         TEXT NOT NULL,                    -- 'profe' | 'alumno'
+  usuario_id  INTEGER NOT NULL,                 -- id del profe o del alumno
+  creado      TEXT DEFAULT (datetime('now'))
+);
+
+-- ------------------------------------------------------------
+-- DÍAS
 -- ------------------------------------------------------------
 CREATE TABLE dias (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
   alumno_id  INTEGER NOT NULL REFERENCES alumnos(id) ON DELETE CASCADE,
-  nombre     TEXT NOT NULL,                      -- "Día 1 - Tren superior"
+  nombre     TEXT NOT NULL,
   orden      INTEGER NOT NULL DEFAULT 0
 );
 
 -- ------------------------------------------------------------
--- BLOQUES  (agrupan ejercicios dentro de un día: entrada en calor,
---           core, fuerza, accesorios...)
+-- BLOQUES
 -- ------------------------------------------------------------
 CREATE TABLE bloques (
   id       INTEGER PRIMARY KEY AUTOINCREMENT,
   dia_id   INTEGER NOT NULL REFERENCES dias(id) ON DELETE CASCADE,
-  nombre   TEXT NOT NULL,                        -- "Fuerza MMSS - Tracción horizontal"
+  nombre   TEXT NOT NULL,
   orden    INTEGER NOT NULL DEFAULT 0,
-  pausa    TEXT                                  -- pausa a nivel bloque, ej "2'"
+  pausa    TEXT
 );
 
 -- ------------------------------------------------------------
--- EJERCICIOS  (modelo de series SIMPLE: un reps y una pausa por ejercicio)
+-- EJERCICIOS  (series simple: un reps y una pausa por ejercicio)
 -- ------------------------------------------------------------
 CREATE TABLE ejercicios (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
   bloque_id  INTEGER NOT NULL REFERENCES bloques(id) ON DELETE CASCADE,
   orden      INTEGER NOT NULL DEFAULT 0,
-  nombre     TEXT NOT NULL,                      -- "Press banca"
-  material   TEXT,                               -- "Banda Elástica", "Cajón", "Peso corporal"
-  series     INTEGER,                            -- cantidad de series (3, 4...)
-  reps       TEXT,                               -- "6 x lado", "8-12", "al fallo"
-  pausa      TEXT,                               -- "90s", "—"
+  nombre     TEXT NOT NULL,
+  material   TEXT,
+  series     INTEGER,
+  reps       TEXT,
+  pausa      TEXT,
   notas      TEXT,
-  video_id   TEXT                                -- solo el ID de YouTube (11 chars)
+  video_id   TEXT
 );
 
 -- ------------------------------------------------------------
--- CARGAS  (lo que registra el ALUMNO; el profe lo lee. Bidireccional)
+-- CARGAS  (las registra el alumno; el profe las lee)
 -- ------------------------------------------------------------
 CREATE TABLE cargas (
   id            INTEGER PRIMARY KEY AUTOINCREMENT,
   ejercicio_id  INTEGER NOT NULL REFERENCES ejercicios(id) ON DELETE CASCADE,
   alumno_id     INTEGER NOT NULL REFERENCES alumnos(id) ON DELETE CASCADE,
   fecha         TEXT DEFAULT (datetime('now')),
-  peso          REAL,                            -- kg
-  reps_hechas   TEXT,                            -- lo que efectivamente hizo
-  completado    INTEGER NOT NULL DEFAULT 0,      -- 0/1
+  peso          REAL,
+  reps_hechas   TEXT,
+  completado    INTEGER NOT NULL DEFAULT 0,
   notas         TEXT
 );
 
 -- ------------------------------------------------------------
--- ÍNDICES  (para que las consultas más frecuentes vuelen)
+-- ÍNDICES
 -- ------------------------------------------------------------
 CREATE INDEX idx_alumnos_profe    ON alumnos(profe_id);
+CREATE INDEX idx_sesiones_usuario ON sesiones(rol, usuario_id);
 CREATE INDEX idx_dias_alumno      ON dias(alumno_id);
 CREATE INDEX idx_bloques_dia      ON bloques(dia_id);
 CREATE INDEX idx_ejercicios_bloq  ON ejercicios(bloque_id);
 CREATE INDEX idx_cargas_alumno    ON cargas(alumno_id);
 CREATE INDEX idx_cargas_ejercicio ON cargas(ejercicio_id);
-
--- ------------------------------------------------------------
--- SEED opcional para probar: un profe de ejemplo
--- (el código admin lo definís como secret en el Worker, no acá)
--- ------------------------------------------------------------
-INSERT INTO profesores (nombre, codigo_acceso) VALUES ('Francisco Diberti', 'PROF-DEMO1');
