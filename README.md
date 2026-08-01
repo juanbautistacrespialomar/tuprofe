@@ -1,4 +1,4 @@
-# Coach App
+# tuprofe
 
 App de rutinas para profes de gimnasio. El profe arma la rutina de cada
 alumno (días → bloques → ejercicios, con video de YouTube y series/reps);
@@ -24,10 +24,10 @@ npm install -g wrangler
 wrangler login
 
 # 2. Crear la base D1 y pegar el database_id en wrangler.toml
-wrangler d1 create coach-app-db
+wrangler d1 create tuprofe-db
 
 # 3. Cargar el esquema
-wrangler d1 execute coach-app-db --file=schema.sql
+wrangler d1 execute tuprofe-db --file=schema.sql
 
 # 4. Definir tu código de admin (secreto, encriptado)
 wrangler secret put ADMIN_CODE
@@ -55,7 +55,7 @@ curl -X POST https://TU-WORKER.workers.dev/alumnos \
 ## Estructura
 
 ```
-coach-app/
+tuprofe/
 ├── README.md
 ├── schema.sql          # todas las tablas de D1
 ├── wrangler.toml       # config Cloudflare + binding a D1
