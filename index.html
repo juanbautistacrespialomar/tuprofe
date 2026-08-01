@@ -25,6 +25,7 @@
     background: var(--bg); color: var(--text);
     font-family: "Inter", system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased; min-height: 100dvh;
+    overscroll-behavior: none;
   }
   input, select, button, textarea { font-family: inherit; }
 
@@ -251,6 +252,8 @@
     <button class="btn ghost sm" id="ex-cancelar" style="margin-top:10px">Cancelar</button>
   </div>
 </div>
+
+<div style="position:fixed;bottom:5px;left:0;right:0;text-align:center;font-size:11px;color:#3a3a3a;pointer-events:none;z-index:1">Tu Profe v3</div>
 
 <script>
   const API = "https://tuprofe-api.juanbautistacrespialomar.workers.dev";
