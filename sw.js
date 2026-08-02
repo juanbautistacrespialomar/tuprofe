@@ -8,7 +8,7 @@
 //
 // Para publicar: subí el número de CACHE (v6 -> v7 -> ...).
 
-const CACHE = "tuprofe-v19";
+const CACHE = "tuprofe-v20";
 const SHELL = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", (e) => {
