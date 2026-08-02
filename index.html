@@ -445,7 +445,7 @@
     <div class="app-header">
       <div class="icon-btn" id="rut-volver" title="Volver"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></div>
       <div class="title" id="rut-nombre">Rutina</div>
-      <div style="width:40px"></div>
+      <div class="icon-btn" id="rut-progreso" title="Ver progreso del alumno"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg></div>
     </div>
     <div class="body">
       <div id="rut-dias"></div>
@@ -621,7 +621,15 @@
   </div>
 </div>
 
-<div style="position:fixed;bottom:5px;left:0;right:0;text-align:center;font-size:11px;color:#3a3a3a;pointer-events:none;z-index:1">Tu Profe v15</div>
+<div class="overlay" id="prog-overlay">
+  <div class="sheet" style="max-height:88vh;overflow-y:auto">
+    <h3 id="prog-nombre">Progreso</h3>
+    <div id="prog-lista"></div>
+    <button class="btn ghost sm" id="prog-cerrar" style="margin-top:14px">Cerrar</button>
+  </div>
+</div>
+
+<div style="position:fixed;bottom:5px;left:0;right:0;text-align:center;font-size:11px;color:#3a3a3a;pointer-events:none;z-index:1">Tu Profe v16</div>
 
 <script>
   const API = "https://tuprofe-api.juanbautistacrespialomar.workers.dev";
@@ -837,6 +845,33 @@
     else { $("profe-rutina").style.display = "none"; $("profe-main").style.display = "flex"; }
   }
   $("rut-volver").onclick = rutBack;
+
+  // ===== PROGRESO DEL ALUMNO (lo que registró: pesos, reps, hechos) =====
+  function fechaCorta(f) {
+    if (!f) return "";
+    const d = new Date(String(f).replace(" ", "T") + "Z");
+    return isNaN(d) ? f : d.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "2-digit" });
+  }
+  async function abrirProgreso() {
+    if (!alumnoActual) return;
+    $("prog-nombre").textContent = "Progreso de " + alumnoActual.nombre;
+    $("prog-lista").innerHTML = `<div class="empty"><p>Cargando...</p></div>`;
+    $("prog-overlay").classList.add("on");
+    try {
+      const cargas = await api("/alumnos/" + alumnoActual.id + "/cargas", "GET", null, true);
+      if (!cargas.length) { $("prog-lista").innerHTML = `<div class="empty"><p>${esc(alumnoActual.nombre)} todavía no registró ninguna carga.</p></div>`; return; }
+      $("prog-lista").innerHTML = cargas.map((c) => {
+        const dato = [c.peso != null ? c.peso + " kg" : "", c.reps_hechas ? c.reps_hechas + " reps" : ""].filter(Boolean).join(" · ");
+        const hecho = c.completado ? ` · <span style="color:var(--accent)">✓ hecho</span>` : "";
+        const notas = c.notas ? `<div class="m" style="margin-top:3px;font-style:italic">"${esc(c.notas)}"</div>` : "";
+        return `<div class="ex"><div class="info"><div class="n">${esc(c.ejercicio)}</div><div class="m">${fechaCorta(c.fecha)}${dato ? " · " + esc(dato) : ""}${hecho}</div>${notas}</div></div>`;
+      }).join("");
+    } catch (e) {
+      $("prog-lista").innerHTML = `<div class="empty"><p>${esc(e.message)}</p></div>`;
+    }
+  }
+  $("rut-progreso").onclick = abrirProgreso;
+  $("prog-cerrar").onclick = () => $("prog-overlay").classList.remove("on");
 
   let RUTINA = [];
   async function cargarRutina() {
