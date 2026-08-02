@@ -81,7 +81,7 @@
      recorta el contenido de abajo (no se puede scrollear). min-height:0 habilita el scroll interno. */
   #profe-main, #profe-rutina { display: flex; flex-direction: column; flex: 1; min-height: 0; }
   #profe-main { position: relative; }
-  #profe-main > .body { padding-bottom: calc(104px + env(safe-area-inset-bottom)); }
+  #profe-main > .body { padding-bottom: calc(118px + env(safe-area-inset-bottom)); }
   .app-header { flex-shrink: 0; z-index: 5; background: var(--bg); display: flex; align-items: center; justify-content: space-between; padding: calc(14px + env(safe-area-inset-top)) 18px 14px; border-bottom: 1px solid var(--border); }
   .app-header .hi { font-size: 13px; color: var(--muted); }
   .app-header .hi b { display: block; color: var(--text); font-size: 18px; font-weight: 600; margin-top: 1px; }
@@ -289,10 +289,10 @@
   .alview { position: absolute; inset: 0; display: none; flex-direction: column; }
   .alview.on { display: flex; }
   /* deja aire abajo para la barra flotante */
-  #al-sesion, #al-cargas, #al-perfil { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+  #al-sesion, #al-cargas, #al-perfil { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
 
   /* --- Barra inferior flotante (formato de appdegastos, colores tuprofe) --- */
-  .bottomnav { position: absolute; left: 0; right: 0; bottom: 0; z-index: 30; background: transparent; pointer-events: none; padding: 0 14px calc(env(safe-area-inset-bottom) + 12px); }
+  .bottomnav { position: absolute; left: 0; right: 0; bottom: 0; z-index: 30; background: linear-gradient(to top, var(--bg) 62%, rgba(10,10,10,0)); pointer-events: none; padding: 26px 14px calc(env(safe-area-inset-bottom) + 12px); }
   .bottomnav-inner { max-width: 440px; margin: 0 auto; display: flex; position: relative; pointer-events: auto; background: var(--nav-glass); -webkit-backdrop-filter: blur(22px) saturate(1.5); backdrop-filter: blur(22px) saturate(1.5); border: 1px solid var(--border); border-radius: 26px; box-shadow: 0 6px 20px rgba(0,0,0,.35); padding: 6px 8px; }
   .navtab { position: relative; display: flex; align-items: center; justify-content: center; padding: 11px 0; background: none; border: none; cursor: pointer; color: var(--muted); flex: 0 0 auto; width: 62px; transition: flex-grow .3s ease, width .3s ease, color .25s; }
   .navtab span { display: block; font-size: 11.5px; font-weight: 600; white-space: nowrap; position: relative; z-index: 1; max-width: 0; opacity: 0; overflow: hidden; transition: max-width .3s ease, opacity .22s ease, margin-left .3s ease; }
@@ -652,7 +652,7 @@
   </div>
 </div>
 
-<div style="position:fixed;bottom:5px;left:0;right:0;text-align:center;font-size:11px;color:#3a3a3a;pointer-events:none;z-index:1">Tu Profe v20</div>
+<div style="position:fixed;bottom:5px;left:0;right:0;text-align:center;font-size:11px;color:#3a3a3a;pointer-events:none;z-index:1">Tu Profe v21</div>
 
 <script>
   const API = "https://tuprofe-api.juanbautistacrespialomar.workers.dev";
