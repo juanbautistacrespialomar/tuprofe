@@ -348,7 +348,11 @@
 
   /* --- Vista Perfil --- */
   .pf-card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 22px; text-align: center; margin-bottom: 18px; }
-  .pf-avatar { width: 76px; height: 76px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; font-family: "Anton", sans-serif; font-size: 32px; color: var(--accent); }
+  .pf-avatar { width: 76px; height: 76px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; font-family: "Anton", sans-serif; font-size: 32px; color: var(--accent); overflow: hidden; }
+  .pf-avatar-wrap { position: relative; width: 76px; margin: 0 auto 14px; }
+  .pf-avatar-wrap .pf-avatar { margin: 0; }
+  .pf-cam { position: absolute; right: -4px; bottom: -2px; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); border: 3px solid var(--bg); color: var(--accent-ink); display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
+  .pf-cam svg { width: 15px; height: 15px; }
   .pf-name { font-size: 20px; font-weight: 600; }
   .pf-mail { font-size: 13px; color: var(--muted); margin-top: 3px; }
   .pf-stats { display: flex; gap: 10px; margin-bottom: 18px; }
@@ -567,7 +571,7 @@
   <div class="sheet">
     <h3 id="dia-h3">Nuevo día</h3>
     <div class="field"><label>Nombre del día</label><input type="text" id="dia-nombre" placeholder="Día 1 - Tren superior" /></div>
-    <div class="field"><label>Fecha (opcional — le aparece al alumno)</label><input type="date" id="dia-fecha" /></div>
+    <div class="field"><label>¿Qué día lo hace el alumno?</label><input type="date" id="dia-fecha" /><div class="hint" id="dia-fecha-hint" style="margin-top:6px"></div></div>
     <button class="btn" id="dia-guardar">Agregar día</button>
     <button class="btn ghost sm" id="dia-cancelar" style="margin-top:10px">Cancelar</button>
   </div>
@@ -613,7 +617,7 @@
   </div>
 </div>
 
-<div style="position:fixed;bottom:5px;left:0;right:0;text-align:center;font-size:11px;color:#3a3a3a;pointer-events:none;z-index:1">Tu Profe v13</div>
+<div style="position:fixed;bottom:5px;left:0;right:0;text-align:center;font-size:11px;color:#3a3a3a;pointer-events:none;z-index:1">Tu Profe v14</div>
 
 <script>
   const API = "https://tuprofe-api.juanbautistacrespialomar.workers.dev";
@@ -933,14 +937,25 @@
 
   // Modal dia (crear + editar)
   let diaEnEdicion = null;
+  function actualizarHintFecha() {
+    const v = $("dia-fecha").value;
+    const hint = $("dia-fecha-hint");
+    if (!v) { hint.textContent = "Sin fecha: le aparece como \"Día N\" al alumno."; hint.style.color = "var(--muted)"; return; }
+    const d = new Date(v + "T00:00:00");
+    const txt = d.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
+    hint.textContent = esHoy(v) ? txt + " (hoy)" : txt;
+    hint.style.color = esHoy(v) ? "var(--accent)" : "var(--muted)";
+  }
   function abrirDia(modo, dia) {
     diaEnEdicion = modo === "editar" && dia ? dia.id : null;
     $("dia-h3").textContent = diaEnEdicion ? "Editar dia" : "Nuevo dia";
     $("dia-guardar").textContent = diaEnEdicion ? "Guardar cambios" : "Agregar dia";
     $("dia-nombre").value = dia ? dia.nombre : "Dia " + (RUTINA.length + 1);
     $("dia-fecha").value = dia && dia.fecha ? dia.fecha : "";
+    actualizarHintFecha();
     $("dia-overlay").classList.add("on"); $("dia-nombre").focus();
   }
+  $("dia-fecha").oninput = actualizarHintFecha;
   $("dia-cancelar").onclick = () => $("dia-overlay").classList.remove("on");
   $("dia-guardar").onclick = async () => {
     const nombre = $("dia-nombre").value.trim(); if (!nombre) return;
@@ -1297,15 +1312,67 @@
     const nombre = (alYo && alYo.nombre) || "Alumno";
     const inicial = nombre.trim().charAt(0).toUpperCase() || "?";
     const totalEj = MI_RUTINA.reduce((a, d) => a + contarEj(d, HECHOS).total, 0);
+    const edad = alYo && alYo.fecha_nac ? edadDesde(alYo.fecha_nac) : null;
+    const sub = [edad != null ? edad + " años" : null, alYo && alYo.profe_nombre ? "Profe: " + alYo.profe_nombre : null].filter(Boolean).join("  ·  ");
+    const avatar = alYo && alYo.foto
+      ? `<img src="${alYo.foto}" alt="Foto de perfil" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
+      : esc(inicial);
     cont.innerHTML = `
-      <div class="pf-card"><div class="pf-avatar">${esc(inicial)}</div><div class="pf-name">${esc(nombre)}</div><div class="pf-mail">${esc((alYo && alYo.email) || "")}</div></div>
+      <div class="pf-card">
+        <div class="pf-avatar-wrap">
+          <div class="pf-avatar">${avatar}</div>
+          <button class="pf-cam" id="pf-cam" title="Cambiar foto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></button>
+          <input type="file" id="pf-file" accept="image/*" style="display:none" />
+        </div>
+        <div class="pf-name">${esc(nombre)}</div>
+        ${sub ? `<div class="pf-mail">${esc(sub)}</div>` : ""}
+        <div class="pf-mail">${esc((alYo && alYo.email) || "")}</div>
+      </div>
       <div class="pf-stats">
         <div class="pf-stat"><div class="ps-v">${MI_RUTINA.length}</div><div class="ps-l">Días</div></div>
         <div class="pf-stat"><div class="ps-v">${totalEj}</div><div class="ps-l">Ejercicios</div></div>
         <div class="pf-stat"><div class="ps-v">${CARGAS.length}</div><div class="ps-l">Cargas</div></div>
       </div>
+      <div class="msg" id="pf-msg"></div>
       <button class="btn ghost" id="pf-salir">Cerrar sesión</button>`;
     $("pf-salir").onclick = salir;
+    $("pf-cam").onclick = () => $("pf-file").click();
+    $("pf-file").onchange = onFotoElegida;
+  }
+
+  // Comprime la imagen en el celu (cuadrada ~256px, JPEG) para que pese poco
+  function resizeImg(file, max, quality) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const lado = Math.min(img.width, img.height);           // recorte cuadrado central
+          const sx = (img.width - lado) / 2, sy = (img.height - lado) / 2;
+          const size = Math.min(max, lado);
+          const canvas = document.createElement("canvas");
+          canvas.width = size; canvas.height = size;
+          canvas.getContext("2d").drawImage(img, sx, sy, lado, lado, 0, 0, size, size);
+          resolve(canvas.toDataURL("image/jpeg", quality));
+        };
+        img.onerror = reject;
+        img.src = reader.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+  async function onFotoElegida(e) {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = ""; // permite re-elegir la misma foto
+    if (!file) return;
+    try {
+      let dataUrl = await resizeImg(file, 256, 0.7);
+      if (dataUrl.length > 380000) dataUrl = await resizeImg(file, 200, 0.6); // segundo pase si quedó grande
+      await api("/mi-perfil", "PUT", { foto: dataUrl }, true);
+      alYo.foto = dataUrl;
+      renderPerfil();
+    } catch (err) { msg($("pf-msg"), (err && err.message) || "No pudimos guardar la foto", "error"); }
   }
 
   // ===== Navegación de tabs (barra inferior) =====

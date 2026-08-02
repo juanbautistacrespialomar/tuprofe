@@ -49,6 +49,7 @@ CREATE TABLE alumnos (
   password_hash  TEXT NOT NULL,
   password_salt  TEXT NOT NULL,
   fecha_nac      TEXT,
+  foto           TEXT,  -- data URL (base64) de la foto de perfil, comprimida en el cliente
   objetivo       TEXT CHECK (objetivo IN (
                     'Fuerza máxima', 'Hipertrofia', 'Recomposición corporal',
                     'Rendimiento deportivo', 'Otro'
