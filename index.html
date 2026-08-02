@@ -363,11 +363,26 @@
   .pf-stat { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 8px; text-align: center; }
   .pf-stat .ps-v { font-family: "Anton", sans-serif; font-size: 26px; color: var(--accent); }
   .pf-stat .ps-l { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin-top: 2px; }
+  #splash { position: fixed; inset: 0; z-index: 100; background: var(--bg); display: flex; align-items: center; justify-content: center; transition: opacity .45s ease; }
+  #splash.hide { opacity: 0; pointer-events: none; }
+  .splash-logo { width: 96px; height: 96px; border-radius: 22px; overflow: hidden; margin: 0 auto 16px; }
+  .splash-logo img { width: 100%; height: 100%; display: block; }
+  .splash-name { font-family: "Anton", sans-serif; font-size: 34px; text-align: center; letter-spacing: .5px; }
+  .splash-spin { width: 26px; height: 26px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; margin: 24px auto 0; animation: splashspin .8s linear infinite; }
+  @keyframes splashspin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
 
 <!-- ============ AUTH ============ -->
+<div id="splash">
+  <div>
+    <div class="splash-logo"><img src="icon-192.png" alt="Tu Profe"></div>
+    <div class="splash-name">Tu Profe</div>
+    <div class="splash-spin"></div>
+  </div>
+</div>
+
 <div class="wrap" id="auth-wrap">
   <div class="brand">
     <span class="mark"><img src="icon-192.png" alt="Tu Profe" /></span>
@@ -624,12 +639,13 @@
 <div class="overlay" id="prog-overlay">
   <div class="sheet" style="max-height:88vh;overflow-y:auto">
     <h3 id="prog-nombre">Progreso</h3>
+    <div id="prog-info"></div>
     <div id="prog-lista"></div>
     <button class="btn ghost sm" id="prog-cerrar" style="margin-top:14px">Cerrar</button>
   </div>
 </div>
 
-<div style="position:fixed;bottom:5px;left:0;right:0;text-align:center;font-size:11px;color:#3a3a3a;pointer-events:none;z-index:1">Tu Profe v17</div>
+<div style="position:fixed;bottom:5px;left:0;right:0;text-align:center;font-size:11px;color:#3a3a3a;pointer-events:none;z-index:1">Tu Profe v18</div>
 
 <script>
   const API = "https://tuprofe-api.juanbautistacrespialomar.workers.dev";
@@ -856,6 +872,9 @@
   async function abrirProgreso() {
     if (!alumnoActual) return;
     $("prog-nombre").textContent = "Progreso de " + alumnoActual.nombre;
+    const obj = alumnoActual.objetivo || "Sin objetivo definido";
+    const obs = alumnoActual.observaciones;
+    $("prog-info").innerHTML = `<div style="background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:14px;font-size:13px"><div><span style="color:var(--muted)">Objetivo:</span> ${esc(obj)}</div>${obs ? `<div style="margin-top:6px"><span style="color:var(--muted)">Observaciones:</span> ${esc(obs)}</div>` : `<div style="margin-top:6px;color:var(--muted)">Sin observaciones cargadas.</div>`}</div>`;
     $("prog-lista").innerHTML = `<div class="empty"><p>Cargando...</p></div>`;
     $("prog-overlay").classList.add("on");
     try {
@@ -877,6 +896,8 @@
   let RUTINA = [];
   async function cargarRutina() {
     const data = await api("/alumnos/" + alumnoActual.id, "GET", null, true);
+    alumnoActual.objetivo = data.objetivo;
+    alumnoActual.observaciones = data.observaciones;
     RUTINA = data.dias || [];
     renderRutina();
   }
@@ -1404,8 +1425,31 @@
         <div class="pf-stat"><div class="ps-v">${totalEj}</div><div class="ps-l">Ejercicios</div></div>
         <div class="pf-stat"><div class="ps-v">${CARGAS.length}</div><div class="ps-l">Cargas</div></div>
       </div>
+      <div class="pf-card" style="text-align:left;margin-top:14px">
+        <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:7px">Tu objetivo</label>
+        <select id="pf-objetivo" style="margin-bottom:14px">
+          <option value="">Sin definir</option>
+          <option>Fuerza máxima</option><option>Hipertrofia</option><option>Recomposición corporal</option><option>Rendimiento deportivo</option><option>Otro</option>
+        </select>
+        <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:7px">Observaciones (lesiones, condiciones)</label>
+        <textarea id="pf-obs" placeholder="Ej: molestia en hombro derecho, evitar impacto..." style="margin-bottom:14px"></textarea>
+        <button class="btn sm" id="pf-guardar">Guardar cambios</button>
+      </div>
       <div class="msg" id="pf-msg"></div>
       <button class="btn ghost" id="pf-salir">Cerrar sesión</button>`;
+    $("pf-objetivo").value = (alYo && alYo.objetivo) || "";
+    $("pf-obs").value = (alYo && alYo.observaciones) || "";
+    $("pf-guardar").onclick = async () => {
+      $("pf-guardar").disabled = true;
+      try {
+        const objetivo = $("pf-objetivo").value || null;
+        const observaciones = $("pf-obs").value.trim();
+        await api("/mi-perfil", "PUT", { objetivo, observaciones }, true);
+        if (alYo) { alYo.objetivo = objetivo; alYo.observaciones = observaciones; }
+        msg($("pf-msg"), "¡Guardado!", "ok");
+      } catch (e) { msg($("pf-msg"), e.message, "error"); }
+      finally { $("pf-guardar").disabled = false; }
+    };
     $("pf-salir").onclick = salir;
     $("pf-cam").onclick = () => $("pf-file").click();
     $("pf-file").onchange = onFotoElegida;
@@ -1549,12 +1593,14 @@
   });
 
   // ---------- Arranque ----------
+  function ocultarSplash() { const s = $("splash"); if (!s) return; s.classList.add("hide"); setTimeout(() => { s.style.display = "none"; }, 460); }
+
   (async function init() {
     const invita = new URLSearchParams(location.search).get("invita");
     if (token()) {
       // Reintentos: si el worker está frío o la red parpadea, NO deslogueamos.
       for (let intento = 0; intento < 4; intento++) {
-        try { const yo = await api("/yo", "GET", null, true); await entrar(yo.rol); return; }
+        try { const yo = await api("/yo", "GET", null, true); await entrar(yo.rol); ocultarSplash(); return; }
         catch (e) {
           if (e.status === 401) { borrarToken(); break; }        // token inválido -> a login
           if (intento < 3) { await new Promise((r) => setTimeout(r, 800 * (intento + 1))); continue; } // red: reintentar
@@ -1564,6 +1610,7 @@
       }
     }
     if (invita) { codigoInvitacion = invita; showAuth("s-reg-alumno"); } else showAuth("s-login");
+    ocultarSplash();
   })();
 
   // ---------- Auto-update ----------
