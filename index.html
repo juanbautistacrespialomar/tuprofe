@@ -629,7 +629,7 @@
   </div>
 </div>
 
-<div style="position:fixed;bottom:5px;left:0;right:0;text-align:center;font-size:11px;color:#3a3a3a;pointer-events:none;z-index:1">Tu Profe v16</div>
+<div style="position:fixed;bottom:5px;left:0;right:0;text-align:center;font-size:11px;color:#3a3a3a;pointer-events:none;z-index:1">Tu Profe v17</div>
 
 <script>
   const API = "https://tuprofe-api.juanbautistacrespialomar.workers.dev";
@@ -760,9 +760,10 @@
     const alumnos = await api("/alumnos", "GET", null, true);
     const cont = $("al-lista");
     if (alumnos.length === 0) { cont.innerHTML = pend.length ? "" : `<div class="empty"><p>Todavía no tenés alumnos.<br>Tocá "Invitar alumno" para sumar el primero.</p></div>`; return; }
-    cont.innerHTML = `<div style="font-size:12px;color:var(--muted);margin:16px 0 8px">Tus alumnos (${alumnos.length})</div>` + alumnos.map((a) => `<div class="ex click" data-alumno="${a.id}"><div class="thumb ph" style="width:44px;height:44px;border-radius:50%"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div><div class="info"><div class="n">${esc(a.nombre)}</div><div class="m">${edadDesde(a.fecha_nac) != null ? edadDesde(a.fecha_nac) + " años" : esc(a.objetivo || "Sin datos")}</div></div><div class="acts"><button class="del-al" data-del-alumno="${a.id}" title="Borrar alumno"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button><button><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg></button></div></div>`).join("");
+    cont.innerHTML = `<div style="font-size:12px;color:var(--muted);margin:16px 0 8px">Tus alumnos (${alumnos.length})</div>` + alumnos.map((a) => `<div class="ex click" data-alumno="${a.id}"><div class="thumb ph" style="width:44px;height:44px;border-radius:50%"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div><div class="info"><div class="n">${esc(a.nombre)}</div><div class="m">${edadDesde(a.fecha_nac) != null ? edadDesde(a.fecha_nac) + " años" : esc(a.objetivo || "Sin datos")}</div></div><div class="acts"><button class="reset-al" data-reset-alumno="${a.id}" title="Resetear contraseña"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M17 6l2 2M15 8l2 2"/></svg></button><button class="del-al" data-del-alumno="${a.id}" title="Borrar alumno"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button><button><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg></button></div></div>`).join("");
     cont.querySelectorAll("[data-alumno]").forEach((el) => (el.onclick = () => abrirAlumno(Number(el.dataset.alumno), el.querySelector(".n").textContent)));
     cont.querySelectorAll("[data-del-alumno]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); borrarAlumno(Number(b.dataset.delAlumno), b.closest("[data-alumno]").querySelector(".n").textContent); }));
+    cont.querySelectorAll("[data-reset-alumno]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); resetAlumno(Number(b.dataset.resetAlumno), b.closest("[data-alumno]").querySelector(".n").textContent); }));
   }
   async function borrarAlumno(id, nombre) {
     if (!confirm(`¿Borrar a ${nombre}?\n\nSe elimina su cuenta, su rutina y todo su historial de cargas. Esto no se puede deshacer.`)) return;
@@ -1167,6 +1168,7 @@
       const ctrl = p.es_admin
         ? `<span class="adm-vos">${p.id === adminYoId ? 'vos' : ''}</span>`
         : `<button class="adm-toggle${p.habilitado ? ' on' : ''}" data-id="${p.id}" data-hab="${p.habilitado ? 1 : 0}" role="switch" aria-checked="${p.habilitado ? 'true' : 'false'}" title="${p.habilitado ? 'Habilitado' : 'En pausa'}"><span class="knob"></span></button>
+           <button class="adm-reset" data-reset-profe="${p.id}" data-nombre="${esc(p.nombre)}" title="Resetear contraseña"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M17 6l2 2M15 8l2 2"/></svg></button>
            <button class="adm-del" data-del-profe="${p.id}" data-nombre="${esc(p.nombre)}" title="Borrar profe"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button>`;
       return `<div class="adm-row">
         <div class="adm-info"><div class="adm-n">${esc(p.nombre)} ${badge}</div><div class="adm-e">${esc(p.email)} · ${p.alumnos} alumno${p.alumnos !== 1 ? 's' : ''}</div></div>
@@ -1175,6 +1177,23 @@
     }).join("");
     $("admin-lista").querySelectorAll(".adm-toggle").forEach((b) => (b.onclick = () => toggleProfe(b)));
     $("admin-lista").querySelectorAll(".adm-del").forEach((b) => (b.onclick = () => borrarProfe(Number(b.dataset.delProfe), b.dataset.nombre)));
+    $("admin-lista").querySelectorAll(".adm-reset").forEach((b) => (b.onclick = () => resetProfe(Number(b.dataset.resetProfe), b.dataset.nombre)));
+  }
+  async function resetAlumno(id, nombre) {
+    if (!confirm(`¿Resetear la contraseña de ${nombre}?\n\nSe genera una nueva; la actual deja de servir y se cierra su sesión.`)) return;
+    try {
+      const r = await api("/alumnos/" + id + "/reset-password", "POST", {}, true);
+      let copiada = false; try { await navigator.clipboard.writeText(r.password); copiada = true; } catch {}
+      alert(`Nueva contraseña de ${nombre}:\n\n${r.password}\n\n${copiada ? "(Ya la copié al portapapeles.) " : ""}Pasásela por WhatsApp; con esa clave va a poder entrar.`);
+    } catch (e) { alert(e.message); }
+  }
+  async function resetProfe(id, nombre) {
+    if (!confirm(`¿Resetear la contraseña de ${nombre}?\n\nSe genera una nueva; la actual deja de servir y se cierra su sesión.`)) return;
+    try {
+      const r = await api("/admin/profesores/" + id + "/reset-password", "POST", {}, true);
+      let copiada = false; try { await navigator.clipboard.writeText(r.password); copiada = true; } catch {}
+      alert(`Nueva contraseña de ${nombre}:\n\n${r.password}\n\n${copiada ? "(Ya la copié al portapapeles.) " : ""}Pasásela para que pueda entrar.`);
+    } catch (e) { alert(e.message); }
   }
   async function borrarProfe(id, nombre) {
     if (!confirm(`¿Borrar al profe ${nombre}?\n\nQueda deshabilitado y se oculta de la lista. Sus datos se conservan por si hay que recuperarlo.`)) return;
