@@ -652,7 +652,7 @@
   </div>
 </div>
 
-<div style="position:fixed;bottom:5px;left:0;right:0;text-align:center;font-size:11px;color:#3a3a3a;pointer-events:none;z-index:1">Tu Profe v22</div>
+<div id="ver-tag" style="position:fixed;bottom:5px;left:0;right:0;text-align:center;font-size:11px;color:#3a3a3a;pointer-events:none;z-index:1"></div>
 
 <script>
   const API = "https://tuprofe-api.juanbautistacrespialomar.workers.dev";
@@ -1626,6 +1626,24 @@
   })();
 
   // ---------- Auto-update ----------
+  // ===== Auto-update robusto (funciona incluso en iOS, que traba el SW) =====
+  // Consulta el sw.js del servidor SIN caché; si su versión es mayor, recarga sola.
+  const APP_VERSION = 23;
+  const _vtag = $("ver-tag"); if (_vtag) _vtag.textContent = "Tu Profe v" + APP_VERSION;
+  let _recargandoVer = false;
+  async function chequearVersion() {
+    if (_recargandoVer) return;
+    try {
+      const res = await fetch("sw.js?t=" + Date.now(), { cache: "no-store" });
+      const txt = await res.text();
+      const m = txt.match(/tuprofe-v(\d+)/);
+      if (m && Number(m[1]) > APP_VERSION) { _recargandoVer = true; location.reload(); }
+    } catch {}
+  }
+  chequearVersion();
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) chequearVersion(); });
+  setInterval(chequearVersion, 30000);
+
   if ("serviceWorker" in navigator) {
     let recargando = false;
     navigator.serviceWorker.addEventListener("controllerchange", () => { if (recargando) return; recargando = true; location.reload(); });
