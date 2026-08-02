@@ -374,8 +374,8 @@
   .pf-stat .ps-l { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin-top: 2px; }
   #splash { position: fixed; inset: 0; z-index: 100; background: var(--bg); display: flex; align-items: center; justify-content: center; transition: opacity .45s ease; }
   /* Banner de actualización (baja desde arriba) */
-  #update-banner { position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 12px); transform: translate(-50%, -180%); z-index: 95; display: flex; align-items: center; gap: 12px; width: calc(100% - 28px); max-width: 420px; background: var(--surface); border: 1px solid var(--accent); border-radius: 16px; padding: 12px 12px 12px 16px; box-shadow: 0 10px 30px rgba(0,0,0,.45); transition: transform .38s cubic-bezier(.2,.9,.3,1.2); }
-  #update-banner.on { transform: translate(-50%, 0); }
+  #update-banner { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(.92); opacity: 0; pointer-events: none; z-index: 95; display: flex; align-items: center; gap: 12px; width: calc(100% - 44px); max-width: 380px; background: var(--surface); border: 1px solid var(--accent); border-radius: 16px; padding: 14px 14px 14px 18px; box-shadow: 0 10px 40px rgba(0,0,0,.6); transition: transform .3s ease, opacity .3s ease; }
+  #update-banner.on { transform: translate(-50%, -50%) scale(1); opacity: 1; pointer-events: auto; }
   #update-banner .ub-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
   #update-banner .ub-txt b { font-size: 14px; }
   #update-banner .ub-txt span { font-size: 12px; color: var(--muted); margin-top: 1px; }
@@ -668,7 +668,7 @@
   <div class="ub-txt"><b>Hay una versión nueva</b><span>Actualizá para tener lo último.</span></div>
   <button id="update-btn">Actualizar</button>
 </div>
-<div style="position:fixed;bottom:5px;left:0;right:0;text-align:center;font-size:11px;color:#3a3a3a;pointer-events:none;z-index:1">Tu Profe v24</div>
+<div style="position:fixed;bottom:5px;left:0;right:0;text-align:center;font-size:11px;color:#3a3a3a;pointer-events:none;z-index:1">Tu Profe v25</div>
 
 <script>
   const API = "https://tuprofe-api.juanbautistacrespialomar.workers.dev";
