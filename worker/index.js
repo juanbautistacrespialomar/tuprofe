@@ -240,11 +240,28 @@ export default {
       const esProfe = sesion.rol === "profe";
       const esAlumno = sesion.rol === "alumno";
 
+      // Estado del profe (habilitado / admin) para el control de acceso.
+      // Si la migración de admin todavía no corrió, degradamos sin romper.
+      let perfilProfe = null;
+      if (esProfe) {
+        try {
+          perfilProfe = await env.DB.prepare(
+            "SELECT habilitado, es_admin FROM profesores WHERE id = ?").bind(sesion.id).first();
+        } catch { perfilProfe = { habilitado: 1, es_admin: 0 }; }
+      }
+      const esAdmin = !!(perfilProfe && perfilProfe.es_admin);
+      const profeHabilitado = !perfilProfe || perfilProfe.habilitado !== 0;
+
+      // Profe deshabilitado (y no admin): solo puede consultar /yo y salir.
+      if (esProfe && !esAdmin && !profeHabilitado && path !== "/yo" && path !== "/logout") {
+        return json({ error: "Tu cuenta está deshabilitada. Escribile al administrador para activarla." }, 403);
+      }
+
       if (path === "/yo" && method === "GET") {
         if (esProfe) {
           const p = await env.DB.prepare(
             "SELECT id, nombre, email, codigo_invitacion FROM profesores WHERE id = ?").bind(sesion.id).first();
-          return json({ rol: "profe", ...p });
+          return json({ rol: "profe", ...p, habilitado: profeHabilitado ? 1 : 0, es_admin: esAdmin ? 1 : 0 });
         } else {
           const a = await env.DB.prepare(
             "SELECT id, nombre, email, objetivo, profe_id FROM alumnos WHERE id = ?").bind(sesion.id).first();
@@ -432,10 +449,19 @@ export default {
       if (seg[0] === "ejercicios" && seg.length === 2 && method === "PUT" && esProfe) {
         const ejId = Number(seg[1]);
         if (!(await ejercicioEsDelProfe(ejId, sesion.id, env))) return json({ error: "No autorizado" }, 403);
-        const { series, reps, pausa, notas, orden } = await request.json();
-        await env.DB.prepare(
-          "UPDATE ejercicios SET series = ?, reps = ?, pausa = ?, notas = ?, orden = ? WHERE id = ?"
-        ).bind(series || null, reps || null, pausa || null, notas || null, orden || 0, ejId).run();
+        const { series, reps, pausa, notas, orden, catalogo_id } = await request.json();
+        if (catalogo_id != null) {
+          // Cambio de ejercicio base: validar que el nuevo catálogo sea del profe
+          if (!(await catalogoEsDelProfe(catalogo_id, sesion.id, env)))
+            return json({ error: "Ese ejercicio no está en tu catálogo" }, 403);
+          await env.DB.prepare(
+            "UPDATE ejercicios SET catalogo_id = ?, series = ?, reps = ?, pausa = ?, notas = ?, orden = ? WHERE id = ?"
+          ).bind(catalogo_id, series || null, reps || null, pausa || null, notas || null, orden || 0, ejId).run();
+        } else {
+          await env.DB.prepare(
+            "UPDATE ejercicios SET series = ?, reps = ?, pausa = ?, notas = ?, orden = ? WHERE id = ?"
+          ).bind(series || null, reps || null, pausa || null, notas || null, orden || 0, ejId).run();
+        }
         return json({ ok: true });
       }
       if (seg[0] === "ejercicios" && seg.length === 2 && method === "DELETE" && esProfe) {
@@ -469,6 +495,31 @@ export default {
            WHERE c.alumno_id = ? ORDER BY c.fecha DESC`
         ).bind(sesion.id).all();
         return json(results);
+      }
+
+      // ================= ADMIN (creador de la plataforma) =================
+      // Cualquier ruta /admin/* exige es_admin.
+      if (seg[0] === "admin" && !esAdmin) return json({ error: "No autorizado" }, 403);
+
+      if (path === "/admin/profesores" && method === "GET" && esAdmin) {
+        const { results } = await env.DB.prepare(
+          `SELECT p.id, p.nombre, p.email, p.habilitado, p.es_admin, p.creado,
+                  (SELECT COUNT(*) FROM alumnos a WHERE a.profe_id = p.id) AS alumnos
+           FROM profesores p
+           ORDER BY p.es_admin DESC, p.creado DESC`
+        ).all();
+        return json({ profesores: results });
+      }
+
+      if (seg[0] === "admin" && seg[1] === "profesores" && seg.length === 3 && method === "PUT" && esAdmin) {
+        const pid = Number(seg[2]);
+        const { habilitado } = await request.json();
+        if (pid === sesion.id) return json({ error: "No podés deshabilitarte a vos mismo." }, 400);
+        const target = await env.DB.prepare("SELECT es_admin FROM profesores WHERE id = ?").bind(pid).first();
+        if (!target) return json({ error: "Profe no encontrado" }, 404);
+        if (target.es_admin) return json({ error: "No podés deshabilitar a otro administrador." }, 400);
+        await env.DB.prepare("UPDATE profesores SET habilitado = ? WHERE id = ?").bind(habilitado ? 1 : 0, pid).run();
+        return json({ ok: true });
       }
 
       return json({ error: "Ruta no encontrada" }, 404);
