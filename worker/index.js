@@ -55,6 +55,12 @@ function genCodigo(prefijo) {
   for (let i = 0; i < 4; i++) s += abc[Math.floor(Math.random() * abc.length)];
   return `${prefijo}-${s}`;
 }
+function genClaveTemp() {
+  const abc = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+  let s = "";
+  for (let i = 0; i < 8; i++) s += abc[Math.floor(Math.random() * abc.length)];
+  return s;
+}
 const emailOk = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e || "");
 
 // Del link/URL de YouTube saca solo el ID de 11 caracteres.
@@ -394,6 +400,19 @@ export default {
         return json(results);
       }
 
+      // Resetear la contraseña de un alumno: genera una nueva y la devuelve al profe
+      if (seg[0] === "alumnos" && seg.length === 3 && seg[2] === "reset-password" && method === "POST" && esProfe) {
+        const alumnoId = Number(seg[1]);
+        if (!(await alumnoEsDelProfe(alumnoId, sesion.id, env))) return json({ error: "No es tu alumno" }, 403);
+        const nueva = genClaveTemp();
+        const { hash, salt } = await hashPassword(nueva);
+        await env.DB.prepare("UPDATE alumnos SET password_hash = ?, password_salt = ? WHERE id = ?")
+          .bind(hash, salt, alumnoId).run();
+        // Cerrar sus sesiones: la clave vieja deja de servir en todos lados
+        await env.DB.prepare("DELETE FROM sesiones WHERE rol = 'alumno' AND usuario_id = ?").bind(alumnoId).run();
+        return json({ password: nueva });
+      }
+
       // --- DÍAS ---
       if (path === "/dias" && method === "POST" && esProfe) {
         const { alumno_id, nombre, orden, fecha } = await request.json();
@@ -531,6 +550,17 @@ export default {
       // ================= ADMIN (creador de la plataforma) =================
       // Cualquier ruta /admin/* exige es_admin.
       if (seg[0] === "admin" && !esAdmin) return json({ error: "No autorizado" }, 403);
+
+      // Resetear la contraseña de un profe (solo admin)
+      if (seg[0] === "admin" && seg[1] === "profesores" && seg.length === 4 && seg[3] === "reset-password" && method === "POST" && esAdmin) {
+        const pid = Number(seg[2]);
+        const nueva = genClaveTemp();
+        const { hash, salt } = await hashPassword(nueva);
+        await env.DB.prepare("UPDATE profesores SET password_hash = ?, password_salt = ? WHERE id = ?")
+          .bind(hash, salt, pid).run();
+        await env.DB.prepare("DELETE FROM sesiones WHERE rol = 'profe' AND usuario_id = ?").bind(pid).run();
+        return json({ password: nueva });
+      }
 
       if (path === "/admin/profesores" && method === "GET" && esAdmin) {
         const { results } = await env.DB.prepare(
