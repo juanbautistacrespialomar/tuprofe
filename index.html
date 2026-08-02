@@ -22,6 +22,10 @@
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   html, body { height: 100%; width: 100%; max-width: 100%; overflow: hidden; overscroll-behavior: none; }
+  /* iOS instalado: 100dvh viene corto y deja un hueco abajo (la barra queda flotando arriba).
+     El script del final mide la altura real y la expone en --saH; acá la forzamos. */
+  html.sa, html.sa body { height: var(--saH, 100dvh); }
+  html.sa .app, html.sa .wrap { height: var(--saH, 100dvh); }
   body {
     background: var(--bg); color: var(--text);
     font-family: "Inter", system-ui, -apple-system, sans-serif;
@@ -290,7 +294,7 @@
   #al-sesion, #al-cargas, #al-perfil { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
 
   /* --- Barra inferior flotante (formato de appdegastos, colores tuprofe) --- */
-  .bottomnav { position: absolute; left: 0; right: 0; bottom: 0; z-index: 30; background: linear-gradient(to top, var(--bg) 62%, rgba(10,10,10,0)); pointer-events: none; padding: 26px 14px calc(env(safe-area-inset-bottom) + 12px); }
+  .bottomnav { position: absolute; left: 0; right: 0; bottom: 0; z-index: 30; background: transparent; pointer-events: none; padding: 0 14px calc(max(env(safe-area-inset-bottom), 12px) + 14px); }
   .bottomnav-inner { max-width: 440px; margin: 0 auto; display: flex; position: relative; pointer-events: auto; background: var(--nav-glass); -webkit-backdrop-filter: blur(22px) saturate(1.5); backdrop-filter: blur(22px) saturate(1.5); border: 1px solid var(--border); border-radius: 26px; box-shadow: 0 6px 20px rgba(0,0,0,.35); padding: 6px 8px; }
   .navtab { position: relative; display: flex; align-items: center; justify-content: center; padding: 11px 0; background: none; border: none; cursor: pointer; color: var(--muted); flex: 0 0 auto; width: 62px; transition: flex-grow .3s ease, width .3s ease, color .25s; }
   .navtab span { display: block; font-size: 11.5px; font-weight: 600; white-space: nowrap; position: relative; z-index: 1; max-width: 0; opacity: 0; overflow: hidden; transition: max-width .3s ease, opacity .22s ease, margin-left .3s ease; }
@@ -652,7 +656,7 @@
   </div>
 </div>
 
-<div id="ver-tag" style="position:fixed;bottom:5px;left:0;right:0;text-align:center;font-size:11px;color:#3a3a3a;pointer-events:none;z-index:1"></div>
+<div style="position:fixed;bottom:5px;left:0;right:0;text-align:center;font-size:11px;color:#3a3a3a;pointer-events:none;z-index:1">Tu Profe v23</div>
 
 <script>
   const API = "https://tuprofe-api.juanbautistacrespialomar.workers.dev";
@@ -1626,24 +1630,6 @@
   })();
 
   // ---------- Auto-update ----------
-  // ===== Auto-update robusto (funciona incluso en iOS, que traba el SW) =====
-  // Consulta el sw.js del servidor SIN caché; si su versión es mayor, recarga sola.
-  const APP_VERSION = 23;
-  const _vtag = $("ver-tag"); if (_vtag) _vtag.textContent = "Tu Profe v" + APP_VERSION;
-  let _recargandoVer = false;
-  async function chequearVersion() {
-    if (_recargandoVer) return;
-    try {
-      const res = await fetch("sw.js?t=" + Date.now(), { cache: "no-store" });
-      const txt = await res.text();
-      const m = txt.match(/tuprofe-v(\d+)/);
-      if (m && Number(m[1]) > APP_VERSION) { _recargandoVer = true; location.reload(); }
-    } catch {}
-  }
-  chequearVersion();
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) chequearVersion(); });
-  setInterval(chequearVersion, 30000);
-
   if ("serviceWorker" in navigator) {
     let recargando = false;
     navigator.serviceWorker.addEventListener("controllerchange", () => { if (recargando) return; recargando = true; location.reload(); });
@@ -1655,6 +1641,35 @@
       setInterval(() => reg.update(), 60000);
     }).catch(() => {});
   }
+</script>
+
+<!-- ===== Altura real de pantalla en iOS instalado (evita el hueco de abajo) ===== -->
+<script>
+(function () {
+  var sa = (window.navigator.standalone === true) ||
+           (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+              (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  // Parche EXCLUSIVO de iOS instalado: allá innerHeight viene corto y hay que forzar el alto real.
+  // En Android/navegador, 100dvh ya funciona bien; no lo tocamos.
+  if (!(sa && isIOS)) return;
+  document.documentElement.classList.add('sa');
+  var maxSaH = 0;
+  function setH() {
+    var probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;top:0;left:0;width:0;visibility:hidden;height:env(safe-area-inset-top)';
+    document.body.appendChild(probe);
+    var top = Math.round(probe.getBoundingClientRect().height); probe.remove();
+    var real = (window.screen && window.screen.height ? window.screen.height : window.innerHeight) - top;
+    var h = Math.max(window.innerHeight, real) + 6;
+    if (h > maxSaH) maxSaH = h; // nunca achicar: evita que la barra "rebote" hacia arriba
+    document.documentElement.style.setProperty('--saH', maxSaH + 'px');
+  }
+  setH();
+  [60, 200, 500, 1000].forEach(function (t) { setTimeout(setH, t); });
+  window.addEventListener('resize', setH);
+  window.addEventListener('orientationchange', function () { maxSaH = 0; setTimeout(setH, 300); });
+})();
 </script>
 </body>
 </html>
