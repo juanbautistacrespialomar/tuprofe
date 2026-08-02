@@ -77,6 +77,8 @@
      Si no, el .body { flex:1 } no tiene altura acotada y el overflow:hidden del .app
      recorta el contenido de abajo (no se puede scrollear). min-height:0 habilita el scroll interno. */
   #profe-main, #profe-rutina { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+  #profe-main { position: relative; }
+  #profe-main > .body { padding-bottom: calc(104px + env(safe-area-inset-bottom)); }
   .app-header { flex-shrink: 0; z-index: 5; background: var(--bg); display: flex; align-items: center; justify-content: space-between; padding: calc(14px + env(safe-area-inset-top)) 18px 14px; border-bottom: 1px solid var(--border); }
   .app-header .hi { font-size: 13px; color: var(--muted); }
   .app-header .hi b { display: block; color: var(--text); font-size: 18px; font-weight: 600; margin-top: 1px; }
@@ -437,10 +439,6 @@
         <div class="icon-btn" id="profe-salir" title="Salir"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></div>
       </div>
     </div>
-    <div class="tabs">
-      <button class="tab on" data-tab="catalogo">Ejercicios</button>
-      <button class="tab" data-tab="alumnos">Alumnos</button>
-    </div>
     <div class="body">
       <div class="tabview on" id="tv-catalogo">
         <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input type="text" id="cat-buscar" placeholder="Buscar ejercicio..." /></div>
@@ -453,6 +451,12 @@
         <div id="al-lista"></div>
       </div>
     </div>
+    <nav class="bottomnav">
+      <div class="bottomnav-inner">
+        <button class="navtab active" data-ptab="catalogo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></svg><span>Ejercicios</span></button>
+        <button class="navtab" data-ptab="alumnos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.4 3-5.3 6.5-5.3s6.5 1.9 6.5 5.3"/><path d="M16.5 5.5a3.2 3.2 0 0 1 0 6.4M21.5 20c0-2.7-1.6-4.4-3.9-5"/></svg><span>Alumnos</span></button>
+      </div>
+    </nav>
   </div>
 
   <!-- vista rutina de un alumno -->
@@ -645,7 +649,7 @@
   </div>
 </div>
 
-<div style="position:fixed;bottom:5px;left:0;right:0;text-align:center;font-size:11px;color:#3a3a3a;pointer-events:none;z-index:1">Tu Profe v18</div>
+<div style="position:fixed;bottom:5px;left:0;right:0;text-align:center;font-size:11px;color:#3a3a3a;pointer-events:none;z-index:1">Tu Profe v19</div>
 
 <script>
   const API = "https://tuprofe-api.juanbautistacrespialomar.workers.dev";
@@ -1568,7 +1572,12 @@
   };
 
   // ---------- Tabs ----------
-  document.querySelectorAll(".tab").forEach((t) => { t.onclick = () => { document.querySelectorAll(".tab").forEach((x) => x.classList.toggle("on", x === t)); $("tv-catalogo").classList.toggle("on", t.dataset.tab === "catalogo"); $("tv-alumnos").classList.toggle("on", t.dataset.tab === "alumnos"); }; });
+  function profeSwitchTab(tab) {
+    document.querySelectorAll("#profe-main .navtab").forEach((t) => t.classList.toggle("active", t.dataset.ptab === tab));
+    $("tv-catalogo").classList.toggle("on", tab === "catalogo");
+    $("tv-alumnos").classList.toggle("on", tab === "alumnos");
+  }
+  document.querySelectorAll("#profe-main .navtab").forEach((t) => (t.onclick = () => profeSwitchTab(t.dataset.ptab)));
 
   // ---------- AUTH ----------
   $("login-btn").onclick = async () => { const email = $("login-email").value.trim(), pass = $("login-pass").value; if (!email || !pass) return msg($("login-msg"), "Completá email y contraseña", "error"); $("login-btn").disabled = true; try { const r = await api("/login", "POST", { email, password: pass }); guardarToken(r.token); await entrar(r.rol); } catch (e) { msg($("login-msg"), e.message, "error"); } finally { $("login-btn").disabled = false; } };
