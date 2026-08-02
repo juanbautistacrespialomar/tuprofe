@@ -35,6 +35,7 @@ CREATE TABLE profesores (
   codigo_invitacion  TEXT UNIQUE NOT NULL,
   habilitado         INTEGER NOT NULL DEFAULT 0,  -- 0 = deshabilitado (arranca en pausa hasta que el admin lo active)
   es_admin           INTEGER NOT NULL DEFAULT 0,  -- 1 = creador/administrador de la plataforma
+  borrado            INTEGER NOT NULL DEFAULT 0,  -- 1 = borrado (soft delete): oculto y sin acceso, datos preservados
   creado             TEXT DEFAULT (datetime('now'))
 );
 

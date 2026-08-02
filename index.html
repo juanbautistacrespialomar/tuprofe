@@ -265,6 +265,10 @@
   .adm-toggle .knob { position: absolute; top: 2px; left: 2px; width: 21px; height: 21px; border-radius: 50%; background: var(--muted); transition: transform .15s, background .15s; }
   .adm-toggle.on { background: var(--accent); border-color: var(--accent); }
   .adm-toggle.on .knob { transform: translateX(19px); background: var(--accent-ink); }
+  .adm-ctrls { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+  .adm-del { width: 34px; height: 34px; border-radius: 9px; background: var(--surface-2); border: 1px solid var(--border); color: var(--danger); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; flex: 0 0 auto; }
+  .adm-del svg { width: 16px; height: 16px; }
+  .acts .del-al { color: var(--danger); }
 
   /* ===== Bloqueo de cuenta ===== */
   #bloqueo { display: none; position: fixed; inset: 0; z-index: 60; background: var(--bg); align-items: center; justify-content: center; padding: 24px; touch-action: pan-y; }
@@ -617,7 +621,7 @@
   </div>
 </div>
 
-<div style="position:fixed;bottom:5px;left:0;right:0;text-align:center;font-size:11px;color:#3a3a3a;pointer-events:none;z-index:1">Tu Profe v14</div>
+<div style="position:fixed;bottom:5px;left:0;right:0;text-align:center;font-size:11px;color:#3a3a3a;pointer-events:none;z-index:1">Tu Profe v15</div>
 
 <script>
   const API = "https://tuprofe-api.juanbautistacrespialomar.workers.dev";
@@ -748,8 +752,14 @@
     const alumnos = await api("/alumnos", "GET", null, true);
     const cont = $("al-lista");
     if (alumnos.length === 0) { cont.innerHTML = pend.length ? "" : `<div class="empty"><p>Todavía no tenés alumnos.<br>Tocá "Invitar alumno" para sumar el primero.</p></div>`; return; }
-    cont.innerHTML = `<div style="font-size:12px;color:var(--muted);margin:16px 0 8px">Tus alumnos (${alumnos.length})</div>` + alumnos.map((a) => `<div class="ex click" data-alumno="${a.id}"><div class="thumb ph" style="width:44px;height:44px;border-radius:50%"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div><div class="info"><div class="n">${esc(a.nombre)}</div><div class="m">${edadDesde(a.fecha_nac) != null ? edadDesde(a.fecha_nac) + " años" : esc(a.objetivo || "Sin datos")}</div></div><div class="acts"><button><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg></button></div></div>`).join("");
+    cont.innerHTML = `<div style="font-size:12px;color:var(--muted);margin:16px 0 8px">Tus alumnos (${alumnos.length})</div>` + alumnos.map((a) => `<div class="ex click" data-alumno="${a.id}"><div class="thumb ph" style="width:44px;height:44px;border-radius:50%"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div><div class="info"><div class="n">${esc(a.nombre)}</div><div class="m">${edadDesde(a.fecha_nac) != null ? edadDesde(a.fecha_nac) + " años" : esc(a.objetivo || "Sin datos")}</div></div><div class="acts"><button class="del-al" data-del-alumno="${a.id}" title="Borrar alumno"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button><button><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg></button></div></div>`).join("");
     cont.querySelectorAll("[data-alumno]").forEach((el) => (el.onclick = () => abrirAlumno(Number(el.dataset.alumno), el.querySelector(".n").textContent)));
+    cont.querySelectorAll("[data-del-alumno]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); borrarAlumno(Number(b.dataset.delAlumno), b.closest("[data-alumno]").querySelector(".n").textContent); }));
+  }
+  async function borrarAlumno(id, nombre) {
+    if (!confirm(`¿Borrar a ${nombre}?\n\nSe elimina su cuenta, su rutina y todo su historial de cargas. Esto no se puede deshacer.`)) return;
+    try { await api("/alumnos/" + id, "DELETE", null, true); cargarAlumnos(); }
+    catch (e) { alert("No se pudo borrar: " + e.message); }
   }
   // Modal invitar
   $("al-invitar").onclick = () => { $("inv-nota").value = ""; $("inv-overlay").classList.add("on"); $("inv-nota").focus(); };
@@ -1121,13 +1131,20 @@
       const badge = p.es_admin ? `<span class="adm-badge">admin</span>` : "";
       const ctrl = p.es_admin
         ? `<span class="adm-vos">${p.id === adminYoId ? 'vos' : ''}</span>`
-        : `<button class="adm-toggle${p.habilitado ? ' on' : ''}" data-id="${p.id}" data-hab="${p.habilitado ? 1 : 0}" role="switch" aria-checked="${p.habilitado ? 'true' : 'false'}" title="${p.habilitado ? 'Habilitado' : 'En pausa'}"><span class="knob"></span></button>`;
+        : `<button class="adm-toggle${p.habilitado ? ' on' : ''}" data-id="${p.id}" data-hab="${p.habilitado ? 1 : 0}" role="switch" aria-checked="${p.habilitado ? 'true' : 'false'}" title="${p.habilitado ? 'Habilitado' : 'En pausa'}"><span class="knob"></span></button>
+           <button class="adm-del" data-del-profe="${p.id}" data-nombre="${esc(p.nombre)}" title="Borrar profe"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button>`;
       return `<div class="adm-row">
         <div class="adm-info"><div class="adm-n">${esc(p.nombre)} ${badge}</div><div class="adm-e">${esc(p.email)} · ${p.alumnos} alumno${p.alumnos !== 1 ? 's' : ''}</div></div>
-        ${ctrl}
+        <div class="adm-ctrls">${ctrl}</div>
       </div>`;
     }).join("");
     $("admin-lista").querySelectorAll(".adm-toggle").forEach((b) => (b.onclick = () => toggleProfe(b)));
+    $("admin-lista").querySelectorAll(".adm-del").forEach((b) => (b.onclick = () => borrarProfe(Number(b.dataset.delProfe), b.dataset.nombre)));
+  }
+  async function borrarProfe(id, nombre) {
+    if (!confirm(`¿Borrar al profe ${nombre}?\n\nQueda deshabilitado y se oculta de la lista. Sus datos se conservan por si hay que recuperarlo.`)) return;
+    try { await api("/admin/profesores/" + id, "DELETE", null, true); abrirAdmin(); }
+    catch (e) { alert("No se pudo borrar: " + e.message); }
   }
   async function toggleProfe(btn) {
     const id = Number(btn.dataset.id);
