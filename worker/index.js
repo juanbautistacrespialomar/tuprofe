@@ -270,7 +270,7 @@ export default {
           return json({ rol: "profe", ...p, habilitado: profeHabilitado ? 1 : 0, es_admin: esAdmin ? 1 : 0 });
         } else {
           const a = await env.DB.prepare(
-            `SELECT a.id, a.nombre, a.email, a.objetivo, a.profe_id, a.fecha_nac, a.foto,
+            `SELECT a.id, a.nombre, a.email, a.objetivo, a.observaciones, a.profe_id, a.fecha_nac, a.foto,
                     p.nombre AS profe_nombre
              FROM alumnos a LEFT JOIN profesores p ON p.id = a.profe_id
              WHERE a.id = ?`).bind(sesion.id).first();
@@ -536,14 +536,30 @@ export default {
 
       // Foto de perfil del alumno (data URL base64, ya comprimida en el cliente)
       if (path === "/mi-perfil" && method === "PUT" && esAlumno) {
-        const { foto } = await request.json();
-        if (foto != null) {
-          if (typeof foto !== "string" || foto.length > 400000)  // ~300 KB: cortamos por las dudas
-            return json({ error: "La foto es demasiado grande. Probá con otra." }, 400);
-          if (!/^data:image\/(png|jpeg|jpg|webp);base64,/.test(foto))
-            return json({ error: "Formato de imagen no válido." }, 400);
+        const body = await request.json();
+        // Foto (opcional)
+        if (body.foto !== undefined) {
+          const foto = body.foto;
+          if (foto != null) {
+            if (typeof foto !== "string" || foto.length > 400000)  // ~300 KB: cortamos por las dudas
+              return json({ error: "La foto es demasiado grande. Probá con otra." }, 400);
+            if (!/^data:image\/(png|jpeg|jpg|webp);base64,/.test(foto))
+              return json({ error: "Formato de imagen no válido." }, 400);
+          }
+          await env.DB.prepare("UPDATE alumnos SET foto = ? WHERE id = ?").bind(foto || null, sesion.id).run();
         }
-        await env.DB.prepare("UPDATE alumnos SET foto = ? WHERE id = ?").bind(foto || null, sesion.id).run();
+        // Objetivo (opcional, validado contra la lista)
+        if (body.objetivo !== undefined) {
+          const OBJ = ["Fuerza máxima", "Hipertrofia", "Recomposición corporal", "Rendimiento deportivo", "Otro"];
+          const obj = body.objetivo || null;
+          if (obj !== null && !OBJ.includes(obj)) return json({ error: "Objetivo no válido" }, 400);
+          await env.DB.prepare("UPDATE alumnos SET objetivo = ? WHERE id = ?").bind(obj, sesion.id).run();
+        }
+        // Observaciones (opcional)
+        if (body.observaciones !== undefined) {
+          const obs = body.observaciones ? String(body.observaciones).slice(0, 2000) : null;
+          await env.DB.prepare("UPDATE alumnos SET observaciones = ? WHERE id = ?").bind(obs, sesion.id).run();
+        }
         return json({ ok: true });
       }
 
