@@ -18,6 +18,7 @@
     --bg: #0a0a0a; --surface: #161616; --surface-2: #1e1e1e; --border: #262626;
     --accent: #c4f000; --accent-ink: #1a2200;
     --text: #ffffff; --muted: #8a8a8a; --danger: #ff5d5d; --radius: 14px;
+    --nav-glass: rgba(20,20,20,.72);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   html, body { height: 100%; width: 100%; max-width: 100%; overflow: hidden; overscroll-behavior: none; }
@@ -273,6 +274,87 @@
   .bloqueo-card h3 { font-size: 22px; margin-bottom: 10px; }
   .bloqueo-card p { font-size: 14px; color: var(--muted); line-height: 1.5; margin-bottom: 22px; }
   .bloqueo-card .btn { width: auto; padding: 0 24px; display: inline-flex; align-items: center; justify-content: center; }
+
+  /* ================= REDISEÑO VISTA ALUMNO ================= */
+  #app-alumno { position: relative; }
+  .alview { position: absolute; inset: 0; display: none; flex-direction: column; }
+  .alview.on { display: flex; }
+  /* deja aire abajo para la barra flotante */
+  #al-sesion, #al-cargas, #al-perfil { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+
+  /* --- Barra inferior flotante (formato de appdegastos, colores tuprofe) --- */
+  .bottomnav { position: absolute; left: 0; right: 0; bottom: 0; z-index: 30; background: transparent; pointer-events: none; padding: 0 14px calc(env(safe-area-inset-bottom) + 12px); }
+  .bottomnav-inner { max-width: 440px; margin: 0 auto; display: flex; position: relative; pointer-events: auto; background: var(--nav-glass); -webkit-backdrop-filter: blur(22px) saturate(1.5); backdrop-filter: blur(22px) saturate(1.5); border: 1px solid var(--border); border-radius: 26px; box-shadow: 0 6px 20px rgba(0,0,0,.35); padding: 6px 8px; }
+  .navtab { position: relative; display: flex; align-items: center; justify-content: center; padding: 11px 0; background: none; border: none; cursor: pointer; color: var(--muted); flex: 0 0 auto; width: 62px; transition: flex-grow .3s ease, width .3s ease, color .25s; }
+  .navtab span { display: block; font-size: 11.5px; font-weight: 600; white-space: nowrap; position: relative; z-index: 1; max-width: 0; opacity: 0; overflow: hidden; transition: max-width .3s ease, opacity .22s ease, margin-left .3s ease; }
+  .navtab svg { width: 23px; height: 23px; position: relative; z-index: 1; }
+  .navtab.active { color: var(--accent); flex: 1 1 auto; width: auto; }
+  .navtab.active span { max-width: 100px; opacity: 1; margin-left: 8px; }
+  .navtab.active::before { content: ""; position: absolute; top: 50%; left: 50%; width: 100%; height: 100%; transform: translate(-50%,-50%); background: rgba(196,240,0,.14); border-radius: 18px; }
+
+  /* --- "Últimos 7 días" (mini barras de actividad) --- */
+  .week7 { margin-bottom: 22px; }
+  .week7 .w7-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 12px; }
+  .week7 .w7-row { display: flex; justify-content: space-between; align-items: flex-end; gap: 6px; height: 78px; }
+  .week7 .w7-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+  .week7 .w7-bar { width: 8px; border-radius: 4px; background: var(--surface-2); transition: height .3s; }
+  .week7 .w7-col.hasact .w7-bar { background: var(--accent); }
+  .week7 .w7-n { font-size: 11px; color: var(--muted); margin-bottom: 4px; height: 14px; }
+  .week7 .w7-dot { width: 30px; height: 30px; border-radius: 50%; background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .week7 .w7-col.today .w7-dot { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; }
+
+  /* --- Selector de días (chips grandes tipo agenda) --- */
+  .daysel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .daysel-head .dh-t { font-size: 15px; font-weight: 600; color: var(--accent); }
+  .daysel { display: flex; gap: 8px; overflow-x: auto; margin: 0 -18px 18px; padding: 2px 18px 4px; scrollbar-width: none; touch-action: pan-x; }
+  .daysel::-webkit-scrollbar { display: none; }
+  .dchip { flex: 0 0 auto; min-width: 64px; padding: 10px 6px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); text-align: center; cursor: pointer; transition: transform .08s; }
+  .dchip:active { transform: scale(.95); }
+  .dchip .dc-dow { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  .dchip .dc-num { font-family: "Anton", sans-serif; font-size: 24px; line-height: 1.05; margin-top: 3px; }
+  .dchip .dc-lbl { font-size: 10px; color: var(--muted); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60px; }
+  .dchip.today { border-color: var(--accent); }
+  .dchip.today .dc-num { color: var(--accent); }
+  .dchip.sel { background: var(--accent); border-color: var(--accent); }
+  .dchip.sel .dc-dow, .dchip.sel .dc-num, .dchip.sel .dc-lbl { color: var(--accent-ink); }
+  .dchip .dc-done { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); margin: 4px auto 0; }
+  .dchip.sel .dc-done { background: var(--accent-ink); }
+
+  /* --- Encabezado del día seleccionado --- */
+  .sday { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .sday .sd-t { font-size: 19px; font-weight: 600; text-transform: capitalize; }
+  .sday .sd-pill { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); background: var(--surface-2); border: 1px solid var(--border); padding: 3px 9px; border-radius: 999px; }
+  .sday .sd-pill.hoy { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
+  .strain-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin: 18px 0 12px; }
+
+  /* --- Tarjeta de bloque (estilo referencia: nombre + N ejercicios + engranaje color + chevron) --- */
+  .blockcard { display: flex; align-items: center; gap: 13px; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 15px; margin-bottom: 12px; cursor: pointer; transition: transform .08s, border-color .12s; -webkit-tap-highlight-color: transparent; }
+  .blockcard:active { transform: scale(.99); }
+  .blockcard .bc-main { flex: 1; min-width: 0; }
+  .blockcard .bc-k { font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 3px; }
+  .blockcard .bc-n { font-size: 16px; font-weight: 600; line-height: 1.25; }
+  .blockcard .bc-s { font-size: 12.5px; color: var(--muted); margin-top: 4px; display: flex; align-items: center; gap: 6px; }
+  .blockcard .bc-ring { width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; border: 1.5px solid; }
+  .blockcard .bc-ring svg { width: 20px; height: 20px; }
+  .blockcard .bc-chev { color: var(--muted); flex: 0 0 auto; display: flex; }
+  .blockcard .bc-chev svg { width: 22px; height: 22px; }
+
+  /* --- Vista Cargas --- */
+  .cg-day { font-size: 12px; color: var(--muted); text-transform: capitalize; margin: 16px 0 8px; font-weight: 600; }
+  .cg-item { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 8px; }
+  .cg-item .cg-n { flex: 1; min-width: 0; font-size: 14px; font-weight: 500; }
+  .cg-item .cg-v { font-family: "Anton", sans-serif; font-size: 18px; color: var(--accent); }
+  .cg-item .cg-r { font-size: 12px; color: var(--muted); margin-top: 1px; }
+
+  /* --- Vista Perfil --- */
+  .pf-card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 22px; text-align: center; margin-bottom: 18px; }
+  .pf-avatar { width: 76px; height: 76px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; font-family: "Anton", sans-serif; font-size: 32px; color: var(--accent); }
+  .pf-name { font-size: 20px; font-weight: 600; }
+  .pf-mail { font-size: 13px; color: var(--muted); margin-top: 3px; }
+  .pf-stats { display: flex; gap: 10px; margin-bottom: 18px; }
+  .pf-stat { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 8px; text-align: center; }
+  .pf-stat .ps-v { font-family: "Anton", sans-serif; font-size: 26px; color: var(--accent); }
+  .pf-stat .ps-l { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin-top: 2px; }
 </style>
 </head>
 <body>
@@ -365,8 +447,29 @@
 
 <!-- ============ PANEL ALUMNO ============ -->
 <div class="app" id="app-alumno">
-  <div class="app-header"><div class="hi">Hola<b id="alumno-nombre">Alumno</b></div><div class="icon-btn" id="alumno-salir" title="Salir"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></div></div>
-  <div class="body"><div id="al-rutina"></div></div>
+  <!-- VISTA: SESIÓN (rutina del día) -->
+  <div class="alview on" id="al-view-sesion">
+    <div class="app-header"><div class="hi">Hola<b id="alumno-nombre">Alumno</b></div><div class="icon-btn" id="alumno-salir" title="Salir"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></div></div>
+    <div class="body" id="al-sesion"></div>
+  </div>
+  <!-- VISTA: CARGAS (historial) -->
+  <div class="alview" id="al-view-cargas">
+    <div class="app-header"><div class="hi"><b style="font-size:20px">Mis cargas</b></div></div>
+    <div class="body" id="al-cargas"></div>
+  </div>
+  <!-- VISTA: PERFIL -->
+  <div class="alview" id="al-view-perfil">
+    <div class="app-header"><div class="hi"><b style="font-size:20px">Mi perfil</b></div></div>
+    <div class="body" id="al-perfil"></div>
+  </div>
+  <!-- BARRA INFERIOR FLOTANTE (formato tomado de appdegastos) -->
+  <nav class="bottomnav">
+    <div class="bottomnav-inner">
+      <button class="navtab active" data-view="sesion"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></svg><span>Sesión</span></button>
+      <button class="navtab" data-view="cargas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg><span>Cargas</span></button>
+      <button class="navtab" data-view="perfil"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.5 4-7 8-7s8 2.5 8 7"/></svg><span>Perfil</span></button>
+    </div>
+  </nav>
 </div>
 
 <!-- ============ MODAL registrar carga (alumno) ============ -->
@@ -510,7 +613,7 @@
   </div>
 </div>
 
-<div style="position:fixed;bottom:5px;left:0;right:0;text-align:center;font-size:11px;color:#3a3a3a;pointer-events:none;z-index:1">Tu Profe v12</div>
+<div style="position:fixed;bottom:5px;left:0;right:0;text-align:center;font-size:11px;color:#3a3a3a;pointer-events:none;z-index:1">Tu Profe v13</div>
 
 <script>
   const API = "https://tuprofe-api.juanbautistacrespialomar.workers.dev";
@@ -559,7 +662,7 @@
     if (auth) headers["Authorization"] = "Bearer " + token();
     const res = await fetch(API + path, { method: method || "GET", headers, body: body ? JSON.stringify(body) : undefined });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || "Algo salió mal");
+    if (!res.ok) { const err = new Error(data.error || "Algo salió mal"); err.status = res.status; throw err; }
     return data;
   }
   const thumbURL = (id) => `https://img.youtube.com/vi/${id}/mqdefault.jpg`;
@@ -577,7 +680,9 @@
       await cargarCatalogo();
       cargarAlumnos();
     } else {
+      alYo = yo;
       $("alumno-nombre").textContent = yo.nombre || "Alumno";
+      alSwitchView("sesion");
       await cargarMiRutina();
     }
   }
@@ -1030,50 +1135,39 @@
   function mostrarBloqueo() { $("bloqueo").classList.add("on"); }
 
 
-  // ---------- RUTINA DEL ALUMNO (vista drill-down) ----------
+  // ---------- VISTA ALUMNO (Sesión / Cargas / Perfil) ----------
   let MI_RUTINA = [];
-  let HECHOS = {};                 // ejercicio_id -> ultima carga (para el check)
-  let alNav = { diaId: null, bloqueId: null };
+  let HECHOS = {};      // ejercicio_id -> última carga (para el ✓)
+  let CARGAS = [];      // historial completo de cargas
+  let alYo = null;      // datos del alumno (perfil)
+  let alDiaSel = null;  // día seleccionado en Sesión
+  let alBloqueSel = null; // bloque abierto (drill dentro del día); null = lista de bloques
+
   async function cargarMiRutina() {
-    const cont = $("al-rutina");
-    cont.innerHTML = `<div class="empty"><p>Cargando tu rutina...</p></div>`;
-    alNav = { diaId: null, bloqueId: null };
+    $("al-sesion").innerHTML = `<div class="empty" style="padding:40px"><p>Cargando tu rutina...</p></div>`;
+    alBloqueSel = null;
     try {
       const data = await api("/mi-rutina", "GET", null, true);
       MI_RUTINA = data.dias || [];
-      HECHOS = {};
-      try {
-        const cargas = await api("/mis-cargas", "GET", null, true);
-        (cargas || []).forEach((c) => { if (!HECHOS[c.ejercicio_id]) HECHOS[c.ejercicio_id] = c; }); // vienen DESC: la mas reciente
-      } catch {}
-      renderMiRutina();
+      await recargarCargas();
+      alDiaSel = pickDiaInicial();
+      renderSesion();
     } catch (e) {
-      cont.innerHTML = `<div class="empty"><p>No pudimos cargar tu rutina.<br>${esc(e.message)}</p></div>`;
+      $("al-sesion").innerHTML = `<div class="empty" style="padding:40px"><p>No pudimos cargar tu rutina.<br>${esc(e.message)}</p></div>`;
     }
   }
-
-  // Router por nivel: calendario -> dia(bloques) -> bloque(ejercicios) -> [detalle en modal]
-  function renderMiRutina() {
-    const cont = $("al-rutina");
-    if (!MI_RUTINA.length) {
-      cont.innerHTML = `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></svg><p>Tu profe todavia no te cargo la rutina.<br>Cuando lo haga, aparece aca.</p></div>`;
-      return;
-    }
-    let dia = alNav.diaId != null ? findDia(MI_RUTINA, alNav.diaId) : null;
-    if (alNav.diaId != null && !dia) { alNav = { diaId: null, bloqueId: null }; }
-    let bloque = alNav.bloqueId != null ? findBloque(dia, alNav.bloqueId) : null;
-    if (alNav.bloqueId != null && !bloque) { alNav.bloqueId = null; }
-    if (alNav.bloqueId != null) return renderAlBloque(dia, bloque);
-    if (alNav.diaId != null) return renderAlDia(dia);
-    return renderAlCalendario();
+  async function recargarCargas() {
+    HECHOS = {}; CARGAS = [];
+    try {
+      CARGAS = (await api("/mis-cargas", "GET", null, true)) || [];
+      CARGAS.forEach((c) => { if (!HECHOS[c.ejercicio_id]) HECHOS[c.ejercicio_id] = c; }); // vienen DESC
+    } catch {}
   }
-
-  function alBack() {
-    if (alNav.bloqueId != null) alNav.bloqueId = null;
-    else if (alNav.diaId != null) alNav.diaId = null;
-    renderMiRutina();
+  function pickDiaInicial() {
+    if (!MI_RUTINA.length) return null;
+    const hoy = MI_RUTINA.find((d) => esHoy(d.fecha));
+    return hoy ? hoy.id : MI_RUTINA[0].id;
   }
-
   function chipFecha(iso) {
     const d = new Date(iso + "T00:00:00");
     return {
@@ -1082,62 +1176,90 @@
       mon: d.toLocaleDateString("es-AR", { month: "short" }).replace(".", ""),
     };
   }
+  function fmtFechaLarga(iso) {
+    if (!iso) return "";
+    try { return new Date(iso + "T00:00:00").toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" }); }
+    catch { return iso; }
+  }
 
-  // NIVEL RAIZ: calendario (tira de chips) + tarjetas de dia
-  function renderAlCalendario() {
-    const cont = $("al-rutina");
-    const conFecha = MI_RUTINA.filter((d) => d.fecha);
-    let strip = "";
-    if (conFecha.length) {
-      strip = `<div class="cal-strip-label">Tu semana</div><div class="cal-strip">` + conFecha.map((d) => {
-        const c = chipFecha(d.fecha);
-        const { total, done } = contarEj(d, HECHOS);
-        const full = total > 0 && done >= total;
-        return `<div class="cal-chip${esHoy(d.fecha) ? ' hoy' : ''}" data-dia="${d.id}">
-          <div class="cc-dow">${esc(c.dow)}</div>
-          <div class="cc-num">${c.num}</div>
-          <div class="cc-mon">${esc(c.mon)}</div>
-          ${full ? '<div class="cc-dot"></div>' : ''}
-        </div>`;
-      }).join("") + `</div>`;
+  // alias usado por el registro de cargas y el detalle
+  function renderMiRutina() {
+    if ($("al-view-sesion").classList.contains("on")) renderSesion();
+    if ($("al-view-cargas").classList.contains("on")) renderCargas();
+    if ($("al-view-perfil").classList.contains("on")) renderPerfil();
+  }
+
+  // ===== SESIÓN =====
+  function renderSesion() {
+    const cont = $("al-sesion");
+    if (!MI_RUTINA.length) {
+      cont.innerHTML = `<div class="empty" style="padding:50px 20px"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></svg><p>Tu profe todavía no te cargó la rutina.<br>Cuando lo haga, aparece acá.</p></div>`;
+      return;
     }
-    const cards = MI_RUTINA.map((d) => {
+    if (alBloqueSel != null) return renderSesionBloque();
+    const dia = findDia(MI_RUTINA, alDiaSel) || MI_RUTINA[0];
+    cont.innerHTML = week7HTML() + dayselHTML() + sdayHTML(dia) + bloquesHTML(dia);
+    cont.querySelectorAll("[data-dia]").forEach((el) => (el.onclick = () => { alDiaSel = Number(el.dataset.dia); alBloqueSel = null; renderSesion(); }));
+    cont.querySelectorAll("[data-bloque]").forEach((el) => (el.onclick = () => { alBloqueSel = Number(el.dataset.bloque); renderSesion(); }));
+  }
+
+  function week7HTML() {
+    const hoy = new Date();
+    const hoyKey = hoy.toLocaleDateString("en-CA");
+    const porDia = {};
+    CARGAS.forEach((c) => { const f = (c.fecha || "").slice(0, 10); if (f) porDia[f] = (porDia[f] || 0) + 1; });
+    const cols = [];
+    let max = 1;
+    for (let i = 6; i >= 0; i--) { const d = new Date(hoy); d.setDate(hoy.getDate() - i); const key = d.toLocaleDateString("en-CA"); const n = porDia[key] || 0; max = Math.max(max, n); cols.push({ d, key, n }); }
+    const html = cols.map(({ d, key, n }) => {
+      const h = n > 0 ? Math.max(14, Math.round(46 * n / max)) : 4;
+      const ini = d.toLocaleDateString("es-AR", { weekday: "narrow" }).toUpperCase();
+      const es = key === hoyKey;
+      return `<div class="w7-col ${n > 0 ? 'hasact' : ''} ${es ? 'today' : ''}"><div class="w7-n">${n > 0 ? n : ''}</div><div class="w7-bar" style="height:${h}px"></div><div class="w7-dot">${ini}</div></div>`;
+    }).join("");
+    return `<div class="week7"><div class="w7-label">Últimos 7 días</div><div class="w7-row">${html}</div></div>`;
+  }
+
+  function dayselHTML() {
+    const chips = MI_RUTINA.map((d, i) => {
+      const sel = d.id === alDiaSel, hoy = esHoy(d.fecha);
+      let dow, num;
+      if (d.fecha) { const c = chipFecha(d.fecha); dow = esc(c.dow); num = c.num; } else { dow = "Día"; num = i + 1; }
       const { total, done } = contarEj(d, HECHOS);
-      const nb = (d.bloques || []).length;
-      const prog = total ? `<span class="prog${done ? '' : ' zero'}">${done}/${total}</span>` : '';
-      return `<div class="navcard${esHoy(d.fecha) ? ' hoy' : ''}" data-dia="${d.id}">
-        <div class="nc-main">
-          <div class="nc-t">${esc(d.nombre)}${esHoy(d.fecha) ? '<span class="hoy-pill">Hoy</span>' : ''}</div>
-          <div class="nc-s">${d.fecha ? esc(fmtFecha(d.fecha)) + ' · ' : ''}${nb} bloque${nb !== 1 ? 's' : ''} · ${total} ejercicio${total !== 1 ? 's' : ''}</div>
-        </div>
-        ${prog}
-        ${chevron}
-      </div>`;
+      const dot = total > 0 && done >= total ? '<div class="dc-done"></div>' : '';
+      return `<div class="dchip ${sel ? 'sel' : ''} ${hoy ? 'today' : ''}" data-dia="${d.id}"><div class="dc-dow">${dow}</div><div class="dc-num">${num}</div><div class="dc-lbl">${esc(d.nombre)}</div>${dot}</div>`;
     }).join("");
-    cont.innerHTML = strip + cards;
-    cont.querySelectorAll("[data-dia]").forEach((el) => (el.onclick = () => { alNav.diaId = Number(el.dataset.dia); alNav.bloqueId = null; renderMiRutina(); }));
+    return `<div class="daysel-head"><div class="dh-t">Tu semana</div></div><div class="daysel">${chips}</div>`;
   }
 
-  // NIVEL 2: bloques de un dia
-  function renderAlDia(dia) {
-    const cont = $("al-rutina");
-    const sub = `<div class="subnav"><button class="back" id="al-back">${iconBack}</button><div class="st"><div class="t">${esc(dia.nombre)}</div><div class="s">${dia.fecha ? esc(fmtFecha(dia.fecha)) : 'Tu rutina'}</div></div></div>`;
-    const cards = (dia.bloques || []).map((b) => {
+  function sdayHTML(dia) {
+    let pill = "";
+    if (dia.fecha) pill = esHoy(dia.fecha) ? '<span class="sd-pill hoy">Hoy</span>' : `<span class="sd-pill">${esc(fmtFecha(dia.fecha))}</span>`;
+    return `<div class="sday"><div class="sd-t">${esc(dia.nombre)}</div>${pill}</div><div class="strain-label">Entrenamiento</div>`;
+  }
+
+  function bloquesHTML(dia) {
+    const bloques = dia.bloques || [];
+    if (!bloques.length) return `<div class="empty" style="padding:34px 20px"><p>Día de descanso.<br>No hay bloques cargados para este día.</p></div>`;
+    const pal = ['#c4f000', '#33c4e8', '#9d7bff', '#ffa31a', '#ff5d5d'];
+    return bloques.map((b, i) => {
       const { total, done } = contarEj(b, HECHOS);
+      const col = pal[i % pal.length];
       const prog = total ? `<span class="prog${done ? '' : ' zero'}">${done}/${total}</span>` : '';
-      return `<div class="navcard" data-bloque="${b.id}">
-        <div class="nc-main"><div class="nc-t">${esc(b.nombre)}</div><div class="nc-s">${b.pausa ? 'pausa ' + esc(b.pausa) + ' · ' : ''}${total} ejercicio${total !== 1 ? 's' : ''}</div></div>
-        ${prog}${chevron}
+      return `<div class="blockcard" data-bloque="${b.id}">
+        <div class="bc-ring" style="border-color:${col}"><span style="font-family:'Anton',sans-serif;font-size:19px;color:${col}">${i + 1}</span></div>
+        <div class="bc-main"><div class="bc-k">Bloque ${i + 1}</div><div class="bc-n">${esc(b.nombre)}</div><div class="bc-s">${b.pausa ? esc(b.pausa) + ' · ' : ''}${total} ejercicio${total !== 1 ? 's' : ''} ${prog}</div></div>
+        <div class="bc-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></div>
       </div>`;
     }).join("");
-    cont.innerHTML = sub + (dia.bloques && dia.bloques.length ? cards : `<div class="empty"><p>Este dia todavia no tiene ejercicios.</p></div>`);
-    $("al-back").onclick = alBack;
-    cont.querySelectorAll("[data-bloque]").forEach((el) => (el.onclick = () => { alNav.bloqueId = Number(el.dataset.bloque); renderMiRutina(); }));
   }
 
-  // NIVEL 3: ejercicios de un bloque
-  function renderAlBloque(dia, bloque) {
-    const cont = $("al-rutina");
+  // Drill: ejercicios de un bloque
+  function renderSesionBloque() {
+    const dia = findDia(MI_RUTINA, alDiaSel);
+    const bloque = findBloque(dia, alBloqueSel);
+    if (!bloque) { alBloqueSel = null; return renderSesion(); }
+    const cont = $("al-sesion");
     const sub = `<div class="subnav"><button class="back" id="al-back">${iconBack}</button><div class="st"><div class="t">${esc(bloque.nombre)}</div><div class="s">${esc(dia.nombre)}${bloque.pausa ? ' · pausa ' + esc(bloque.pausa) : ''}</div></div></div>`;
     const rows = (bloque.ejercicios || []).map((e) => {
       const done = HECHOS[e.id];
@@ -1149,9 +1271,53 @@
       return `<div class="ejrow" data-ej="${e.id}">${thumb}<div class="er-info"><div class="er-n">${esc(e.nombre)}</div><div class="er-s">${serie || '—'}</div>${doneHtml}</div>${chevron}</div>`;
     }).join("");
     cont.innerHTML = sub + (bloque.ejercicios && bloque.ejercicios.length ? rows : `<div class="empty"><p>Bloque sin ejercicios.</p></div>`);
-    $("al-back").onclick = alBack;
+    $("al-back").onclick = () => { alBloqueSel = null; renderSesion(); };
     cont.querySelectorAll("[data-ej]").forEach((el) => (el.onclick = () => abrirDetalleEj(findEj(bloque, Number(el.dataset.ej)), "alumno")));
   }
+
+  // ===== CARGAS (historial) =====
+  function renderCargas() {
+    const cont = $("al-cargas");
+    if (!CARGAS.length) {
+      cont.innerHTML = `<div class="empty" style="padding:50px 20px"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M18 20V10M12 20V4M6 20v-6"/></svg><p>Todavía no registraste cargas.<br>Cuando entrenes van a aparecer acá.</p></div>`;
+      return;
+    }
+    const groups = {};
+    CARGAS.forEach((c) => { const f = (c.fecha || "").slice(0, 10); (groups[f] = groups[f] || []).push(c); });
+    const keys = Object.keys(groups).sort((a, b) => (a < b ? 1 : -1)); // más reciente primero
+    cont.innerHTML = keys.map((k) => {
+      const items = groups[k].map((c) => `<div class="cg-item"><div class="cg-n">${esc(c.ejercicio || "Ejercicio")}<div class="cg-r">${c.reps_hechas ? esc(c.reps_hechas) + ' reps' : ''}${c.completado ? (c.reps_hechas ? ' · ' : '') + '✓ hecho' : ''}</div></div><div class="cg-v">${c.peso != null ? esc(String(c.peso)) + 'kg' : '—'}</div></div>`).join("");
+      return `<div class="cg-day">${esc(fmtFechaLarga(k))}</div>${items}`;
+    }).join("");
+  }
+
+  // ===== PERFIL =====
+  function renderPerfil() {
+    const cont = $("al-perfil");
+    const nombre = (alYo && alYo.nombre) || "Alumno";
+    const inicial = nombre.trim().charAt(0).toUpperCase() || "?";
+    const totalEj = MI_RUTINA.reduce((a, d) => a + contarEj(d, HECHOS).total, 0);
+    cont.innerHTML = `
+      <div class="pf-card"><div class="pf-avatar">${esc(inicial)}</div><div class="pf-name">${esc(nombre)}</div><div class="pf-mail">${esc((alYo && alYo.email) || "")}</div></div>
+      <div class="pf-stats">
+        <div class="pf-stat"><div class="ps-v">${MI_RUTINA.length}</div><div class="ps-l">Días</div></div>
+        <div class="pf-stat"><div class="ps-v">${totalEj}</div><div class="ps-l">Ejercicios</div></div>
+        <div class="pf-stat"><div class="ps-v">${CARGAS.length}</div><div class="ps-l">Cargas</div></div>
+      </div>
+      <button class="btn ghost" id="pf-salir">Cerrar sesión</button>`;
+    $("pf-salir").onclick = salir;
+  }
+
+  // ===== Navegación de tabs (barra inferior) =====
+  function alSwitchView(v) {
+    document.querySelectorAll("#app-alumno .navtab").forEach((t) => t.classList.toggle("active", t.dataset.view === v));
+    $("al-view-sesion").classList.toggle("on", v === "sesion");
+    $("al-view-cargas").classList.toggle("on", v === "cargas");
+    $("al-view-perfil").classList.toggle("on", v === "perfil");
+    if (v === "cargas") renderCargas();
+    if (v === "perfil") renderPerfil();
+  }
+  document.querySelectorAll("#app-alumno .navtab").forEach((t) => (t.onclick = () => alSwitchView(t.dataset.view)));
 
   // ---------- Detalle de ejercicio (compartido profe + alumno, con video embebido) ----------
   let detEj = null;
@@ -1212,8 +1378,8 @@
     const notas = $("carga-notas").value.trim() || null;
     const btn = $("carga-guardar"); btn.disabled = true;
     try {
-      const r = await api("/cargas", "POST", { ejercicio_id: cargaEjId, peso, reps_hechas, completado, notas }, true);
-      HECHOS[cargaEjId] = { id: r.id, ejercicio_id: cargaEjId, peso, reps_hechas, completado: completado ? 1 : 0, notas };
+      await api("/cargas", "POST", { ejercicio_id: cargaEjId, peso, reps_hechas, completado, notas }, true);
+      await recargarCargas(); // trae el historial actualizado (para Cargas + últimos 7 días)
       $("carga-overlay").classList.remove("on");
       renderMiRutina();
     } catch (e) { msg($("carga-msg"), e.message, "error"); } finally { btn.disabled = false; }
@@ -1247,7 +1413,18 @@
   // ---------- Arranque ----------
   (async function init() {
     const invita = new URLSearchParams(location.search).get("invita");
-    if (token()) { try { const yo = await api("/yo", "GET", null, true); await entrar(yo.rol); return; } catch { borrarToken(); } }
+    if (token()) {
+      // Reintentos: si el worker está frío o la red parpadea, NO deslogueamos.
+      for (let intento = 0; intento < 4; intento++) {
+        try { const yo = await api("/yo", "GET", null, true); await entrar(yo.rol); return; }
+        catch (e) {
+          if (e.status === 401) { borrarToken(); break; }        // token inválido -> a login
+          if (intento < 3) { await new Promise((r) => setTimeout(r, 800 * (intento + 1))); continue; } // red: reintentar
+          // Se agotaron los reintentos por red: mostramos login pero SIN borrar el token,
+          // así el próximo arranque con red vuelve a entrar solo.
+        }
+      }
+    }
     if (invita) { codigoInvitacion = invita; showAuth("s-reg-alumno"); } else showAuth("s-login");
   })();
 
