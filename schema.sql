@@ -33,6 +33,8 @@ CREATE TABLE profesores (
   password_hash      TEXT NOT NULL,
   password_salt      TEXT NOT NULL,
   codigo_invitacion  TEXT UNIQUE NOT NULL,
+  habilitado         INTEGER NOT NULL DEFAULT 1,  -- 0 = deshabilitado por el admin (no puede usar la app)
+  es_admin           INTEGER NOT NULL DEFAULT 0,  -- 1 = creador/administrador de la plataforma
   creado             TEXT DEFAULT (datetime('now'))
 );
 

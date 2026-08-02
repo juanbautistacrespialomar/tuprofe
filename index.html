@@ -20,17 +20,19 @@
     --text: #ffffff; --muted: #8a8a8a; --danger: #ff5d5d; --radius: 14px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
+  html, body { height: 100%; width: 100%; max-width: 100%; overflow: hidden; overscroll-behavior: none; }
   body {
     background: var(--bg); color: var(--text);
     font-family: "Inter", system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
+    /* pan-y: iOS solo permite gesto vertical -> mata el arrastre lateral. Sin double-tap-zoom (punto 2). */
+    touch-action: pan-y;
   }
   input, select, button, textarea { font-family: inherit; }
 
-  .wrap { height: 100dvh; overflow: hidden; overscroll-behavior: none; display: flex; flex-direction: column; justify-content: safe center; max-width: 440px; width: 100%; margin: 0 auto; padding: 32px 22px calc(32px + env(safe-area-inset-bottom)); }
+  .wrap { height: 100dvh; overflow: hidden; overscroll-behavior: none; display: flex; flex-direction: column; justify-content: safe center; max-width: 440px; width: 100%; margin: 0 auto; padding: 32px 22px calc(32px + env(safe-area-inset-bottom)); touch-action: pan-y; }
   /* En login queda 100% bloqueado. En los registros (más campos + teclado) habilitamos SOLO scroll vertical. */
-  .wrap.scrollable { overflow-y: auto; overflow-x: hidden; }
+  .wrap.scrollable { overflow-y: auto; overflow-x: hidden; touch-action: pan-y; }
   .brand { text-align: center; margin-bottom: 30px; }
   .brand .mark { display: inline-flex; width: 74px; height: 74px; border-radius: 18px; overflow: hidden; margin-bottom: 14px; }
   .brand .mark img { width: 100%; height: 100%; display: block; }
@@ -68,7 +70,7 @@
   .screen { display: none; } .screen.active { display: block; }
 
   /* PANEL (centrado también en desktop) */
-  .app { display: none; flex-direction: column; height: 100dvh; overflow: hidden; max-width: 560px; margin: 0 auto; border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
+  .app { display: none; flex-direction: column; height: 100dvh; overflow: hidden; max-width: 560px; margin: 0 auto; border-left: 1px solid var(--border); border-right: 1px solid var(--border); touch-action: pan-y; }
   .app.active { display: flex; }
   /* FIX scroll: estos wrappers deben ser columnas flex que llenen el alto del .app.
      Si no, el .body { flex:1 } no tiene altura acotada y el overflow:hidden del .app
@@ -85,7 +87,7 @@
   .tab { flex: 1; height: 40px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: 14px; font-weight: 500; cursor: pointer; }
   .tab.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 
-  .body { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 12px 18px calc(24px + env(safe-area-inset-bottom)); }
+  .body { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 12px 18px calc(24px + env(safe-area-inset-bottom)); touch-action: pan-y; }
   .tabview { display: none; } .tabview.on { display: block; }
 
   .search { position: relative; margin-bottom: 14px; }
@@ -130,7 +132,7 @@
   .rej button svg { width: 15px; height: 15px; stroke: currentColor; }
   .miniadd { width: 100%; height: 36px; border-radius: 9px; background: transparent; border: 1px dashed var(--border); color: var(--muted); font-size: 13px; cursor: pointer; margin-top: 4px; }
 
-  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: safe center; justify-content: center; padding: 18px; overflow-y: auto; z-index: 20; }
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: safe center; justify-content: center; padding: 18px; overflow-y: auto; z-index: 20; touch-action: pan-y; }
   .overlay.on { display: flex; }
   .sheet { background: var(--surface); border-radius: 22px; width: 100%; max-width: 460px; margin: auto; padding: 22px 20px; border: 1px solid var(--border); max-height: 90dvh; overflow-y: auto; }
   .sheet h3 { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
@@ -201,7 +203,7 @@
   .prog.zero { color: var(--muted); background: var(--surface-2); border-color: var(--border); }
 
   /* ===== Tira de chips del calendario (nivel raíz del alumno) ===== */
-  .cal-strip { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 12px; margin: 0 -18px 6px; padding-left: 18px; padding-right: 18px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .cal-strip { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 12px; margin: 0 -18px 6px; padding-left: 18px; padding-right: 18px; scrollbar-width: none; -webkit-overflow-scrolling: touch; touch-action: pan-x; max-width: 100vw; }
   .cal-strip::-webkit-scrollbar { display: none; }
   .cal-chip { flex: 0 0 auto; width: 58px; padding: 9px 0; border-radius: 13px; background: var(--surface); border: 1px solid var(--border); text-align: center; cursor: pointer; transition: transform .08s; -webkit-tap-highlight-color: transparent; }
   .cal-chip:active { transform: scale(.95); }
@@ -248,6 +250,29 @@
   .detail-done { font-size: 13px; color: var(--accent); text-align: center; margin-bottom: 12px; }
   .detail-close { position: absolute; top: 12px; right: 12px; z-index: 3; width: 36px; height: 36px; border-radius: 50%; background: rgba(0,0,0,.55); backdrop-filter: blur(4px); border: none; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; }
   .detail-close svg { width: 20px; height: 20px; }
+
+  /* ===== Panel admin ===== */
+  .adm-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .adm-row:last-of-type { border-bottom: none; }
+  .adm-info { flex: 1; min-width: 0; }
+  .adm-n { font-size: 14.5px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .adm-e { font-size: 12px; color: var(--muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .adm-badge { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent); background: rgba(196,240,0,.1); border: 1px solid rgba(196,240,0,.25); padding: 2px 7px; border-radius: 999px; }
+  .adm-vos { font-size: 12px; color: var(--muted); }
+  /* switch */
+  .adm-toggle { width: 46px; height: 27px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); position: relative; cursor: pointer; flex: 0 0 auto; transition: background .15s, border-color .15s; padding: 0; }
+  .adm-toggle .knob { position: absolute; top: 2px; left: 2px; width: 21px; height: 21px; border-radius: 50%; background: var(--muted); transition: transform .15s, background .15s; }
+  .adm-toggle.on { background: var(--accent); border-color: var(--accent); }
+  .adm-toggle.on .knob { transform: translateX(19px); background: var(--accent-ink); }
+
+  /* ===== Bloqueo de cuenta ===== */
+  #bloqueo { display: none; position: fixed; inset: 0; z-index: 60; background: var(--bg); align-items: center; justify-content: center; padding: 24px; touch-action: pan-y; }
+  #bloqueo.on { display: flex; }
+  .bloqueo-card { max-width: 340px; text-align: center; }
+  .bloqueo-card svg { width: 54px; height: 54px; stroke: var(--muted); margin-bottom: 18px; }
+  .bloqueo-card h3 { font-size: 22px; margin-bottom: 10px; }
+  .bloqueo-card p { font-size: 14px; color: var(--muted); line-height: 1.5; margin-bottom: 22px; }
+  .bloqueo-card .btn { width: auto; padding: 0 24px; display: inline-flex; align-items: center; justify-content: center; }
 </style>
 </head>
 <body>
@@ -302,7 +327,10 @@
   <div id="profe-main">
     <div class="app-header">
       <div class="hi">Hola<b id="profe-nombre">Profe</b></div>
-      <div class="icon-btn" id="profe-salir" title="Salir"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div class="icon-btn" id="profe-admin" title="Panel de administrador" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/></svg></div>
+        <div class="icon-btn" id="profe-salir" title="Salir"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></div>
+      </div>
     </div>
     <div class="tabs">
       <button class="tab on" data-tab="catalogo">Ejercicios</button>
@@ -380,6 +408,12 @@
   <div class="sheet">
     <h3 id="edej-title">Editar ejercicio</h3>
     <div class="msg" id="edej-msg"></div>
+    <div class="field">
+      <label>Ejercicio</label>
+      <div class="ac-sel on" id="edej-sel"><span id="edej-sel-nombre"></span><button style="background:none;border:none;color:var(--muted);cursor:pointer" id="edej-cambiar">cambiar</button></div>
+      <input type="text" id="edej-buscar" placeholder="Buscá otro ejercicio del catálogo..." style="display:none" />
+      <div class="ac-list" id="edej-list"></div>
+    </div>
     <div class="row2">
       <div class="field"><label>Series</label><input type="number" id="edej-series" placeholder="4" inputmode="numeric" /></div>
       <div class="field"><label>Reps</label><input type="text" id="edej-reps" placeholder="10" /></div>
@@ -389,6 +423,26 @@
     <div class="field"><label>Nota para el alumno (opcional)</label><input type="text" id="edej-notas" placeholder="Cuidá la espalda, bajá lento..." /></div>
     <button class="btn" id="edej-guardar">Guardar cambios</button>
     <button class="btn ghost sm" id="edej-cancelar" style="margin-top:10px">Cancelar</button>
+  </div>
+</div>
+
+<!-- ============ PANEL ADMIN (solo creador) ============ -->
+<div class="overlay" id="admin-overlay">
+  <div class="sheet">
+    <h3>Profes de la plataforma</h3>
+    <p class="hint">Habilitá o pausá el acceso de cada profe. Un profe en pausa no puede entrar a la app.</p>
+    <div id="admin-lista"></div>
+    <button class="btn ghost sm" id="admin-cerrar" style="margin-top:14px">Cerrar</button>
+  </div>
+</div>
+
+<!-- ============ BLOQUEO (profe deshabilitado) ============ -->
+<div id="bloqueo">
+  <div class="bloqueo-card">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+    <h3>Tu cuenta está en pausa</h3>
+    <p>Todavía no tenés el acceso habilitado. Escribile al administrador para que active tu cuenta y ya vas a poder cargar rutinas.</p>
+    <button class="btn ghost sm" id="bloqueo-salir">Cerrar sesión</button>
   </div>
 </div>
 
@@ -456,7 +510,7 @@
   </div>
 </div>
 
-<div style="position:fixed;bottom:5px;left:0;right:0;text-align:center;font-size:11px;color:#3a3a3a;pointer-events:none;z-index:1">Tu Profe v10</div>
+<div style="position:fixed;bottom:5px;left:0;right:0;text-align:center;font-size:11px;color:#3a3a3a;pointer-events:none;z-index:1">Tu Profe v12</div>
 
 <script>
   const API = "https://tuprofe-api.juanbautistacrespialomar.workers.dev";
@@ -515,6 +569,11 @@
     const yo = await api("/yo", "GET", null, true);
     if (rol === "profe") {
       $("profe-nombre").textContent = yo.nombre || "Profe";
+      adminYoId = yo.id;
+      $("profe-admin").style.display = yo.es_admin ? "" : "none";
+      // Profe deshabilitado (y no admin): mostramos bloqueo y no cargamos la app.
+      if (!yo.es_admin && yo.habilitado === 0) { mostrarBloqueo(); return; }
+      $("bloqueo").classList.remove("on");
       await cargarCatalogo();
       cargarAlumnos();
     } else {
@@ -874,20 +933,38 @@
   };
 
   // Modal editar parametros de ejercicio (PUT /ejercicios/:id) -- punto 1
-  let edejEj = null;
+  let edejEj = null, edejCat = null; // edejCat = catálogo elegido (para cambiar el ejercicio base)
   function abrirEdej(ej) {
     if (!ej) return;
     edejEj = ej;
+    edejCat = { id: ej.catalogo_id, nombre: ej.nombre, video_id: ej.video_id, material: ej.material };
     const porLado = /\/lado$/.test(ej.reps || "") || /^por lado$/.test(ej.reps || "");
     $("edej-series").value = ej.series != null ? ej.series : "";
     $("edej-reps").value = (ej.reps || "").replace(/\/lado$/, "").replace(/^por lado$/, "");
     $("edej-porlado").checked = porLado;
     $("edej-pausa").value = ej.pausa || "";
     $("edej-notas").value = ej.notas || "";
-    $("edej-title").textContent = ej.nombre || "Editar ejercicio";
+    $("edej-title").textContent = "Editar ejercicio";
+    $("edej-sel-nombre").textContent = ej.nombre || "";
+    $("edej-sel").classList.add("on"); $("edej-buscar").style.display = "none"; $("edej-list").classList.remove("on"); $("edej-buscar").value = "";
     msg($("edej-msg"), "", "");
     $("edej-overlay").classList.add("on"); $("edej-series").focus();
   }
+  // Cambiar el ejercicio base (buscador sobre el catálogo)
+  $("edej-cambiar").onclick = () => { $("edej-sel").classList.remove("on"); $("edej-buscar").style.display = ""; $("edej-buscar").value = ""; $("edej-buscar").focus(); };
+  $("edej-buscar").oninput = () => {
+    const q = $("edej-buscar").value.trim().toLowerCase();
+    if (!q) { $("edej-list").classList.remove("on"); return; }
+    const res = CATALOGO.filter((e) => e.nombre.toLowerCase().includes(q)).slice(0, 8);
+    if (res.length === 0) { $("edej-list").innerHTML = `<div class="ac-item"><span style="color:var(--muted)">Nada en el catálogo con ese nombre.</span></div>`; $("edej-list").classList.add("on"); return; }
+    $("edej-list").innerHTML = res.map((e) => `<div class="ac-item" data-cat="${e.id}">${e.video_id ? `<img src="${thumbURL(e.video_id)}" alt="">` : ""}<span>${esc(e.nombre)}</span></div>`).join("");
+    $("edej-list").classList.add("on");
+    $("edej-list").querySelectorAll("[data-cat]").forEach((el) => (el.onclick = () => {
+      edejCat = CATALOGO.find((c) => c.id === Number(el.dataset.cat));
+      $("edej-sel-nombre").textContent = edejCat.nombre;
+      $("edej-sel").classList.add("on"); $("edej-list").classList.remove("on"); $("edej-buscar").style.display = "none";
+    }));
+  };
   $("edej-cancelar").onclick = () => $("edej-overlay").classList.remove("on");
   $("edej-guardar").onclick = async () => {
     if (!edejEj) return;
@@ -896,14 +973,62 @@
     if ($("edej-porlado").checked) reps = reps ? reps + "/lado" : "por lado";
     const pausa = $("edej-pausa").value.trim() || null;
     const notas = $("edej-notas").value.trim() || null;
+    // ¿cambió el ejercicio del catálogo?
+    const cambioCat = edejCat && edejCat.id !== edejEj.catalogo_id;
+    const body = { series, reps, pausa, notas, orden: edejEj.orden || 0 };
+    if (cambioCat) body.catalogo_id = edejCat.id;
     const btn = $("edej-guardar"); btn.disabled = true;
     try {
-      await api("/ejercicios/" + edejEj.id, "PUT", { series, reps, pausa, notas, orden: edejEj.orden || 0 }, true);
+      await api("/ejercicios/" + edejEj.id, "PUT", body, true);
       edejEj.series = series; edejEj.reps = reps || null; edejEj.pausa = pausa; edejEj.notas = notas;
+      if (cambioCat) { edejEj.catalogo_id = edejCat.id; edejEj.nombre = edejCat.nombre; edejEj.video_id = edejCat.video_id; edejEj.material = edejCat.material; }
       $("edej-overlay").classList.remove("on");
       renderRutina();
     } catch (e) { msg($("edej-msg"), e.message, "error"); } finally { btn.disabled = false; }
   };
+
+  // ---------- PANEL ADMIN (creador de la plataforma) ----------
+  function abrirAdmin() {
+    $("admin-lista").innerHTML = `<div class="empty" style="padding:24px"><p>Cargando profes...</p></div>`;
+    $("admin-overlay").classList.add("on");
+    api("/admin/profesores", "GET", null, true).then((data) => renderAdmin(data.profesores || [])).catch((e) => {
+      $("admin-lista").innerHTML = `<div class="empty" style="padding:24px"><p>${esc(e.message)}</p></div>`;
+    });
+  }
+  function renderAdmin(profes) {
+    if (!profes.length) { $("admin-lista").innerHTML = `<div class="empty" style="padding:24px"><p>Todavía no hay profes.</p></div>`; return; }
+    $("admin-lista").innerHTML = profes.map((p) => {
+      const badge = p.es_admin ? `<span class="adm-badge">admin</span>` : "";
+      const ctrl = p.es_admin
+        ? `<span class="adm-vos">${p.id === adminYoId ? 'vos' : ''}</span>`
+        : `<button class="adm-toggle${p.habilitado ? ' on' : ''}" data-id="${p.id}" data-hab="${p.habilitado ? 1 : 0}" role="switch" aria-checked="${p.habilitado ? 'true' : 'false'}" title="${p.habilitado ? 'Habilitado' : 'En pausa'}"><span class="knob"></span></button>`;
+      return `<div class="adm-row">
+        <div class="adm-info"><div class="adm-n">${esc(p.nombre)} ${badge}</div><div class="adm-e">${esc(p.email)} · ${p.alumnos} alumno${p.alumnos !== 1 ? 's' : ''}</div></div>
+        ${ctrl}
+      </div>`;
+    }).join("");
+    $("admin-lista").querySelectorAll(".adm-toggle").forEach((b) => (b.onclick = () => toggleProfe(b)));
+  }
+  async function toggleProfe(btn) {
+    const id = Number(btn.dataset.id);
+    const nuevo = btn.dataset.hab === "1" ? 0 : 1;
+    btn.dataset.hab = String(nuevo);
+    btn.classList.toggle("on", !!nuevo);
+    btn.setAttribute("aria-checked", nuevo ? "true" : "false");
+    btn.title = nuevo ? "Habilitado" : "En pausa";
+    try { await api("/admin/profesores/" + id, "PUT", { habilitado: !!nuevo }, true); }
+    catch (e) {
+      alert(e.message);
+      const revert = nuevo ? 0 : 1; // volver atrás si falló
+      btn.dataset.hab = String(revert); btn.classList.toggle("on", !!revert); btn.setAttribute("aria-checked", revert ? "true" : "false");
+    }
+  }
+  let adminYoId = null;
+  $("profe-admin").onclick = abrirAdmin;
+  $("admin-cerrar").onclick = () => $("admin-overlay").classList.remove("on");
+  $("bloqueo-salir").onclick = () => { $("bloqueo").classList.remove("on"); salir(); };
+  function mostrarBloqueo() { $("bloqueo").classList.add("on"); }
+
 
   // ---------- RUTINA DEL ALUMNO (vista drill-down) ----------
   let MI_RUTINA = [];
