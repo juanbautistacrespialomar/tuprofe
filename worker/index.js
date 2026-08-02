@@ -264,7 +264,10 @@ export default {
           return json({ rol: "profe", ...p, habilitado: profeHabilitado ? 1 : 0, es_admin: esAdmin ? 1 : 0 });
         } else {
           const a = await env.DB.prepare(
-            "SELECT id, nombre, email, objetivo, profe_id FROM alumnos WHERE id = ?").bind(sesion.id).first();
+            `SELECT a.id, a.nombre, a.email, a.objetivo, a.profe_id, a.fecha_nac, a.foto,
+                    p.nombre AS profe_nombre
+             FROM alumnos a LEFT JOIN profesores p ON p.id = a.profe_id
+             WHERE a.id = ?`).bind(sesion.id).first();
           return json({ rol: "alumno", ...a });
         }
       }
@@ -362,6 +365,21 @@ export default {
         ).bind(alumnoId).first();
         alumno.dias = await armarRutina(alumnoId, env);
         return json(alumno);
+      }
+      // Borrar un alumno (y toda su rutina/historial). Borrado explícito en orden,
+      // sin depender del ON DELETE CASCADE, para no dejar nada huérfano.
+      if (seg[0] === "alumnos" && seg.length === 2 && method === "DELETE" && esProfe) {
+        const alumnoId = Number(seg[1]);
+        if (!(await alumnoEsDelProfe(alumnoId, sesion.id, env))) return json({ error: "No es tu alumno" }, 403);
+        await env.DB.batch([
+          env.DB.prepare("DELETE FROM cargas WHERE alumno_id = ?").bind(alumnoId),
+          env.DB.prepare("DELETE FROM ejercicios WHERE bloque_id IN (SELECT b.id FROM bloques b JOIN dias d ON d.id = b.dia_id WHERE d.alumno_id = ?)").bind(alumnoId),
+          env.DB.prepare("DELETE FROM bloques WHERE dia_id IN (SELECT id FROM dias WHERE alumno_id = ?)").bind(alumnoId),
+          env.DB.prepare("DELETE FROM dias WHERE alumno_id = ?").bind(alumnoId),
+          env.DB.prepare("DELETE FROM sesiones WHERE rol = 'alumno' AND usuario_id = ?").bind(alumnoId),
+          env.DB.prepare("DELETE FROM alumnos WHERE id = ?").bind(alumnoId),
+        ]);
+        return json({ ok: true });
       }
       if (seg[0] === "alumnos" && seg.length === 3 && seg[2] === "cargas" && method === "GET" && esProfe) {
         const alumnoId = Number(seg[1]);
@@ -497,6 +515,19 @@ export default {
         return json(results);
       }
 
+      // Foto de perfil del alumno (data URL base64, ya comprimida en el cliente)
+      if (path === "/mi-perfil" && method === "PUT" && esAlumno) {
+        const { foto } = await request.json();
+        if (foto != null) {
+          if (typeof foto !== "string" || foto.length > 400000)  // ~300 KB: cortamos por las dudas
+            return json({ error: "La foto es demasiado grande. Probá con otra." }, 400);
+          if (!/^data:image\/(png|jpeg|jpg|webp);base64,/.test(foto))
+            return json({ error: "Formato de imagen no válido." }, 400);
+        }
+        await env.DB.prepare("UPDATE alumnos SET foto = ? WHERE id = ?").bind(foto || null, sesion.id).run();
+        return json({ ok: true });
+      }
+
       // ================= ADMIN (creador de la plataforma) =================
       // Cualquier ruta /admin/* exige es_admin.
       if (seg[0] === "admin" && !esAdmin) return json({ error: "No autorizado" }, 403);
@@ -506,6 +537,7 @@ export default {
           `SELECT p.id, p.nombre, p.email, p.habilitado, p.es_admin, p.creado,
                   (SELECT COUNT(*) FROM alumnos a WHERE a.profe_id = p.id) AS alumnos
            FROM profesores p
+           WHERE p.borrado = 0
            ORDER BY p.es_admin DESC, p.creado DESC`
         ).all();
         return json({ profesores: results });
@@ -519,6 +551,17 @@ export default {
         if (!target) return json({ error: "Profe no encontrado" }, 404);
         if (target.es_admin) return json({ error: "No podés deshabilitar a otro administrador." }, 400);
         await env.DB.prepare("UPDATE profesores SET habilitado = ? WHERE id = ?").bind(habilitado ? 1 : 0, pid).run();
+        return json({ ok: true });
+      }
+
+      // Borrado lógico de un profe: se oculta y queda deshabilitado, sin destruir datos.
+      if (seg[0] === "admin" && seg[1] === "profesores" && seg.length === 3 && method === "DELETE" && esAdmin) {
+        const pid = Number(seg[2]);
+        if (pid === sesion.id) return json({ error: "No podés borrarte a vos mismo." }, 400);
+        const target = await env.DB.prepare("SELECT es_admin FROM profesores WHERE id = ?").bind(pid).first();
+        if (!target) return json({ error: "Profe no encontrado" }, 404);
+        if (target.es_admin) return json({ error: "No podés borrar a otro administrador." }, 400);
+        await env.DB.prepare("UPDATE profesores SET borrado = 1, habilitado = 0 WHERE id = ?").bind(pid).run();
         return json({ ok: true });
       }
 
