@@ -173,6 +173,81 @@
   .aej .areg { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 11px; background: var(--surface-2); border: 1px solid var(--border); color: var(--muted); display: flex; align-items: center; justify-content: center; cursor: pointer; }
   .aej .areg.done { color: var(--accent); border-color: var(--accent); }
   .aej .areg svg { width: 19px; height: 19px; stroke: currentColor; }
+
+  /* ===== Navegación drill-down (día / bloque / ejercicio) ===== */
+  /* Subheader sticky dentro del scroll: volver + título del nivel */
+  .subnav { position: sticky; top: 0; z-index: 4; display: flex; align-items: center; gap: 10px; background: var(--bg); padding: 4px 0 12px; margin: -12px 0 4px; }
+  .subnav .back { width: 38px; height: 38px; border-radius: 11px; background: var(--surface); border: 1px solid var(--border); color: var(--text); display: flex; align-items: center; justify-content: center; cursor: pointer; flex: 0 0 auto; }
+  .subnav .back svg { width: 18px; height: 18px; }
+  .subnav .st { min-width: 0; flex: 1; }
+  .subnav .st .t { font-size: 17px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .subnav .st .s { font-size: 12px; color: var(--muted); margin-top: 1px; text-transform: capitalize; }
+
+  /* Tarjeta navegable (día o bloque): tap para entrar */
+  .navcard { display: flex; align-items: center; gap: 13px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 11px; cursor: pointer; transition: border-color .12s, transform .08s; -webkit-tap-highlight-color: transparent; }
+  .navcard:active { transform: scale(.988); }
+  .navcard.hoy { border-color: var(--accent); }
+  .navcard .nc-main { flex: 1; min-width: 0; }
+  .navcard .nc-t { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .navcard .nc-s { font-size: 12.5px; color: var(--muted); margin-top: 3px; text-transform: capitalize; }
+  .navcard .nc-chev { color: var(--muted); flex: 0 0 auto; display: flex; }
+  .navcard .nc-chev svg { width: 20px; height: 20px; }
+  .navcard .acts { display: flex; gap: 6px; flex: 0 0 auto; }
+  .navcard .acts button { width: 34px; height: 34px; border-radius: 9px; background: var(--surface-2); border: 1px solid var(--border); color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .navcard .acts button svg { width: 16px; height: 16px; }
+  .navcard .acts button.danger { color: var(--danger); }
+  /* progreso (X/Y hechos) */
+  .prog { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--accent); background: rgba(196,240,0,.1); border: 1px solid rgba(196,240,0,.25); padding: 2px 8px; border-radius: 999px; }
+  .prog.zero { color: var(--muted); background: var(--surface-2); border-color: var(--border); }
+
+  /* ===== Tira de chips del calendario (nivel raíz del alumno) ===== */
+  .cal-strip { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 12px; margin: 0 -18px 6px; padding-left: 18px; padding-right: 18px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .cal-strip::-webkit-scrollbar { display: none; }
+  .cal-chip { flex: 0 0 auto; width: 58px; padding: 9px 0; border-radius: 13px; background: var(--surface); border: 1px solid var(--border); text-align: center; cursor: pointer; transition: transform .08s; -webkit-tap-highlight-color: transparent; }
+  .cal-chip:active { transform: scale(.95); }
+  .cal-chip .cc-dow { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  .cal-chip .cc-num { font-family: "Anton", sans-serif; font-size: 22px; line-height: 1.1; margin-top: 2px; }
+  .cal-chip .cc-mon { font-size: 9.5px; color: var(--muted); text-transform: uppercase; }
+  .cal-chip.hoy { border-color: var(--accent); background: rgba(196,240,0,.08); }
+  .cal-chip.hoy .cc-num { color: var(--accent); }
+  .cal-chip .cc-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); margin: 3px auto 0; }
+  .cal-strip-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+
+  /* ===== Fila de ejercicio dentro de un bloque (lista navegable) ===== */
+  .ejrow { display: flex; gap: 12px; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; margin-bottom: 10px; cursor: pointer; transition: border-color .12s, transform .08s; -webkit-tap-highlight-color: transparent; }
+  .ejrow:active { transform: scale(.99); }
+  .ejrow .er-thumb { width: 76px; height: 54px; border-radius: 9px; object-fit: cover; background: var(--surface-2); flex: 0 0 auto; position: relative; display: block; }
+  .ejrow .er-thumb .play { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+  .ejrow .er-thumb .play svg { width: 24px; height: 24px; fill: #fff; filter: drop-shadow(0 1px 3px rgba(0,0,0,.6)); }
+  .ejrow .er-thumb.ph { display: flex; align-items: center; justify-content: center; }
+  .ejrow .er-thumb.ph svg { width: 22px; height: 22px; stroke: var(--muted); }
+  .ejrow .er-info { flex: 1; min-width: 0; }
+  .ejrow .er-n { font-size: 14.5px; font-weight: 500; }
+  .ejrow .er-s { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .ejrow .er-done { font-size: 11.5px; color: var(--accent); margin-top: 3px; }
+  .ejrow .er-acts { display: flex; gap: 6px; flex: 0 0 auto; }
+  .ejrow .er-acts button { width: 34px; height: 34px; border-radius: 9px; background: var(--surface-2); border: 1px solid var(--border); color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .ejrow .er-acts button svg { width: 16px; height: 16px; }
+  .ejrow .er-acts button.danger { color: var(--danger); }
+
+  /* ===== Detalle de ejercicio (modal grande con video embebido) ===== */
+  .sheet.detail { padding: 0; overflow: hidden; }
+  .detail-scroll { max-height: 90dvh; overflow-y: auto; }
+  .video-embed { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; }
+  .video-embed iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .video-embed.ph { display: flex; align-items: center; justify-content: center; background: var(--surface-2); }
+  .video-embed.ph svg { width: 40px; height: 40px; stroke: var(--muted); }
+  .detail-body { padding: 18px; }
+  .detail-body h3 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+  .detail-body .dmat { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+  .detail-meta { display: flex; gap: 10px; margin-bottom: 16px; }
+  .detail-meta .mcell { flex: 1; background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 11px 8px; text-align: center; }
+  .detail-meta .mcell .mv { font-family: "Anton", sans-serif; font-size: 22px; color: var(--accent); }
+  .detail-meta .mcell .ml { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-top: 2px; }
+  .detail-notas { background: var(--surface-2); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 10px; padding: 12px; font-size: 13.5px; color: var(--text); margin-bottom: 16px; line-height: 1.45; }
+  .detail-done { font-size: 13px; color: var(--accent); text-align: center; margin-bottom: 12px; }
+  .detail-close { position: absolute; top: 12px; right: 12px; z-index: 3; width: 36px; height: 36px; border-radius: 50%; background: rgba(0,0,0,.55); backdrop-filter: blur(4px); border: none; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .detail-close svg { width: 20px; height: 20px; }
 </style>
 </head>
 <body>
@@ -256,7 +331,6 @@
     </div>
     <div class="body">
       <div id="rut-dias"></div>
-      <button class="btn sm" id="rut-add-dia" style="margin-top:6px">+ Agregar día</button>
     </div>
   </div>
 </div>
@@ -283,6 +357,41 @@
   </div>
 </div>
 
+<!-- ============ MODAL detalle de ejercicio (video embebido) ============ -->
+<div class="overlay" id="det-overlay">
+  <div class="sheet detail">
+    <div class="detail-scroll">
+      <button class="detail-close" id="det-cerrar" title="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+      <div id="det-video"></div>
+      <div class="detail-body">
+        <h3 id="det-nombre">Ejercicio</h3>
+        <div class="dmat" id="det-material"></div>
+        <div class="detail-meta" id="det-meta"></div>
+        <div id="det-notas-wrap"></div>
+        <div id="det-done-wrap"></div>
+        <button class="btn" id="det-accion">Registrar carga</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL editar parámetros de un ejercicio ============ -->
+<div class="overlay" id="edej-overlay">
+  <div class="sheet">
+    <h3 id="edej-title">Editar ejercicio</h3>
+    <div class="msg" id="edej-msg"></div>
+    <div class="row2">
+      <div class="field"><label>Series</label><input type="number" id="edej-series" placeholder="4" inputmode="numeric" /></div>
+      <div class="field"><label>Reps</label><input type="text" id="edej-reps" placeholder="10" /></div>
+    </div>
+    <label class="chk"><input type="checkbox" id="edej-porlado" /> <span>Por lado <small>(agrega "/lado")</small></span></label>
+    <div class="field"><label>Pausa</label><input type="text" id="edej-pausa" placeholder="90 seg" /></div>
+    <div class="field"><label>Nota para el alumno (opcional)</label><input type="text" id="edej-notas" placeholder="Cuidá la espalda, bajá lento..." /></div>
+    <button class="btn" id="edej-guardar">Guardar cambios</button>
+    <button class="btn ghost sm" id="edej-cancelar" style="margin-top:10px">Cancelar</button>
+  </div>
+</div>
+
 <!-- ============ MODAL ejercicio de catálogo ============ -->
 <div class="overlay" id="ex-overlay">
   <div class="sheet">
@@ -299,7 +408,7 @@
 <!-- ============ MODAL día ============ -->
 <div class="overlay" id="dia-overlay">
   <div class="sheet">
-    <h3>Nuevo día</h3>
+    <h3 id="dia-h3">Nuevo día</h3>
     <div class="field"><label>Nombre del día</label><input type="text" id="dia-nombre" placeholder="Día 1 - Tren superior" /></div>
     <div class="field"><label>Fecha (opcional — le aparece al alumno)</label><input type="date" id="dia-fecha" /></div>
     <button class="btn" id="dia-guardar">Agregar día</button>
@@ -310,7 +419,7 @@
 <!-- ============ MODAL bloque ============ -->
 <div class="overlay" id="bloque-overlay">
   <div class="sheet">
-    <h3>Nuevo bloque</h3>
+    <h3 id="bloque-h3">Nuevo bloque</h3>
     <div class="field"><label>Nombre del bloque</label><input type="text" id="bloque-nombre" placeholder="Fuerza - Tracción horizontal" /></div>
     <div class="field"><label>Pausa del bloque (opcional)</label><input type="text" id="bloque-pausa" placeholder="2'" /></div>
     <button class="btn" id="bloque-guardar">Agregar bloque</button>
@@ -516,16 +625,40 @@
     return arr;
   }
 
-  // ---------- RUTINA ----------
+  // ---------- Helpers compartidos: navegación + video ----------
+  const embedURL = (id) => `https://www.youtube-nocookie.com/embed/${id}?rel=0&modestbranding=1&playsinline=1`;
+  const findDia = (arr, id) => (arr || []).find((d) => d.id === id) || null;
+  const findBloque = (dia, id) => dia ? (dia.bloques || []).find((b) => b.id === id) || null : null;
+  const findEj = (bloque, id) => bloque ? (bloque.ejercicios || []).find((e) => e.id === id) || null : null;
+  // Resumen de un contenedor (día o bloque) para las tarjetas: total y hechos
+  function contarEj(nodo, hechos) {
+    let total = 0, done = 0;
+    const bloques = nodo.bloques || (nodo.ejercicios ? [nodo] : []);
+    bloques.forEach((b) => (b.ejercicios || []).forEach((e) => { total++; if (hechos && hechos[e.id]) done++; }));
+    return { total, done };
+  }
+  const chevron = `<div class="nc-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></div>`;
+  const iconEdit = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>`;
+  const iconTrash = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg>`;
+  const iconBack = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>`;
+  const iconPlay = `<span class="play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>`;
+
+  // ---------- RUTINA (PROFE) ----------
   let alumnoActual = null;
+  let rutNav = { diaId: null, bloqueId: null };
   async function abrirAlumno(id, nombre) {
     alumnoActual = { id, nombre };
-    $("rut-nombre").textContent = nombre;
+    rutNav = { diaId: null, bloqueId: null };
     $("profe-main").style.display = "none";
     $("profe-rutina").style.display = "flex";
     await cargarRutina();
   }
-  $("rut-volver").onclick = () => { $("profe-rutina").style.display = "none"; $("profe-main").style.display = "flex"; };
+  function rutBack() {
+    if (rutNav.bloqueId != null) { rutNav.bloqueId = null; renderRutina(); }
+    else if (rutNav.diaId != null) { rutNav.diaId = null; renderRutina(); }
+    else { $("profe-rutina").style.display = "none"; $("profe-main").style.display = "flex"; }
+  }
+  $("rut-volver").onclick = rutBack;
 
   let RUTINA = [];
   async function cargarRutina() {
@@ -533,67 +666,171 @@
     RUTINA = data.dias || [];
     renderRutina();
   }
+
+  // Router por nivel: dias -> dia(bloques) -> bloque(ejercicios)
   function renderRutina() {
-    const cont = $("rut-dias");
-    if (RUTINA.length === 0) { cont.innerHTML = `<div class="empty"><p>Esta rutina está vacía.<br>Agregá el primer día para empezar.</p></div>`; return; }
-    cont.innerHTML = RUTINA.map((d) => {
-      const bloques = (d.bloques || []).map((b) => {
-        const ejs = (b.ejercicios || []).map((e) => `<div class="rej"><div class="rn">${esc(e.nombre)}</div><div class="rs">${e.series ? e.series + "×" : ""}${esc(e.reps || "")}${e.pausa ? " · " + esc(e.pausa) : ""}</div><button data-delrej="${e.id}"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>`).join("");
-        return `<div class="bloque"><div class="bloque-head"><span class="bn">${esc(b.nombre)}</span><span class="bp">${b.pausa ? esc(b.pausa) : ""} <button data-delbloque="${b.id}" style="background:none;border:none;color:var(--muted);cursor:pointer;margin-left:4px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button></span></div>${ejs}<button class="miniadd" data-addrej="${b.id}">+ ejercicio</button></div>`;
-      }).join("");
-      const fechaHtml = d.fecha ? `<div class="dia-fecha">${esc(fmtFecha(d.fecha))}${esHoy(d.fecha) ? '<span class="hoy-pill">Hoy</span>' : ""}</div>` : "";
-      return `<div class="dia${esHoy(d.fecha) ? " hoy" : ""}"><div class="dia-head"><div style="min-width:0"><span class="dn">${esc(d.nombre)}</span>${fechaHtml}</div><button data-deldia="${d.id}" style="background:none;border:none;color:var(--muted);cursor:pointer;flex-shrink:0"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button></div><div class="dia-body">${bloques}<button class="miniadd" data-addbloque="${d.id}">+ bloque</button></div></div>`;
-    }).join("");
-    cont.querySelectorAll("[data-deldia]").forEach((b) => (b.onclick = () => borrarNodo("dias", Number(b.dataset.deldia), "¿Borrar el día completo?")));
-    cont.querySelectorAll("[data-delbloque]").forEach((b) => (b.onclick = () => borrarNodo("bloques", Number(b.dataset.delbloque), "¿Borrar el bloque?")));
-    cont.querySelectorAll("[data-delrej]").forEach((b) => (b.onclick = () => borrarNodo("ejercicios", Number(b.dataset.delrej), null)));
-    cont.querySelectorAll("[data-addbloque]").forEach((b) => (b.onclick = () => abrirBloque(Number(b.dataset.addbloque))));
-    cont.querySelectorAll("[data-addrej]").forEach((b) => (b.onclick = () => abrirRej(Number(b.dataset.addrej))));
+    let dia = rutNav.diaId != null ? findDia(RUTINA, rutNav.diaId) : null;
+    if (rutNav.diaId != null && !dia) { rutNav = { diaId: null, bloqueId: null }; }
+    let bloque = rutNav.bloqueId != null ? findBloque(dia, rutNav.bloqueId) : null;
+    if (rutNav.bloqueId != null && !bloque) { rutNav.bloqueId = null; }
+    if (rutNav.bloqueId != null) return renderRutBloque(dia, bloque);
+    if (rutNav.diaId != null) return renderRutDia(dia);
+    return renderRutDias();
   }
+
+  // NIVEL 1: lista de dias
+  function renderRutDias() {
+    $("rut-nombre").textContent = alumnoActual.nombre;
+    const cont = $("rut-dias");
+    const cards = RUTINA.map((d) => {
+      const { total } = contarEj(d);
+      const nb = (d.bloques || []).length;
+      return `<div class="navcard${esHoy(d.fecha) ? ' hoy' : ''}" data-dia="${d.id}">
+        <div class="nc-main">
+          <div class="nc-t">${esc(d.nombre)}${esHoy(d.fecha) ? '<span class="hoy-pill">Hoy</span>' : ''}</div>
+          <div class="nc-s">${d.fecha ? esc(fmtFecha(d.fecha)) + ' · ' : ''}${nb} bloque${nb !== 1 ? 's' : ''} · ${total} ejercicio${total !== 1 ? 's' : ''}</div>
+        </div>
+        <div class="acts">
+          <button data-edit="${d.id}" title="Editar dia">${iconEdit}</button>
+          <button class="danger" data-del="${d.id}" title="Borrar dia">${iconTrash}</button>
+        </div>
+        ${chevron}
+      </div>`;
+    }).join("");
+    cont.innerHTML = (RUTINA.length ? cards : `<div class="empty"><p>Esta rutina esta vacia.<br>Agrega el primer dia para empezar.</p></div>`) +
+      `<button class="btn sm" id="rut-add" style="margin-top:6px">+ Agregar dia</button>`;
+    cont.querySelectorAll("[data-dia]").forEach((c) => (c.onclick = () => { rutNav.diaId = Number(c.dataset.dia); rutNav.bloqueId = null; renderRutina(); }));
+    cont.querySelectorAll("[data-edit]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); abrirDia("editar", findDia(RUTINA, Number(b.dataset.edit))); }));
+    cont.querySelectorAll("[data-del]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); borrarNodo("dias", Number(b.dataset.del), "Borrar el dia completo?"); }));
+    $("rut-add").onclick = () => abrirDia("nuevo");
+  }
+
+  // NIVEL 2: bloques de un dia
+  function renderRutDia(dia) {
+    $("rut-nombre").textContent = dia.nombre;
+    const cont = $("rut-dias");
+    const cards = (dia.bloques || []).map((b) => {
+      const { total } = contarEj(b);
+      return `<div class="navcard" data-bloque="${b.id}">
+        <div class="nc-main">
+          <div class="nc-t">${esc(b.nombre)}</div>
+          <div class="nc-s">${b.pausa ? 'pausa ' + esc(b.pausa) + ' · ' : ''}${total} ejercicio${total !== 1 ? 's' : ''}</div>
+        </div>
+        <div class="acts">
+          <button data-edit="${b.id}" title="Editar bloque">${iconEdit}</button>
+          <button class="danger" data-del="${b.id}" title="Borrar bloque">${iconTrash}</button>
+        </div>
+        ${chevron}
+      </div>`;
+    }).join("");
+    cont.innerHTML = (dia.bloques && dia.bloques.length ? cards : `<div class="empty"><p>Este dia no tiene bloques.<br>Agrega el primero.</p></div>`) +
+      `<button class="btn sm" id="rut-add" style="margin-top:6px">+ Agregar bloque</button>`;
+    cont.querySelectorAll("[data-bloque]").forEach((c) => (c.onclick = () => { rutNav.bloqueId = Number(c.dataset.bloque); renderRutina(); }));
+    cont.querySelectorAll("[data-edit]").forEach((btn) => (btn.onclick = (e) => { e.stopPropagation(); abrirBloque(dia.id, findBloque(dia, Number(btn.dataset.edit))); }));
+    cont.querySelectorAll("[data-del]").forEach((btn) => (btn.onclick = (e) => { e.stopPropagation(); borrarNodo("bloques", Number(btn.dataset.del), "Borrar el bloque?"); }));
+    $("rut-add").onclick = () => abrirBloque(dia.id);
+  }
+
+  // NIVEL 3: ejercicios de un bloque
+  function renderRutBloque(dia, bloque) {
+    $("rut-nombre").textContent = bloque.nombre;
+    const cont = $("rut-dias");
+    const rows = (bloque.ejercicios || []).map((e) => {
+      const thumb = e.video_id
+        ? `<div class="er-thumb"><img src="${thumbURL(e.video_id)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:9px;display:block">${iconPlay}</div>`
+        : `<div class="er-thumb ph"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M8 5v14l11-7z"/></svg></div>`;
+      const serie = `${e.series ? e.series + '×' : ''}${esc(e.reps || '')}${e.pausa ? ' · ' + esc(e.pausa) : ''}`;
+      return `<div class="ejrow" data-ej="${e.id}">
+        ${thumb}
+        <div class="er-info"><div class="er-n">${esc(e.nombre)}</div><div class="er-s">${serie || '—'}</div>${e.notas ? `<div class="er-s" style="color:var(--accent)">Nota: ${esc(e.notas)}</div>` : ''}</div>
+        <div class="er-acts">
+          <button data-edit="${e.id}" title="Editar">${iconEdit}</button>
+          <button class="danger" data-del="${e.id}" title="Borrar">${iconTrash}</button>
+        </div>
+      </div>`;
+    }).join("");
+    cont.innerHTML = (bloque.ejercicios && bloque.ejercicios.length ? rows : `<div class="empty"><p>Bloque sin ejercicios.<br>Suma el primero desde tu catalogo.</p></div>`) +
+      `<button class="btn sm" id="rut-add" style="margin-top:6px">+ Agregar ejercicio</button>`;
+    cont.querySelectorAll("[data-ej]").forEach((row) => (row.onclick = () => abrirDetalleEj(findEj(bloque, Number(row.dataset.ej)), "profe")));
+    cont.querySelectorAll("[data-edit]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); abrirEdej(findEj(bloque, Number(b.dataset.edit))); }));
+    cont.querySelectorAll("[data-del]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); borrarNodo("ejercicios", Number(b.dataset.del), null); }));
+    $("rut-add").onclick = () => abrirRej(bloque.id);
+  }
+
   async function borrarNodo(tipo, id, pregunta) {
     if (pregunta && !confirm(pregunta)) return;
-    // Quitamos del modelo local y renderizamos ya (punto 6)
     if (tipo === "dias") RUTINA = RUTINA.filter((d) => d.id !== id);
     else if (tipo === "bloques") RUTINA.forEach((d) => { d.bloques = (d.bloques || []).filter((b) => b.id !== id); });
     else if (tipo === "ejercicios") RUTINA.forEach((d) => (d.bloques || []).forEach((b) => { b.ejercicios = (b.ejercicios || []).filter((e) => e.id !== id); }));
     renderRutina();
     try { await api("/" + tipo + "/" + id, "DELETE", null, true); }
-    catch (e) { alert("No se pudo borrar: " + e.message); await cargarRutina(); } // resync si el server rechazó
+    catch (e) { alert("No se pudo borrar: " + e.message); await cargarRutina(); }
   }
 
-  // Modal día
-  $("rut-add-dia").onclick = () => { $("dia-nombre").value = "Día " + (RUTINA.length + 1); $("dia-fecha").value = ""; $("dia-overlay").classList.add("on"); $("dia-nombre").focus(); };
+  // Modal dia (crear + editar)
+  let diaEnEdicion = null;
+  function abrirDia(modo, dia) {
+    diaEnEdicion = modo === "editar" && dia ? dia.id : null;
+    $("dia-h3").textContent = diaEnEdicion ? "Editar dia" : "Nuevo dia";
+    $("dia-guardar").textContent = diaEnEdicion ? "Guardar cambios" : "Agregar dia";
+    $("dia-nombre").value = dia ? dia.nombre : "Dia " + (RUTINA.length + 1);
+    $("dia-fecha").value = dia && dia.fecha ? dia.fecha : "";
+    $("dia-overlay").classList.add("on"); $("dia-nombre").focus();
+  }
   $("dia-cancelar").onclick = () => $("dia-overlay").classList.remove("on");
   $("dia-guardar").onclick = async () => {
     const nombre = $("dia-nombre").value.trim(); if (!nombre) return;
     const fecha = $("dia-fecha").value || null;
     const btn = $("dia-guardar"); btn.disabled = true;
     try {
-      const r = await api("/dias", "POST", { alumno_id: alumnoActual.id, nombre, orden: RUTINA.length, fecha }, true);
+      if (diaEnEdicion) {
+        const dia = findDia(RUTINA, diaEnEdicion);
+        await api("/dias/" + diaEnEdicion, "PUT", { nombre, orden: dia ? dia.orden || 0 : 0, fecha }, true);
+        if (dia) { dia.nombre = nombre; dia.fecha = fecha; }
+        ordenarRutina(RUTINA);
+      } else {
+        const r = await api("/dias", "POST", { alumno_id: alumnoActual.id, nombre, orden: RUTINA.length, fecha }, true);
+        RUTINA.push({ id: r.id, nombre, orden: RUTINA.length, fecha, bloques: [] });
+        ordenarRutina(RUTINA);
+      }
       $("dia-overlay").classList.remove("on");
-      RUTINA.push({ id: r.id, nombre, orden: RUTINA.length, fecha, bloques: [] });
-      ordenarRutina(RUTINA); renderRutina();
+      renderRutina();
     } catch (e) { alert(e.message); } finally { btn.disabled = false; }
   };
 
-  // Modal bloque
-  let bloqueDiaId = null;
-  function abrirBloque(diaId) { bloqueDiaId = diaId; $("bloque-nombre").value = ""; $("bloque-pausa").value = ""; $("bloque-overlay").classList.add("on"); $("bloque-nombre").focus(); }
+  // Modal bloque (crear + editar)
+  let bloqueDiaId = null, bloqueEnEdicion = null;
+  function abrirBloque(diaId, bloque) {
+    bloqueDiaId = diaId;
+    bloqueEnEdicion = bloque ? bloque.id : null;
+    $("bloque-h3").textContent = bloqueEnEdicion ? "Editar bloque" : "Nuevo bloque";
+    $("bloque-guardar").textContent = bloqueEnEdicion ? "Guardar cambios" : "Agregar bloque";
+    $("bloque-nombre").value = bloque ? bloque.nombre : "";
+    $("bloque-pausa").value = bloque && bloque.pausa ? bloque.pausa : "";
+    $("bloque-overlay").classList.add("on"); $("bloque-nombre").focus();
+  }
   $("bloque-cancelar").onclick = () => $("bloque-overlay").classList.remove("on");
   $("bloque-guardar").onclick = async () => {
     const nombre = $("bloque-nombre").value.trim(); if (!nombre) return;
     const pausa = $("bloque-pausa").value.trim();
     const btn = $("bloque-guardar"); btn.disabled = true;
     try {
-      const r = await api("/bloques", "POST", { dia_id: bloqueDiaId, nombre, pausa, orden: 0 }, true);
+      const dia = findDia(RUTINA, bloqueDiaId);
+      if (bloqueEnEdicion) {
+        const b = findBloque(dia, bloqueEnEdicion);
+        await api("/bloques/" + bloqueEnEdicion, "PUT", { nombre, pausa, orden: b ? b.orden || 0 : 0 }, true);
+        if (b) { b.nombre = nombre; b.pausa = pausa || null; }
+      } else {
+        const nOrden = dia && dia.bloques ? dia.bloques.length : 0;
+        const r = await api("/bloques", "POST", { dia_id: bloqueDiaId, nombre, pausa, orden: nOrden }, true);
+        if (dia) (dia.bloques = dia.bloques || []).push({ id: r.id, dia_id: bloqueDiaId, nombre, pausa: pausa || null, orden: nOrden, ejercicios: [] });
+      }
       $("bloque-overlay").classList.remove("on");
-      const dia = RUTINA.find((d) => d.id === bloqueDiaId);
-      if (dia) { (dia.bloques = dia.bloques || []).push({ id: r.id, dia_id: bloqueDiaId, nombre, pausa: pausa || null, orden: 0, ejercicios: [] }); renderRutina(); }
-      else { await cargarRutina(); }
+      renderRutina();
     } catch (e) { alert(e.message); } finally { btn.disabled = false; }
   };
 
-  // Modal ejercicio de rutina (autocomplete)
+  // Modal agregar ejercicio (autocomplete sobre el catalogo)
   let rejBloqueId = null, catSeleccionado = null;
   function abrirRej(bloqueId) {
     rejBloqueId = bloqueId; catSeleccionado = null;
@@ -607,7 +844,7 @@
     const q = $("rej-buscar").value.trim().toLowerCase();
     if (!q) { $("rej-list").classList.remove("on"); return; }
     const res = CATALOGO.filter((e) => e.nombre.toLowerCase().includes(q)).slice(0, 8);
-    if (res.length === 0) { $("rej-list").innerHTML = `<div class="ac-item"><span style="color:var(--muted)">Nada en el catálogo. Cargalo primero en Ejercicios.</span></div>`; $("rej-list").classList.add("on"); return; }
+    if (res.length === 0) { $("rej-list").innerHTML = `<div class="ac-item"><span style="color:var(--muted)">Nada en el catalogo. Cargalo primero en Ejercicios.</span></div>`; $("rej-list").classList.add("on"); return; }
     $("rej-list").innerHTML = res.map((e) => `<div class="ac-item" data-cat="${e.id}">${e.video_id ? `<img src="${thumbURL(e.video_id)}" alt="">` : ""}<span>${esc(e.nombre)}</span></div>`).join("");
     $("rej-list").classList.add("on");
     $("rej-list").querySelectorAll("[data-cat]").forEach((el) => (el.onclick = () => {
@@ -618,69 +855,215 @@
   };
   $("rej-sel-x").onclick = () => { catSeleccionado = null; $("rej-sel").classList.remove("on"); $("rej-buscar").style.display = ""; $("rej-buscar").value = ""; $("rej-buscar").focus(); };
   $("rej-guardar").onclick = async () => {
-    if (!catSeleccionado) return msg($("rej-msg"), "Elegí un ejercicio del catálogo", "error");
+    if (!catSeleccionado) return msg($("rej-msg"), "Elegi un ejercicio del catalogo", "error");
     const series = $("rej-series").value ? Number($("rej-series").value) : null;
     let reps = $("rej-reps").value.trim();
-    if ($("rej-porlado").checked) reps = reps ? reps + "/lado" : "por lado"; // punto 4
+    if ($("rej-porlado").checked) reps = reps ? reps + "/lado" : "por lado";
     const pausa = $("rej-pausa").value.trim();
     $("rej-guardar").disabled = true;
     try {
-      const r = await api("/ejercicios", "POST", { bloque_id: rejBloqueId, catalogo_id: catSeleccionado.id, series, reps, pausa, orden: 0 }, true);
+      const dia = findDia(RUTINA, rutNav.diaId);
+      const bloque = findBloque(dia, rejBloqueId);
+      const orden = bloque && bloque.ejercicios ? bloque.ejercicios.length : 0;
+      const r = await api("/ejercicios", "POST", { bloque_id: rejBloqueId, catalogo_id: catSeleccionado.id, series, reps, pausa, orden }, true);
       $("rej-overlay").classList.remove("on");
-      // alta optimista (punto 6): insertamos en el bloque local sin re-consultar
-      let ok = false;
-      for (const d of RUTINA) {
-        const b = (d.bloques || []).find((x) => x.id === rejBloqueId);
-        if (b) { (b.ejercicios = b.ejercicios || []).push({ id: r.id, bloque_id: rejBloqueId, orden: 0, series, reps: reps || null, pausa: pausa || null, notas: null, catalogo_id: catSeleccionado.id, nombre: catSeleccionado.nombre, material: catSeleccionado.material, video_id: catSeleccionado.video_id }); ok = true; break; }
-      }
-      if (ok) renderRutina(); else await cargarRutina();
+      if (bloque) { (bloque.ejercicios = bloque.ejercicios || []).push({ id: r.id, bloque_id: rejBloqueId, orden, series, reps: reps || null, pausa: pausa || null, notas: null, catalogo_id: catSeleccionado.id, nombre: catSeleccionado.nombre, material: catSeleccionado.material, video_id: catSeleccionado.video_id }); renderRutina(); }
+      else await cargarRutina();
     }
     catch (e) { msg($("rej-msg"), e.message, "error"); } finally { $("rej-guardar").disabled = false; }
   };
 
-  // ---------- RUTINA DEL ALUMNO (vista) ----------
+  // Modal editar parametros de ejercicio (PUT /ejercicios/:id) -- punto 1
+  let edejEj = null;
+  function abrirEdej(ej) {
+    if (!ej) return;
+    edejEj = ej;
+    const porLado = /\/lado$/.test(ej.reps || "") || /^por lado$/.test(ej.reps || "");
+    $("edej-series").value = ej.series != null ? ej.series : "";
+    $("edej-reps").value = (ej.reps || "").replace(/\/lado$/, "").replace(/^por lado$/, "");
+    $("edej-porlado").checked = porLado;
+    $("edej-pausa").value = ej.pausa || "";
+    $("edej-notas").value = ej.notas || "";
+    $("edej-title").textContent = ej.nombre || "Editar ejercicio";
+    msg($("edej-msg"), "", "");
+    $("edej-overlay").classList.add("on"); $("edej-series").focus();
+  }
+  $("edej-cancelar").onclick = () => $("edej-overlay").classList.remove("on");
+  $("edej-guardar").onclick = async () => {
+    if (!edejEj) return;
+    const series = $("edej-series").value ? Number($("edej-series").value) : null;
+    let reps = $("edej-reps").value.trim();
+    if ($("edej-porlado").checked) reps = reps ? reps + "/lado" : "por lado";
+    const pausa = $("edej-pausa").value.trim() || null;
+    const notas = $("edej-notas").value.trim() || null;
+    const btn = $("edej-guardar"); btn.disabled = true;
+    try {
+      await api("/ejercicios/" + edejEj.id, "PUT", { series, reps, pausa, notas, orden: edejEj.orden || 0 }, true);
+      edejEj.series = series; edejEj.reps = reps || null; edejEj.pausa = pausa; edejEj.notas = notas;
+      $("edej-overlay").classList.remove("on");
+      renderRutina();
+    } catch (e) { msg($("edej-msg"), e.message, "error"); } finally { btn.disabled = false; }
+  };
+
+  // ---------- RUTINA DEL ALUMNO (vista drill-down) ----------
   let MI_RUTINA = [];
-  let HECHOS = {}; // ejercicio_id -> última carga registrada (para el ✓)
+  let HECHOS = {};                 // ejercicio_id -> ultima carga (para el check)
+  let alNav = { diaId: null, bloqueId: null };
   async function cargarMiRutina() {
     const cont = $("al-rutina");
     cont.innerHTML = `<div class="empty"><p>Cargando tu rutina...</p></div>`;
+    alNav = { diaId: null, bloqueId: null };
     try {
       const data = await api("/mi-rutina", "GET", null, true);
       MI_RUTINA = data.dias || [];
       HECHOS = {};
       try {
         const cargas = await api("/mis-cargas", "GET", null, true);
-        (cargas || []).forEach((c) => { if (!HECHOS[c.ejercicio_id]) HECHOS[c.ejercicio_id] = c; }); // vienen DESC: queda la más reciente
+        (cargas || []).forEach((c) => { if (!HECHOS[c.ejercicio_id]) HECHOS[c.ejercicio_id] = c; }); // vienen DESC: la mas reciente
       } catch {}
       renderMiRutina();
     } catch (e) {
       cont.innerHTML = `<div class="empty"><p>No pudimos cargar tu rutina.<br>${esc(e.message)}</p></div>`;
     }
   }
+
+  // Router por nivel: calendario -> dia(bloques) -> bloque(ejercicios) -> [detalle en modal]
   function renderMiRutina() {
     const cont = $("al-rutina");
     if (!MI_RUTINA.length) {
-      cont.innerHTML = `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></svg><p>Tu profe todavía no te cargó la rutina.<br>Cuando lo haga, aparece acá.</p></div>`;
+      cont.innerHTML = `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></svg><p>Tu profe todavia no te cargo la rutina.<br>Cuando lo haga, aparece aca.</p></div>`;
       return;
     }
-    cont.innerHTML = MI_RUTINA.map((d) => {
-      const bloques = (d.bloques || []).map((b) => {
-        const ejs = (b.ejercicios || []).map((e) => {
-          const done = HECHOS[e.id];
-          const thumb = e.video_id
-            ? `<a class="athumb" href="https://www.youtube.com/watch?v=${encodeURIComponent(e.video_id)}" target="_blank" rel="noopener"><img src="${thumbURL(e.video_id)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:8px;display:block"><span class="play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span></a>`
-            : `<div class="athumb ph"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M8 5v14l11-7z"/></svg></div>`;
-          const serie = `${e.series ? e.series + "×" : ""}${esc(e.reps || "")}${e.pausa ? " · " + esc(e.pausa) : ""}`;
-          const doneHtml = done ? `<div class="adone">✓ ${done.peso != null ? esc(String(done.peso)) + "kg" : "hecho"}${done.reps_hechas ? " · " + esc(done.reps_hechas) : ""}</div>` : "";
-          return `<div class="aej">${thumb}<div class="ainfo"><div class="an">${esc(e.nombre)}</div><div class="as">${serie || "&nbsp;"}</div>${doneHtml}</div><button class="areg${done ? " done" : ""}" data-reg="${e.id}" data-nombre="${esc(e.nombre)}" title="Registrar"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button></div>`;
-        }).join("");
-        return `<div class="bloque"><div class="bloque-head"><span class="bn">${esc(b.nombre)}</span><span class="bp">${b.pausa ? esc(b.pausa) : ""}</span></div>${ejs || '<div class="as" style="color:var(--muted);font-size:12px;padding:6px 0">Sin ejercicios</div>'}</div>`;
-      }).join("");
-      const fechaHtml = d.fecha ? `<div class="dia-fecha">${esc(fmtFecha(d.fecha))}${esHoy(d.fecha) ? '<span class="hoy-pill">Hoy</span>' : ""}</div>` : "";
-      return `<div class="dia${esHoy(d.fecha) ? " hoy" : ""}"><div class="dia-head"><div style="min-width:0"><span class="dn">${esc(d.nombre)}</span>${fechaHtml}</div></div><div class="dia-body">${bloques || '<div class="as" style="color:var(--muted);font-size:12px;padding:6px 0">Sin bloques todavía</div>'}</div></div>`;
-    }).join("");
-    cont.querySelectorAll("[data-reg]").forEach((b) => (b.onclick = () => abrirCarga(Number(b.dataset.reg), b.dataset.nombre)));
+    let dia = alNav.diaId != null ? findDia(MI_RUTINA, alNav.diaId) : null;
+    if (alNav.diaId != null && !dia) { alNav = { diaId: null, bloqueId: null }; }
+    let bloque = alNav.bloqueId != null ? findBloque(dia, alNav.bloqueId) : null;
+    if (alNav.bloqueId != null && !bloque) { alNav.bloqueId = null; }
+    if (alNav.bloqueId != null) return renderAlBloque(dia, bloque);
+    if (alNav.diaId != null) return renderAlDia(dia);
+    return renderAlCalendario();
   }
+
+  function alBack() {
+    if (alNav.bloqueId != null) alNav.bloqueId = null;
+    else if (alNav.diaId != null) alNav.diaId = null;
+    renderMiRutina();
+  }
+
+  function chipFecha(iso) {
+    const d = new Date(iso + "T00:00:00");
+    return {
+      dow: d.toLocaleDateString("es-AR", { weekday: "short" }).replace(".", ""),
+      num: d.getDate(),
+      mon: d.toLocaleDateString("es-AR", { month: "short" }).replace(".", ""),
+    };
+  }
+
+  // NIVEL RAIZ: calendario (tira de chips) + tarjetas de dia
+  function renderAlCalendario() {
+    const cont = $("al-rutina");
+    const conFecha = MI_RUTINA.filter((d) => d.fecha);
+    let strip = "";
+    if (conFecha.length) {
+      strip = `<div class="cal-strip-label">Tu semana</div><div class="cal-strip">` + conFecha.map((d) => {
+        const c = chipFecha(d.fecha);
+        const { total, done } = contarEj(d, HECHOS);
+        const full = total > 0 && done >= total;
+        return `<div class="cal-chip${esHoy(d.fecha) ? ' hoy' : ''}" data-dia="${d.id}">
+          <div class="cc-dow">${esc(c.dow)}</div>
+          <div class="cc-num">${c.num}</div>
+          <div class="cc-mon">${esc(c.mon)}</div>
+          ${full ? '<div class="cc-dot"></div>' : ''}
+        </div>`;
+      }).join("") + `</div>`;
+    }
+    const cards = MI_RUTINA.map((d) => {
+      const { total, done } = contarEj(d, HECHOS);
+      const nb = (d.bloques || []).length;
+      const prog = total ? `<span class="prog${done ? '' : ' zero'}">${done}/${total}</span>` : '';
+      return `<div class="navcard${esHoy(d.fecha) ? ' hoy' : ''}" data-dia="${d.id}">
+        <div class="nc-main">
+          <div class="nc-t">${esc(d.nombre)}${esHoy(d.fecha) ? '<span class="hoy-pill">Hoy</span>' : ''}</div>
+          <div class="nc-s">${d.fecha ? esc(fmtFecha(d.fecha)) + ' · ' : ''}${nb} bloque${nb !== 1 ? 's' : ''} · ${total} ejercicio${total !== 1 ? 's' : ''}</div>
+        </div>
+        ${prog}
+        ${chevron}
+      </div>`;
+    }).join("");
+    cont.innerHTML = strip + cards;
+    cont.querySelectorAll("[data-dia]").forEach((el) => (el.onclick = () => { alNav.diaId = Number(el.dataset.dia); alNav.bloqueId = null; renderMiRutina(); }));
+  }
+
+  // NIVEL 2: bloques de un dia
+  function renderAlDia(dia) {
+    const cont = $("al-rutina");
+    const sub = `<div class="subnav"><button class="back" id="al-back">${iconBack}</button><div class="st"><div class="t">${esc(dia.nombre)}</div><div class="s">${dia.fecha ? esc(fmtFecha(dia.fecha)) : 'Tu rutina'}</div></div></div>`;
+    const cards = (dia.bloques || []).map((b) => {
+      const { total, done } = contarEj(b, HECHOS);
+      const prog = total ? `<span class="prog${done ? '' : ' zero'}">${done}/${total}</span>` : '';
+      return `<div class="navcard" data-bloque="${b.id}">
+        <div class="nc-main"><div class="nc-t">${esc(b.nombre)}</div><div class="nc-s">${b.pausa ? 'pausa ' + esc(b.pausa) + ' · ' : ''}${total} ejercicio${total !== 1 ? 's' : ''}</div></div>
+        ${prog}${chevron}
+      </div>`;
+    }).join("");
+    cont.innerHTML = sub + (dia.bloques && dia.bloques.length ? cards : `<div class="empty"><p>Este dia todavia no tiene ejercicios.</p></div>`);
+    $("al-back").onclick = alBack;
+    cont.querySelectorAll("[data-bloque]").forEach((el) => (el.onclick = () => { alNav.bloqueId = Number(el.dataset.bloque); renderMiRutina(); }));
+  }
+
+  // NIVEL 3: ejercicios de un bloque
+  function renderAlBloque(dia, bloque) {
+    const cont = $("al-rutina");
+    const sub = `<div class="subnav"><button class="back" id="al-back">${iconBack}</button><div class="st"><div class="t">${esc(bloque.nombre)}</div><div class="s">${esc(dia.nombre)}${bloque.pausa ? ' · pausa ' + esc(bloque.pausa) : ''}</div></div></div>`;
+    const rows = (bloque.ejercicios || []).map((e) => {
+      const done = HECHOS[e.id];
+      const thumb = e.video_id
+        ? `<div class="er-thumb"><img src="${thumbURL(e.video_id)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:9px;display:block">${iconPlay}</div>`
+        : `<div class="er-thumb ph"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M8 5v14l11-7z"/></svg></div>`;
+      const serie = `${e.series ? e.series + '×' : ''}${esc(e.reps || '')}${e.pausa ? ' · ' + esc(e.pausa) : ''}`;
+      const doneHtml = done ? `<div class="er-done">✓ ${done.peso != null ? esc(String(done.peso)) + 'kg' : 'hecho'}${done.reps_hechas ? ' · ' + esc(done.reps_hechas) : ''}</div>` : '';
+      return `<div class="ejrow" data-ej="${e.id}">${thumb}<div class="er-info"><div class="er-n">${esc(e.nombre)}</div><div class="er-s">${serie || '—'}</div>${doneHtml}</div>${chevron}</div>`;
+    }).join("");
+    cont.innerHTML = sub + (bloque.ejercicios && bloque.ejercicios.length ? rows : `<div class="empty"><p>Bloque sin ejercicios.</p></div>`);
+    $("al-back").onclick = alBack;
+    cont.querySelectorAll("[data-ej]").forEach((el) => (el.onclick = () => abrirDetalleEj(findEj(bloque, Number(el.dataset.ej)), "alumno")));
+  }
+
+  // ---------- Detalle de ejercicio (compartido profe + alumno, con video embebido) ----------
+  let detEj = null;
+  function abrirDetalleEj(ej, modo) {
+    if (!ej) return;
+    detEj = ej;
+    $("det-nombre").textContent = ej.nombre || "Ejercicio";
+    $("det-material").textContent = ej.material ? ("Material: " + ej.material) : "";
+    const vid = $("det-video");
+    if (ej.video_id) {
+      vid.className = "video-embed";
+      vid.innerHTML = `<iframe src="${embedURL(ej.video_id)}" title="${esc(ej.nombre)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe>`;
+    } else {
+      vid.className = "video-embed ph";
+      vid.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M8 5v14l11-7z"/></svg>`;
+    }
+    const cells = [];
+    if (ej.series != null && ej.series !== "") cells.push(`<div class="mcell"><div class="mv">${esc(String(ej.series))}</div><div class="ml">Series</div></div>`);
+    if (ej.reps) cells.push(`<div class="mcell"><div class="mv">${esc(ej.reps)}</div><div class="ml">Reps</div></div>`);
+    if (ej.pausa) cells.push(`<div class="mcell"><div class="mv" style="font-size:15px">${esc(ej.pausa)}</div><div class="ml">Pausa</div></div>`);
+    $("det-meta").innerHTML = cells.join("");
+    $("det-notas-wrap").innerHTML = ej.notas ? `<div class="detail-notas">${esc(ej.notas)}</div>` : "";
+    const done = HECHOS[ej.id];
+    if (modo === "alumno") {
+      $("det-done-wrap").innerHTML = done ? `<div class="detail-done">Ultima carga: ${done.peso != null ? esc(String(done.peso)) + 'kg' : 'hecho'}${done.reps_hechas ? ' · ' + esc(done.reps_hechas) + ' reps' : ''}</div>` : "";
+      $("det-accion").textContent = done ? "Actualizar carga" : "Registrar carga";
+      $("det-accion").onclick = () => { cerrarDetalle(); abrirCarga(ej.id, ej.nombre); };
+    } else {
+      $("det-done-wrap").innerHTML = "";
+      $("det-accion").textContent = "Editar ejercicio";
+      $("det-accion").onclick = () => { cerrarDetalle(); abrirEdej(ej); };
+    }
+    $("det-overlay").classList.add("on");
+  }
+  function cerrarDetalle() { $("det-overlay").classList.remove("on"); $("det-video").innerHTML = ""; }
+  $("det-cerrar").onclick = cerrarDetalle;
+  $("det-overlay").onclick = (e) => { if (e.target === $("det-overlay")) cerrarDetalle(); };
 
   // ---------- Registrar carga (alumno) ----------
   let cargaEjId = null;
