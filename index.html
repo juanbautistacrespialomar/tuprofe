@@ -21,10 +21,8 @@
     --nav-glass: rgba(20,20,20,.72);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  html { height: 100%; width: 100%; overflow: hidden; }
+  html, body { height: 100%; width: 100%; max-width: 100%; overflow: hidden; overscroll-behavior: none; }
   body {
-    position: fixed; inset: 0; width: 100%; height: 100%;
-    overflow: hidden; overscroll-behavior: none;
     background: var(--bg); color: var(--text);
     font-family: "Inter", system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -296,6 +294,8 @@
   .bottomnav-inner { max-width: 440px; margin: 0 auto; display: flex; position: relative; pointer-events: auto; background: var(--nav-glass); -webkit-backdrop-filter: blur(22px) saturate(1.5); backdrop-filter: blur(22px) saturate(1.5); border: 1px solid var(--border); border-radius: 26px; box-shadow: 0 6px 20px rgba(0,0,0,.35); padding: 6px 8px; }
   .navtab { position: relative; display: flex; align-items: center; justify-content: center; padding: 11px 0; background: none; border: none; cursor: pointer; color: var(--muted); flex: 0 0 auto; width: 62px; transition: flex-grow .3s ease, width .3s ease, color .25s; }
   .navtab span { display: block; font-size: 11.5px; font-weight: 600; white-space: nowrap; position: relative; z-index: 1; max-width: 0; opacity: 0; overflow: hidden; transition: max-width .3s ease, opacity .22s ease, margin-left .3s ease; }
+  #profe-main .navtab { flex: 1 1 0; width: auto; }
+  #profe-main .navtab span { max-width: 120px; opacity: 1; margin-left: 8px; }
   .navtab svg { width: 23px; height: 23px; position: relative; z-index: 1; }
   .navtab.active { color: var(--accent); flex: 1 1 auto; width: auto; }
   .navtab.active span { max-width: 100px; opacity: 1; margin-left: 8px; }
@@ -652,7 +652,7 @@
   </div>
 </div>
 
-<div style="position:fixed;bottom:5px;left:0;right:0;text-align:center;font-size:11px;color:#3a3a3a;pointer-events:none;z-index:1">Tu Profe v21</div>
+<div style="position:fixed;bottom:5px;left:0;right:0;text-align:center;font-size:11px;color:#3a3a3a;pointer-events:none;z-index:1">Tu Profe v22</div>
 
 <script>
   const API = "https://tuprofe-api.juanbautistacrespialomar.workers.dev";
@@ -783,7 +783,7 @@
     const alumnos = await api("/alumnos", "GET", null, true);
     const cont = $("al-lista");
     if (alumnos.length === 0) { cont.innerHTML = pend.length ? "" : `<div class="empty"><p>Todavía no tenés alumnos.<br>Tocá "Invitar alumno" para sumar el primero.</p></div>`; return; }
-    cont.innerHTML = `<div style="font-size:12px;color:var(--muted);margin:16px 0 8px">Tus alumnos (${alumnos.length})</div>` + alumnos.map((a) => `<div class="ex click" data-alumno="${a.id}"><div class="thumb ph" style="width:44px;height:44px;border-radius:50%"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div><div class="info"><div class="n">${esc(a.nombre)}</div><div class="m">${edadDesde(a.fecha_nac) != null ? edadDesde(a.fecha_nac) + " años" : esc(a.objetivo || "Sin datos")}</div></div><div class="acts"><button class="reset-al" data-reset-alumno="${a.id}" title="Resetear contraseña"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M17 6l2 2M15 8l2 2"/></svg></button><button class="del-al" data-del-alumno="${a.id}" title="Borrar alumno"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button><button><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg></button></div></div>`).join("");
+    cont.innerHTML = `<div style="font-size:12px;color:var(--muted);margin:16px 0 8px">Tus alumnos (${alumnos.length})</div>` + alumnos.map((a) => `<div class="ex click" data-alumno="${a.id}"><div class="thumb ph" style="width:44px;height:44px;border-radius:50%"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div><div class="info"><div class="n">${esc(a.nombre)}</div><div class="m">${edadDesde(a.fecha_nac) != null ? edadDesde(a.fecha_nac) + " años" : esc(a.objetivo || "Sin datos")}</div></div><div class="acts"><button class="reset-al" data-reset-alumno="${a.id}" title="Resetear contraseña"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M17 6l2 2M15 8l2 2"/></svg></button><button class="del-al" data-del-alumno="${a.id}" title="Borrar alumno"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button></div></div>`).join("");
     cont.querySelectorAll("[data-alumno]").forEach((el) => (el.onclick = () => abrirAlumno(Number(el.dataset.alumno), el.querySelector(".n").textContent)));
     cont.querySelectorAll("[data-del-alumno]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); borrarAlumno(Number(b.dataset.delAlumno), b.closest("[data-alumno]").querySelector(".n").textContent); }));
     cont.querySelectorAll("[data-reset-alumno]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); resetAlumno(Number(b.dataset.resetAlumno), b.closest("[data-alumno]").querySelector(".n").textContent); }));
