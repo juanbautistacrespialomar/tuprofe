@@ -457,7 +457,7 @@
     <div class="body">
       <div class="tabview on" id="tv-catalogo">
         <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input type="text" id="cat-buscar" placeholder="Buscar ejercicio..." /></div>
-        <div class="toolbar"><button class="btn sm" id="cat-agregar">+ Agregar ejercicio</button></div>
+        <div class="toolbar"><button class="btn sm" id="cat-agregar">+ Agregar ejercicio</button><button class="btn sm" id="cat-actualizar" title="Trae los ejercicios de la base que todavía no tengas en tu biblioteca">Base común</button></div>
         <div id="cat-lista"></div>
       </div>
       <div class="tabview" id="tv-alumnos">
@@ -691,6 +691,16 @@
     ["Camilla de isquios", "https://youtu.be/B6t8MvbTtew"],
     ["Biceps con soga", "https://youtu.be/VnyPUkrxBR0"],
     ["Curl biceps alternado", "https://youtu.be/e9nzjkmPRXY"],
+    ["Buda + Bear crawl", "https://youtu.be/EKleJ14DTD4"],
+    ["Bulgarian Squats / Sentadilla búlgaras con mancuernas", "https://youtu.be/3mJDJA13Ekc"],
+    ["Pogos Jump / Saltos pogos bipodal", "https://youtu.be/fCZB24m9ePI"],
+    ["Dead bug con fitball / Bicho muerto", "https://youtu.be/85AAYxChuyA"],
+    ["Hang power clean / Cargadas de medio muslo", "https://youtu.be/byGqCEtD6S0"],
+    ["Back Squats box / Sentadilla a banco", "https://youtu.be/ihX7X8KJxFY"],
+    ["Lanzamiento medball + aceleración", "https://youtu.be/4qFSuoS2fzQ"],
+    ["DPT + recto abdominal - Diafragma, periné y transverso", "https://youtu.be/cSQhybosPKo"],
+    ["Press militar de rodillas / Empuje vertical", "https://youtu.be/z4FCuz4pNS0"],
+    ["Peso muerto / Despegue con barra", "https://youtu.be/kaAXGvDAss4"],
   ];
 
   const screens = ["s-login", "s-reg-profe", "s-reg-alumno"];
@@ -750,8 +760,8 @@
     const lista = q ? CATALOGO.filter((e) => e.nombre.toLowerCase().includes(q)) : CATALOGO;
     const cont = $("cat-lista");
     if (CATALOGO.length === 0) {
-      cont.innerHTML = `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M4 7h16M4 12h16M4 17h10"/></svg><p>Todavía no tenés ejercicios.<br>Cargá tu biblioteca para armar rutinas.</p><button class="btn" id="cat-importar">Cargar 14 ejercicios base</button></div>`;
-      $("cat-importar").onclick = importarBase; return;
+      cont.innerHTML = `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M4 7h16M4 12h16M4 17h10"/></svg><p>Todavía no tenés ejercicios.<br>Cargá tu biblioteca para armar rutinas.</p><button class="btn" id="cat-importar">Cargar 24 ejercicios base</button></div>`;
+      $("cat-importar").onclick = (e) => importarBase(e.currentTarget); return;
     }
     if (lista.length === 0) { cont.innerHTML = `<div class="empty"><p>Ningún ejercicio coincide con "${esc(q)}".</p></div>`; return; }
     cont.innerHTML = lista.map((e) => {
@@ -762,12 +772,29 @@
     cont.querySelectorAll("[data-del]").forEach((b) => (b.onclick = () => borrarEjercicio(Number(b.dataset.del))));
   }
   $("cat-buscar").oninput = renderCatalogo;
-  async function importarBase() { $("cat-importar").disabled = true; $("cat-importar").textContent = "Cargando..."; for (const [nombre, video] of EJERCICIOS_BASE) { try { await api("/catalogo", "POST", { nombre, video }, true); } catch {} } await cargarCatalogo(); }
+  async function importarBase(btn) {
+    // Dedup por video_id: no reimporta lo que el profe ya tiene en su biblioteca.
+    const extraerId = (u) => (String(u).match(/(?:v=|youtu\.be\/|shorts\/|embed\/)([A-Za-z0-9_-]{11})/) || [])[1] || null;
+    const yaTengo = new Set(CATALOGO.map((e) => e.video_id).filter(Boolean));
+    const faltan = EJERCICIOS_BASE.filter(([n, v]) => { const id = extraerId(v); return id && !yaTengo.has(id); });
+    const el = (btn && btn.tagName) ? btn : null;
+    if (faltan.length === 0) {
+      if (el) { const t = el.textContent; el.textContent = "Ya están todos ✓"; setTimeout(() => (el.textContent = t), 1800); }
+      return;
+    }
+    if (el) { el.disabled = true; el.textContent = "Cargando..."; }
+    for (const [nombre, video] of faltan) {
+      try { await api("/catalogo", "POST", { nombre, video }, true); } catch {}
+    }
+    if (el) { el.disabled = false; el.textContent = "Base común"; }
+    await cargarCatalogo();
+  }
 
   let editandoId = null;
   function abrirNuevo() { editandoId = null; $("ex-title").textContent = "Nuevo ejercicio"; $("ex-nombre").value = ""; $("ex-video").value = ""; $("ex-material").value = ""; msg($("ex-msg"), "", ""); $("ex-overlay").classList.add("on"); $("ex-nombre").focus(); }
   function abrirEditar(id) { const e = CATALOGO.find((x) => x.id === id); if (!e) return; editandoId = id; $("ex-title").textContent = "Editar ejercicio"; $("ex-nombre").value = e.nombre; $("ex-video").value = e.video_id ? "https://youtu.be/" + e.video_id : ""; $("ex-material").value = e.material || ""; msg($("ex-msg"), "", ""); $("ex-overlay").classList.add("on"); }
   $("cat-agregar").onclick = abrirNuevo;
+  $("cat-actualizar").onclick = (e) => importarBase(e.currentTarget);
   $("ex-cancelar").onclick = () => $("ex-overlay").classList.remove("on");
   $("ex-guardar").onclick = async () => {
     const nombre = $("ex-nombre").value.trim(), video = $("ex-video").value.trim(), material = $("ex-material").value.trim();
