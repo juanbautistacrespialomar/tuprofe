@@ -231,10 +231,10 @@
   .mcal-nav svg { width: 20px; height: 20px; stroke: currentColor; }
   .mcal-title { flex: 1; text-align: center; background: none; border: none; color: var(--text); font-size: 16px; font-weight: 600; cursor: pointer; text-transform: capitalize; padding: 6px; border-radius: 10px; transition: background .12s; }
   .mcal-title:active { background: var(--surface); }
-  .mcal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+  .mcal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
   .mcal-dows { margin-bottom: 6px; }
   .mcal-dow { text-align: center; font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; padding: 2px 0; }
-  .mcal-cell { position: relative; aspect-ratio: 1 / 1; border-radius: 11px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform .08s, border-color .12s, background .12s; -webkit-tap-highlight-color: transparent; }
+  .mcal-cell { position: relative; aspect-ratio: 1 / 1; min-width: 0; border-radius: 11px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform .08s, border-color .12s, background .12s; -webkit-tap-highlight-color: transparent; }
   .mcal-cell:active { transform: scale(.93); }
   .mcal-cell.empty { background: transparent; border-color: transparent; pointer-events: none; }
   .mcal-cell.hoy { border-color: var(--accent); background: rgba(196,240,0,.08); }
