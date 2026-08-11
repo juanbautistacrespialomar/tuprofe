@@ -237,12 +237,16 @@
   .mcal-cell { position: relative; aspect-ratio: 1 / 1; border-radius: 11px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform .08s, border-color .12s, background .12s; -webkit-tap-highlight-color: transparent; }
   .mcal-cell:active { transform: scale(.93); }
   .mcal-cell.empty { background: transparent; border-color: transparent; pointer-events: none; }
-  .mcal-cell.has { border-color: #3a3a3a; }
   .mcal-cell.hoy { border-color: var(--accent); background: rgba(196,240,0,.08); }
   .mcal-cell.hoy .mcal-num { color: var(--accent); font-weight: 700; }
+  /* día programado CON ejercicios: celda pintada */
+  .mcal-cell.prog { background: var(--accent); border-color: var(--accent); }
+  .mcal-cell.prog .mcal-num { color: var(--accent-ink); font-weight: 700; }
+  /* pintado y además hoy: anillo interno oscuro para distinguir el día actual */
+  .mcal-cell.prog.hoy { box-shadow: inset 0 0 0 2px var(--bg); }
+  /* día empezado pero todavía SIN ejercicios: solo contorno verde */
+  .mcal-cell.prog-empty { border-color: var(--accent); }
   .mcal-num { line-height: 1; }
-  .mcal-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); }
-  .mcal-dot.empty { background: transparent; border: 1.5px solid var(--muted); }
   .mcal-sf-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin: 20px 0 10px; }
 
   /* barra del día (nivel bloques): editar / borrar el día */
@@ -1040,10 +1044,9 @@
       const iso = isoLocal(y, m, d);
       const info = porFecha[iso];
       const clsHoy = iso === hoy ? " hoy" : "";
-      const clsHas = info ? " has" : "";
-      // puntito lleno = día con ejercicios; puntito hueco = día empezado pero vacío
-      const dot = info ? (info.total > 0 ? `<span class="mcal-dot"></span>` : `<span class="mcal-dot empty"></span>`) : "";
-      celdas += `<button class="mcal-cell${clsHoy}${clsHas}" data-iso="${iso}"><span class="mcal-num">${d}</span>${dot}</button>`;
+      // celda pintada = día con ejercicios; solo contorno = día empezado pero vacío
+      const clsProg = info ? (info.total > 0 ? " prog" : " prog-empty") : "";
+      celdas += `<button class="mcal-cell${clsHoy}${clsProg}" data-iso="${iso}"><span class="mcal-num">${d}</span></button>`;
     }
     const dows = DOWS_CAL.map((x) => `<div class="mcal-dow">${x}</div>`).join("");
     return `<div class="mcal">
