@@ -223,6 +223,36 @@
   .cal-chip .cc-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); margin: 3px auto 0; }
   .cal-strip-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
 
+  /* ===== Calendario mensual (raíz de la rutina del profe) ===== */
+  .mcal { margin-bottom: 8px; }
+  .mcal-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+  .mcal-nav { width: 40px; height: 40px; border-radius: 11px; background: var(--surface); border: 1px solid var(--border); color: var(--text); display: flex; align-items: center; justify-content: center; cursor: pointer; flex: 0 0 auto; transition: transform .08s, border-color .12s; }
+  .mcal-nav:active { transform: scale(.92); }
+  .mcal-nav svg { width: 20px; height: 20px; stroke: currentColor; }
+  .mcal-title { flex: 1; text-align: center; background: none; border: none; color: var(--text); font-size: 16px; font-weight: 600; cursor: pointer; text-transform: capitalize; padding: 6px; border-radius: 10px; transition: background .12s; }
+  .mcal-title:active { background: var(--surface); }
+  .mcal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+  .mcal-dows { margin-bottom: 6px; }
+  .mcal-dow { text-align: center; font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; padding: 2px 0; }
+  .mcal-cell { position: relative; aspect-ratio: 1 / 1; border-radius: 11px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform .08s, border-color .12s, background .12s; -webkit-tap-highlight-color: transparent; }
+  .mcal-cell:active { transform: scale(.93); }
+  .mcal-cell.empty { background: transparent; border-color: transparent; pointer-events: none; }
+  .mcal-cell.has { border-color: #3a3a3a; }
+  .mcal-cell.hoy { border-color: var(--accent); background: rgba(196,240,0,.08); }
+  .mcal-cell.hoy .mcal-num { color: var(--accent); font-weight: 700; }
+  .mcal-num { line-height: 1; }
+  .mcal-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); }
+  .mcal-dot.empty { background: transparent; border: 1.5px solid var(--muted); }
+  .mcal-sf-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin: 20px 0 10px; }
+
+  /* barra del día (nivel bloques): editar / borrar el día */
+  .dia-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; margin-bottom: 12px; }
+  .dia-bar-info { font-size: 13px; color: var(--muted); text-transform: capitalize; min-width: 0; }
+  .dia-bar-acts { display: flex; gap: 6px; flex: 0 0 auto; }
+  .dia-bar-acts button { width: 34px; height: 34px; border-radius: 9px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .dia-bar-acts button svg { width: 16px; height: 16px; stroke: currentColor; }
+  .dia-bar-acts button.danger { color: var(--danger); }
+
   /* ===== Fila de ejercicio dentro de un bloque (lista navegable) ===== */
   .ejrow { display: flex; gap: 12px; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; margin-bottom: 10px; cursor: pointer; transition: border-color .12s, transform .08s; -webkit-tap-highlight-color: transparent; }
   .ejrow:active { transform: scale(.99); }
@@ -668,7 +698,7 @@
   <div class="ub-txt"><b>Hay una versión nueva</b><span>Actualizá para tener lo último.</span></div>
   <button id="update-btn">Actualizar</button>
 </div>
-<div style="position:fixed;bottom:5px;left:0;right:0;text-align:center;font-size:11px;color:#3a3a3a;pointer-events:none;z-index:1">Tu Profe v25</div>
+<div style="position:fixed;bottom:5px;left:0;right:0;text-align:center;font-size:11px;color:#3a3a3a;pointer-events:none;z-index:1">Tu Profe v27</div>
 
 <script>
   const API = "https://tuprofe-api.juanbautistacrespialomar.workers.dev";
@@ -899,9 +929,11 @@
   // ---------- RUTINA (PROFE) ----------
   let alumnoActual = null;
   let rutNav = { diaId: null, bloqueId: null };
+  let calMes = null; // { y, m } mes que se está mirando en el calendario (m: 0-11)
   async function abrirAlumno(id, nombre) {
     alumnoActual = { id, nombre };
     rutNav = { diaId: null, bloqueId: null };
+    calMes = null; // arranca siempre en el mes actual
     $("profe-main").style.display = "none";
     $("profe-rutina").style.display = "flex";
     await cargarRutina();
@@ -963,37 +995,140 @@
     return renderRutDias();
   }
 
-  // NIVEL 1: lista de dias
+  // ===== Helpers del calendario mensual =====
+  const MESES_CAL = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+  const DOWS_CAL = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
+  const pad2 = (n) => String(n).padStart(2, "0");
+  const isoLocal = (y, m, d) => `${y}-${pad2(m + 1)}-${pad2(d)}`; // YYYY-MM-DD local, sin corrimiento de timezone
+  const iconChevR = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>`;
+
+  function calInit() { const h = new Date(); calMes = { y: h.getFullYear(), m: h.getMonth() }; }
+  function calShift(delta) {
+    let { y, m } = calMes; m += delta;
+    if (m < 0) { m = 11; y--; } else if (m > 11) { m = 0; y++; }
+    calMes = { y, m }; renderRutina();
+  }
+  function calHoy() { calInit(); renderRutina(); }
+
+  // Nombre por defecto de un día creado al tocar una fecha del calendario: "Lunes 20 de febrero"
+  function nombreDiaPorFecha(iso) {
+    const d = new Date(iso + "T00:00:00");
+    const s = d.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
+  // Arma el HTML de la grilla del mes en curso (calMes)
+  function calGridHTML() {
+    const { y, m } = calMes;
+    const primero = new Date(y, m, 1);
+    const offset = (primero.getDay() + 6) % 7;         // lun=0 ... dom=6 (semana arranca lunes)
+    const diasEnMes = new Date(y, m + 1, 0).getDate();
+
+    // Mapa fecha -> resumen (si hay día y si tiene ejercicios). Si hubiera 2 días misma fecha, se suman.
+    const porFecha = {};
+    RUTINA.forEach((d) => {
+      if (!d.fecha) return;
+      if (!porFecha[d.fecha]) porFecha[d.fecha] = { dias: 0, total: 0 };
+      porFecha[d.fecha].dias++;
+      porFecha[d.fecha].total += contarEj(d).total;
+    });
+
+    const hoy = hoyISO();
+    let celdas = "";
+    for (let i = 0; i < offset; i++) celdas += `<div class="mcal-cell empty"></div>`;
+    for (let d = 1; d <= diasEnMes; d++) {
+      const iso = isoLocal(y, m, d);
+      const info = porFecha[iso];
+      const clsHoy = iso === hoy ? " hoy" : "";
+      const clsHas = info ? " has" : "";
+      // puntito lleno = día con ejercicios; puntito hueco = día empezado pero vacío
+      const dot = info ? (info.total > 0 ? `<span class="mcal-dot"></span>` : `<span class="mcal-dot empty"></span>`) : "";
+      celdas += `<button class="mcal-cell${clsHoy}${clsHas}" data-iso="${iso}"><span class="mcal-num">${d}</span>${dot}</button>`;
+    }
+    const dows = DOWS_CAL.map((x) => `<div class="mcal-dow">${x}</div>`).join("");
+    return `<div class="mcal">
+      <div class="mcal-head">
+        <button class="mcal-nav" data-cal="-1" title="Mes anterior">${iconBack}</button>
+        <button class="mcal-title" data-cal="hoy" title="Volver al mes actual">${MESES_CAL[m]} ${y}</button>
+        <button class="mcal-nav" data-cal="1" title="Mes siguiente">${iconChevR}</button>
+      </div>
+      <div class="mcal-grid mcal-dows">${dows}</div>
+      <div class="mcal-grid">${celdas}</div>
+    </div>`;
+  }
+
+  // Tocar un día del calendario: si ya hay día en esa fecha, entro; si no, lo creo y entro directo.
+  async function onCalDia(iso) {
+    const existentes = RUTINA.filter((d) => d.fecha === iso);
+    if (existentes.length) {
+      rutNav.diaId = existentes[0].id; rutNav.bloqueId = null; renderRutina();
+      return;
+    }
+    const nombre = nombreDiaPorFecha(iso);
+    try {
+      const r = await api("/dias", "POST", { alumno_id: alumnoActual.id, nombre, orden: RUTINA.length, fecha: iso }, true);
+      RUTINA.push({ id: r.id, nombre, orden: RUTINA.length, fecha: iso, bloques: [] });
+      ordenarRutina(RUTINA);
+      rutNav.diaId = r.id; rutNav.bloqueId = null; renderRutina();
+    } catch (e) { alert("No se pudo crear el día: " + e.message); }
+  }
+
+  // NIVEL 1: calendario mensual (+ guardrail de días sin fecha, si los hubiera)
   function renderRutDias() {
     $("rut-nombre").textContent = alumnoActual.nombre;
+    if (!calMes) calInit();
     const cont = $("rut-dias");
-    const cards = RUTINA.map((d) => {
-      const { total } = contarEj(d);
-      const nb = (d.bloques || []).length;
-      return `<div class="navcard${esHoy(d.fecha) ? ' hoy' : ''}" data-dia="${d.id}">
-        <div class="nc-main">
-          <div class="nc-t">${esc(d.nombre)}${esHoy(d.fecha) ? '<span class="hoy-pill">Hoy</span>' : ''}</div>
-          <div class="nc-s">${d.fecha ? esc(fmtFecha(d.fecha)) + ' · ' : ''}${nb} bloque${nb !== 1 ? 's' : ''} · ${total} ejercicio${total !== 1 ? 's' : ''}</div>
-        </div>
-        <div class="acts">
-          <button data-edit="${d.id}" title="Editar dia">${iconEdit}</button>
-          <button class="danger" data-del="${d.id}" title="Borrar dia">${iconTrash}</button>
-        </div>
-        ${chevron}
-      </div>`;
-    }).join("");
-    cont.innerHTML = (RUTINA.length ? cards : `<div class="empty"><p>Esta rutina esta vacia.<br>Agrega el primer dia para empezar.</p></div>`) +
-      `<button class="btn sm" id="rut-add" style="margin-top:6px">+ Agregar dia</button>`;
+
+    // Guardrail: los días SIN fecha no tienen casillero. Si existen, los listamos abajo para no esconderlos.
+    const sinFecha = RUTINA.filter((d) => !d.fecha);
+    let sfHTML = "";
+    if (sinFecha.length) {
+      const items = sinFecha.map((d) => {
+        const { total } = contarEj(d);
+        const nb = (d.bloques || []).length;
+        return `<div class="navcard" data-dia="${d.id}">
+          <div class="nc-main">
+            <div class="nc-t">${esc(d.nombre)}</div>
+            <div class="nc-s">${nb} bloque${nb !== 1 ? 's' : ''} · ${total} ejercicio${total !== 1 ? 's' : ''}</div>
+          </div>
+          <div class="acts">
+            <button data-edit="${d.id}" title="Editar dia">${iconEdit}</button>
+            <button class="danger" data-del="${d.id}" title="Borrar dia">${iconTrash}</button>
+          </div>
+          ${chevron}
+        </div>`;
+      }).join("");
+      sfHTML = `<div class="mcal-sf-label">Días sin fecha</div>${items}`;
+    }
+
+    cont.innerHTML = calGridHTML() + sfHTML;
+
+    // Navegación de meses
+    cont.querySelectorAll("[data-cal]").forEach((b) => (b.onclick = () => {
+      const v = b.dataset.cal;
+      if (v === "hoy") calHoy(); else calShift(Number(v));
+    }));
+    // Tocar un día del calendario
+    cont.querySelectorAll("[data-iso]").forEach((c) => (c.onclick = () => onCalDia(c.dataset.iso)));
+    // Días sin fecha (mismo comportamiento que la lista vieja)
     cont.querySelectorAll("[data-dia]").forEach((c) => (c.onclick = () => { rutNav.diaId = Number(c.dataset.dia); rutNav.bloqueId = null; renderRutina(); }));
     cont.querySelectorAll("[data-edit]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); abrirDia("editar", findDia(RUTINA, Number(b.dataset.edit))); }));
     cont.querySelectorAll("[data-del]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); borrarNodo("dias", Number(b.dataset.del), "Borrar el dia completo?"); }));
-    $("rut-add").onclick = () => abrirDia("nuevo");
   }
 
   // NIVEL 2: bloques de un dia
   function renderRutDia(dia) {
     $("rut-nombre").textContent = dia.nombre;
     const cont = $("rut-dias");
+    // Barra del día: muestra la fecha y permite editar (nombre/fecha) o borrar el día completo.
+    const fechaTxt = dia.fecha ? esc(fmtFecha(dia.fecha)) + (esHoy(dia.fecha) ? ' · <span style="color:var(--accent)">hoy</span>' : '') : 'Sin fecha';
+    const diaBar = `<div class="dia-bar">
+      <div class="dia-bar-info">${fechaTxt}</div>
+      <div class="dia-bar-acts">
+        <button data-dia-edit title="Editar día">${iconEdit}</button>
+        <button class="danger" data-dia-del title="Borrar día">${iconTrash}</button>
+      </div>
+    </div>`;
     const cards = (dia.bloques || []).map((b) => {
       const { total } = contarEj(b);
       return `<div class="navcard" data-bloque="${b.id}">
@@ -1008,8 +1143,11 @@
         ${chevron}
       </div>`;
     }).join("");
-    cont.innerHTML = (dia.bloques && dia.bloques.length ? cards : `<div class="empty"><p>Este dia no tiene bloques.<br>Agrega el primero.</p></div>`) +
+    cont.innerHTML = diaBar + (dia.bloques && dia.bloques.length ? cards : `<div class="empty"><p>Este dia no tiene bloques.<br>Agrega el primero.</p></div>`) +
       `<button class="btn sm" id="rut-add" style="margin-top:6px">+ Agregar bloque</button>`;
+    // Handlers de la barra del día
+    const be = cont.querySelector("[data-dia-edit]"); if (be) be.onclick = () => abrirDia("editar", dia);
+    const bd = cont.querySelector("[data-dia-del]"); if (bd) bd.onclick = () => borrarNodo("dias", dia.id, "Borrar el dia completo?");
     cont.querySelectorAll("[data-bloque]").forEach((c) => (c.onclick = () => { rutNav.bloqueId = Number(c.dataset.bloque); renderRutina(); }));
     cont.querySelectorAll("[data-edit]").forEach((btn) => (btn.onclick = (e) => { e.stopPropagation(); abrirBloque(dia.id, findBloque(dia, Number(btn.dataset.edit))); }));
     cont.querySelectorAll("[data-del]").forEach((btn) => (btn.onclick = (e) => { e.stopPropagation(); borrarNodo("bloques", Number(btn.dataset.del), "Borrar el bloque?"); }));
