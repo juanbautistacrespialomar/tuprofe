@@ -1533,19 +1533,15 @@
   // ===== SESIÓN =====
   function renderSesion() {
     const cont = $("al-sesion");
-    if (!MI_RUTINA.length) {
-      cont.innerHTML = `<div class="empty" style="padding:50px 20px"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></svg><p>Tu profe todavía no te cargó la rutina.<br>Cuando lo haga, aparece acá.</p></div>`;
-      return;
-    }
     if (alBloqueSel != null) return renderSesionBloque();
 
-    // Dos modos de navegación:
-    //  - CON fechas: navegás por CALENDARIO. La referencia es una FECHA (alFechaSel),
-    //    arranca en HOY y podés tocar cualquier día (tenga bloques o sea descanso).
-    //  - SIN fechas: días genéricos (Día 1..N), se navega por id de día (alDiaSel).
-    const tieneFechas = MI_RUTINA.some((d) => d.fecha);
+    // Modo calendario (Lun–Dom) si hay días con fecha O si el profe todavía no cargó
+    // nada: así SIEMPRE ves hoy + la semana arriba, aunque no haya rutina.
+    const sinRutina = MI_RUTINA.length === 0;
+    const modoCalendario = sinRutina || MI_RUTINA.some((d) => d.fecha);
+
     let dia;
-    if (tieneFechas) {
+    if (modoCalendario) {
       if (!alFechaSel) alFechaSel = hoyISO();
       const rd = MI_RUTINA.find((d) => d.fecha === alFechaSel);
       // Si la fecha elegida no tiene rutina cargada => día virtual de descanso.
@@ -1613,9 +1609,10 @@
     return `<div class="hgrande"><div class="hg-top"><div class="hg-t">${esc(dia.nombre)}</div>${pill}</div><div class="hg-sub">${sub}${prog}</div></div>`;
   }
 
-  // ---- Tira semanal (abajo) ----
+  // ---- Tira semanal (arriba) ----
   function tiraHTML(dia) {
-    return MI_RUTINA.some((d) => d.fecha) ? tiraSemanaHTML(dia) : tiraDiasHTML(dia);
+    // Calendario Lun–Dom si hay fechas o si no hay rutina; si son días genéricos, tira de días.
+    return (MI_RUTINA.length === 0 || MI_RUTINA.some((d) => d.fecha)) ? tiraSemanaHTML(dia) : tiraDiasHTML(dia);
   }
   function lunesDe(iso) { const d = new Date(iso + "T00:00:00"); const dow = (d.getDay() + 6) % 7; d.setDate(d.getDate() - dow); d.setHours(0, 0, 0, 0); return d; }
   const isoDe = (d) => d.toLocaleDateString("en-CA");
