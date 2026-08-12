@@ -385,6 +385,37 @@
   .blockcard .bc-chev { color: var(--muted); flex: 0 0 auto; display: flex; }
   .blockcard .bc-chev svg { width: 22px; height: 22px; }
 
+  /* Encabezado "Hoy" en grande */
+  .hgrande { margin: 2px 0 16px; }
+  .hgrande .hg-top { display: flex; align-items: center; gap: 11px; }
+  .hgrande .hg-t { font-family: "Anton", sans-serif; font-size: 28px; line-height: 1.02; word-break: break-word; }
+  .hgrande .hg-pill { flex: 0 0 auto; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); background: var(--surface-2); border: 1px solid var(--border); padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+  .hgrande .hg-pill.hoy { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
+  .hgrande .hg-sub { font-size: 12.5px; color: var(--muted); margin-top: 7px; text-transform: capitalize; }
+
+  /* Tira semanal (contexto, abajo) */
+  .wstrip { margin: 24px 0 6px; }
+  .wstrip .ws-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 10px; }
+  .wstrip .ws-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+  .wstrip .ws-title { flex: 1; text-align: center; font-size: 13px; font-weight: 500; color: var(--text); }
+  .wstrip .wnav { flex: 0 0 auto; width: 30px; height: 30px; padding: 0; border-radius: 9px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-size: 18px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .wstrip .wnav:active { transform: scale(.92); }
+  .wstrip .wnav.off { color: #333; background: transparent; border-color: transparent; cursor: default; }
+  .wstrip .ws-row { display: flex; gap: 6px; }
+  .wstrip .wcol { flex: 1; min-width: 0; text-align: center; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 8px 0 9px; cursor: default; transition: transform .08s, border-color .12s; -webkit-tap-highlight-color: transparent; }
+  .wstrip .wcol.train { cursor: pointer; }
+  .wstrip .wcol.train:active { transform: scale(.94); }
+  .wstrip .wcol .wc-dow { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+  .wstrip .wcol .wc-num { font-size: 15px; font-weight: 600; margin: 2px 0 5px; }
+  .wstrip .wcol.today { border-color: var(--accent); background: rgba(196,240,0,.08); }
+  .wstrip .wcol.today .wc-num { color: var(--accent); }
+  .wstrip .wcol.sel { border-color: var(--accent); }
+  .wstrip .wcol.sel .wc-num { color: var(--accent); }
+  .wstrip .wcd { height: 16px; display: flex; align-items: center; justify-content: center; }
+  .wstrip .wcd .mk { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+  .wstrip .wcd .mk.off { background: transparent; border: 1px solid var(--border); }
+  .wstrip .wcd .mk.done { width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; color: var(--accent-ink); font-size: 10px; font-weight: 800; }
+
   /* --- Vista Cargas --- */
   .cg-day { font-size: 12px; color: var(--muted); text-transform: capitalize; margin: 16px 0 8px; font-weight: 600; }
   .cg-item { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 8px; }
@@ -701,7 +732,7 @@
   <div class="ub-txt"><b>Hay una versión nueva</b><span>Actualizá para tener lo último.</span></div>
   <button id="update-btn">Actualizar</button>
 </div>
-<div style="position:fixed;bottom:5px;left:0;right:0;text-align:center;font-size:11px;color:#3a3a3a;pointer-events:none;z-index:1">Tu Profe v27</div>
+<div style="position:fixed;bottom:5px;left:0;right:0;text-align:center;font-size:11px;color:#3a3a3a;pointer-events:none;z-index:1">Tu Profe v28</div>
 
 <script>
   const API = "https://tuprofe-api.juanbautistacrespialomar.workers.dev";
@@ -1463,8 +1494,22 @@
   }
   function pickDiaInicial() {
     if (!MI_RUTINA.length) return null;
+    // 1) ¿Entreno hoy? Ese es el día. (foco en HOY)
     const hoy = MI_RUTINA.find((d) => esHoy(d.fecha));
-    return hoy ? hoy.id : MI_RUTINA[0].id;
+    if (hoy) return hoy.id;
+    // 2) Si hoy es descanso pero hay días CON fecha, elijo el entrenamiento
+    //    más cercano a hoy (prefiriendo el próximo por venir; si no hay, el último).
+    const hoyMs = new Date(hoyISO() + "T00:00:00").getTime();
+    const conFecha = MI_RUTINA.filter((d) => d.fecha);
+    if (conFecha.length) {
+      const futuros = conFecha.filter((d) => new Date(d.fecha + "T00:00:00").getTime() >= hoyMs);
+      const cand = (futuros.length ? futuros : conFecha)
+        .slice()
+        .sort((a, b) => Math.abs(new Date(a.fecha + "T00:00:00") - hoyMs) - Math.abs(new Date(b.fecha + "T00:00:00") - hoyMs));
+      return cand[0].id;
+    }
+    // 3) Rutina sin fechas (días genéricos): el primero.
+    return MI_RUTINA[0].id;
   }
   function chipFecha(iso) {
     const d = new Date(iso + "T00:00:00");
@@ -1496,9 +1541,11 @@
     }
     if (alBloqueSel != null) return renderSesionBloque();
     const dia = findDia(MI_RUTINA, alDiaSel) || MI_RUTINA[0];
-    cont.innerHTML = week7HTML() + dayselHTML() + sdayHTML(dia) + bloquesHTML(dia);
+    // Orden "Hoy + tira semanal": el día en grande arriba, sus bloques, y la semana abajo como contexto.
+    cont.innerHTML = hoyGrandeHTML(dia) + bloquesHTML(dia) + tiraHTML(dia);
     cont.querySelectorAll("[data-dia]").forEach((el) => (el.onclick = () => { alDiaSel = Number(el.dataset.dia); alBloqueSel = null; renderSesion(); }));
     cont.querySelectorAll("[data-bloque]").forEach((el) => (el.onclick = () => { alBloqueSel = Number(el.dataset.bloque); renderSesion(); }));
+    cont.querySelectorAll("[data-week]").forEach((el) => (el.onclick = () => { const id = saltoSemana(dia, el.dataset.week); if (id != null) { alDiaSel = id; alBloqueSel = null; renderSesion(); } }));
   }
 
   function week7HTML() {
@@ -1518,22 +1565,87 @@
     return `<div class="week7"><div class="w7-label">Últimos 7 días</div><div class="w7-row">${html}</div></div>`;
   }
 
-  function dayselHTML() {
-    const chips = MI_RUTINA.map((d, i) => {
-      const sel = d.id === alDiaSel, hoy = esHoy(d.fecha);
-      let dow, num;
-      if (d.fecha) { const c = chipFecha(d.fecha); dow = esc(c.dow); num = c.num; } else { dow = "Día"; num = i + 1; }
-      const { total, done } = contarEj(d, HECHOS);
-      const dot = total > 0 && done >= total ? '<div class="dc-done"></div>' : '';
-      return `<div class="dchip ${sel ? 'sel' : ''} ${hoy ? 'today' : ''}" data-dia="${d.id}"><div class="dc-dow">${dow}</div><div class="dc-num">${num}</div><div class="dc-lbl">${esc(d.nombre)}</div>${dot}</div>`;
-    }).join("");
-    return `<div class="daysel-head"><div class="dh-t">Tu semana</div></div><div class="daysel">${chips}</div>`;
+  // Bloques "completos" (todos sus ejercicios hechos) sobre el total de bloques del día.
+  function contarBloques(dia) {
+    const bs = dia.bloques || [];
+    let done = 0;
+    bs.forEach((b) => { const c = contarEj(b, HECHOS); if (c.total > 0 && c.done >= c.total) done++; });
+    return { total: bs.length, done };
+  }
+  const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+
+  // Encabezado: el día en grande (foco en HOY).
+  function hoyGrandeHTML(dia) {
+    const idx = MI_RUTINA.findIndex((d) => d.id === dia.id);
+    let pill;
+    if (esHoy(dia.fecha)) pill = '<span class="hg-pill hoy">Hoy</span>';
+    else if (dia.fecha) { const c = chipFecha(dia.fecha); pill = `<span class="hg-pill">${esc(c.dow)} ${c.num}</span>`; }
+    else pill = `<span class="hg-pill">Día ${idx + 1}</span>`;
+    const sub = dia.fecha ? cap(fmtFechaLarga(dia.fecha)) : `Día ${idx + 1}`;
+    const { total, done } = contarBloques(dia);
+    const prog = total ? ` · ${done}/${total} bloque${total !== 1 ? 's' : ''}` : '';
+    return `<div class="hgrande"><div class="hg-top"><div class="hg-t">${esc(dia.nombre)}</div>${pill}</div><div class="hg-sub">${sub}${prog}</div></div>`;
   }
 
-  function sdayHTML(dia) {
-    let pill = "";
-    if (dia.fecha) pill = esHoy(dia.fecha) ? '<span class="sd-pill hoy">Hoy</span>' : `<span class="sd-pill">${esc(fmtFecha(dia.fecha))}</span>`;
-    return `<div class="sday"><div class="sd-t">${esc(dia.nombre)}</div>${pill}</div><div class="strain-label">Entrenamiento</div>`;
+  // ---- Tira semanal (abajo) ----
+  function tiraHTML(dia) {
+    return MI_RUTINA.some((d) => d.fecha) ? tiraSemanaHTML(dia) : tiraDiasHTML(dia);
+  }
+  function lunesDe(iso) { const d = new Date(iso + "T00:00:00"); const dow = (d.getDay() + 6) % 7; d.setDate(d.getDate() - dow); d.setHours(0, 0, 0, 0); return d; }
+  const isoDe = (d) => d.toLocaleDateString("en-CA");
+  function rangoSemana(lun, dom) {
+    const mL = lun.toLocaleDateString("es-AR", { month: "short" }).replace(".", "");
+    const mD = dom.toLocaleDateString("es-AR", { month: "short" }).replace(".", "");
+    return mL === mD ? `${lun.getDate()} – ${dom.getDate()} ${mD}` : `${lun.getDate()} ${mL} – ${dom.getDate()} ${mD}`;
+  }
+  // ¿A qué día saltar al tocar la flecha? Al entrenamiento más cercano fuera de la semana visible.
+  function saltoSemana(dia, dir) {
+    const lun = lunesDe(dia.fecha || hoyISO());
+    const dom = new Date(lun); dom.setDate(lun.getDate() + 6);
+    const lunK = isoDe(lun), domK = isoDe(dom);
+    const conF = MI_RUTINA.filter((d) => d.fecha);
+    if (dir === "prev") { const a = conF.filter((d) => d.fecha < lunK).sort((x, y) => (x.fecha < y.fecha ? 1 : -1)); return a.length ? a[0].id : null; }
+    const b = conF.filter((d) => d.fecha > domK).sort((x, y) => (x.fecha < y.fecha ? -1 : 1)); return b.length ? b[0].id : null;
+  }
+  function dotHTML(estado) {
+    // estado: 'done' | 'train' | 'rest'
+    if (estado === "done") return '<div class="wcd"><span class="mk done">✓</span></div>';
+    if (estado === "train") return '<div class="wcd"><span class="mk"></span></div>';
+    return '<div class="wcd"><span class="mk off"></span></div>';
+  }
+  function tiraSemanaHTML(dia) {
+    const lun = lunesDe(dia.fecha || hoyISO());
+    const hoyK = hoyISO();
+    const porFecha = {}; MI_RUTINA.forEach((d) => { if (d.fecha) porFecha[d.fecha] = d; });
+    let cols = "";
+    for (let i = 0; i < 7; i++) {
+      const dd = new Date(lun); dd.setDate(lun.getDate() + i);
+      const key = isoDe(dd), rd = porFecha[key];
+      const c = rd ? contarEj(rd, HECHOS) : { total: 0, done: 0 };
+      const estado = !rd ? "rest" : (c.total > 0 && c.done >= c.total ? "done" : "train");
+      const cls = ["wcol"];
+      if (rd) cls.push("train");
+      if (rd && rd.id === dia.id) cls.push("sel");
+      if (key === hoyK) cls.push("today");
+      const dow = dd.toLocaleDateString("es-AR", { weekday: "short" }).replace(".", "");
+      const attr = rd ? ` data-dia="${rd.id}"` : "";
+      cols += `<div class="${cls.join(" ")}"${attr}><div class="wc-dow">${esc(dow)}</div><div class="wc-num">${dd.getDate()}</div>${dotHTML(estado)}</div>`;
+    }
+    const dom = new Date(lun); dom.setDate(lun.getDate() + 6);
+    const prev = saltoSemana(dia, "prev"), next = saltoSemana(dia, "next");
+    const fL = prev != null ? '<button class="wnav" data-week="prev">‹</button>' : '<span class="wnav off">‹</span>';
+    const fR = next != null ? '<button class="wnav" data-week="next">›</button>' : '<span class="wnav off">›</span>';
+    return `<div class="wstrip"><div class="ws-label">Tu semana</div><div class="ws-head">${fL}<span class="ws-title">${rangoSemana(lun, dom)}</span>${fR}</div><div class="ws-row">${cols}</div></div>`;
+  }
+  // Rutina sin fechas: la tira muestra los días cargados (Día 1..N) en vez de Lun–Dom.
+  function tiraDiasHTML(dia) {
+    const cols = MI_RUTINA.map((d, i) => {
+      const c = contarEj(d, HECHOS);
+      const estado = c.total > 0 && c.done >= c.total ? "done" : "train";
+      const cls = ["wcol", "train"]; if (d.id === dia.id) cls.push("sel");
+      return `<div class="${cls.join(" ")}" data-dia="${d.id}"><div class="wc-dow">Día</div><div class="wc-num">${i + 1}</div>${dotHTML(estado)}</div>`;
+    }).join("");
+    return `<div class="wstrip"><div class="ws-label">Tus días</div><div class="ws-row">${cols}</div></div>`;
   }
 
   function bloquesHTML(dia) {
