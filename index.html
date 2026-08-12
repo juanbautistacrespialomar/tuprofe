@@ -769,6 +769,10 @@
     ["DPT + recto abdominal - Diafragma, periné y transverso", "https://youtu.be/cSQhybosPKo"],
     ["Press militar de rodillas / Empuje vertical", "https://youtu.be/z4FCuz4pNS0"],
     ["Peso muerto / Despegue con barra", "https://youtu.be/kaAXGvDAss4"],
+    ["Caminata de granjero asimetrico", "https://youtu.be/MCkUTuYCyzY"],
+    ["Elong. dinamica de isquios", "https://youtu.be/VsaZZy6F5Ss"],
+    ["DPT + recto abdominal 1B + aductor", "https://youtu.be/R2LO98_s6Oo"],
+    ["90-90 + RI", "https://youtu.be/1PltwcbeFb0"],
   ];
 
   const screens = ["s-login", "s-reg-profe", "s-reg-alumno"];
@@ -828,7 +832,7 @@
     const lista = q ? CATALOGO.filter((e) => e.nombre.toLowerCase().includes(q)) : CATALOGO;
     const cont = $("cat-lista");
     if (CATALOGO.length === 0) {
-      cont.innerHTML = `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M4 7h16M4 12h16M4 17h10"/></svg><p>Todavía no tenés ejercicios.<br>Cargá tu biblioteca para armar rutinas.</p><button class="btn" id="cat-importar">Cargar 24 ejercicios base</button></div>`;
+      cont.innerHTML = `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M4 7h16M4 12h16M4 17h10"/></svg><p>Todavía no tenés ejercicios.<br>Cargá tu biblioteca para armar rutinas.</p><button class="btn" id="cat-importar">Cargar 28 ejercicios base</button></div>`;
       $("cat-importar").onclick = (e) => importarBase(e.currentTarget); return;
     }
     if (lista.length === 0) { cont.innerHTML = `<div class="empty"><p>Ningún ejercicio coincide con "${esc(q)}".</p></div>`; return; }
