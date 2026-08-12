@@ -156,9 +156,38 @@ async function armarRutina(alumnoId, env) {
      WHERE d.alumno_id = ? ORDER BY e.orden`
   ).bind(alumnoId).all()).results;
 
+  // Series planificadas por serie (si la migración ya corrió; si no, degradamos).
+  let planPorEj = {};
+  try {
+    const sp = (await env.DB.prepare(
+      `SELECT sp.ejercicio_id, sp.numero, sp.reps, sp.pausa
+       FROM series_plan sp
+       JOIN ejercicios e ON e.id = sp.ejercicio_id
+       JOIN bloques b ON b.id = e.bloque_id
+       JOIN dias d ON d.id = b.dia_id
+       WHERE d.alumno_id = ? ORDER BY sp.ejercicio_id, sp.numero`
+    ).bind(alumnoId).all()).results;
+    for (const r of sp) (planPorEj[r.ejercicio_id] = planPorEj[r.ejercicio_id] || []).push({ numero: r.numero, reps: r.reps, pausa: r.pausa });
+  } catch (e) { planPorEj = {}; }
+  for (const e of ejercicios) e.series_plan = planPorEj[e.id] || [];
+
   for (const b of bloques) b.ejercicios = ejercicios.filter((e) => e.bloque_id === b.id);
   for (const d of dias) d.bloques = bloques.filter((b) => b.dia_id === d.id);
   return dias;
+}
+
+// Reemplaza la prescripción por serie de un ejercicio. Degrada sin romper
+// si la tabla series_plan todavía no existe (migración sin correr).
+async function guardarSeriesPlan(env, ejId, plan) {
+  if (!Array.isArray(plan)) return false;
+  try {
+    await env.DB.prepare("DELETE FROM series_plan WHERE ejercicio_id = ?").bind(ejId).run();
+    const stmts = plan.map((s, i) =>
+      env.DB.prepare("INSERT INTO series_plan (ejercicio_id, numero, reps, pausa) VALUES (?, ?, ?, ?)")
+        .bind(ejId, s.numero ?? (i + 1), s.reps || null, s.pausa || null));
+    if (stmts.length) await env.DB.batch(stmts);
+    return true;
+  } catch (e) { return false; }
 }
 
 // ============================================================
@@ -390,13 +419,25 @@ export default {
       if (seg[0] === "alumnos" && seg.length === 3 && seg[2] === "cargas" && method === "GET" && esProfe) {
         const alumnoId = Number(seg[1]);
         if (!(await alumnoEsDelProfe(alumnoId, sesion.id, env))) return json({ error: "No es tu alumno" }, 403);
-        const { results } = await env.DB.prepare(
-          `SELECT c.id, c.ejercicio_id, ce.nombre AS ejercicio, c.fecha, c.peso, c.reps_hechas, c.completado, c.notas
-           FROM cargas c
-           JOIN ejercicios e ON e.id = c.ejercicio_id
-           JOIN catalogo_ejercicios ce ON ce.id = e.catalogo_id
-           WHERE c.alumno_id = ? ORDER BY c.fecha DESC`
-        ).bind(alumnoId).all();
+        let results;
+        try {
+          results = (await env.DB.prepare(
+            `SELECT c.id, c.ejercicio_id, ce.nombre AS ejercicio, c.fecha, c.serie, c.peso, c.reps_hechas, c.completado, c.notas
+             FROM cargas c
+             JOIN ejercicios e ON e.id = c.ejercicio_id
+             JOIN catalogo_ejercicios ce ON ce.id = e.catalogo_id
+             WHERE c.alumno_id = ? ORDER BY c.fecha DESC`
+          ).bind(alumnoId).all()).results;
+        } catch (e) {
+          results = (await env.DB.prepare(
+            `SELECT c.id, c.ejercicio_id, ce.nombre AS ejercicio, c.fecha, c.peso, c.reps_hechas, c.completado, c.notas
+             FROM cargas c
+             JOIN ejercicios e ON e.id = c.ejercicio_id
+             JOIN catalogo_ejercicios ce ON ce.id = e.catalogo_id
+             WHERE c.alumno_id = ? ORDER BY c.fecha DESC`
+          ).bind(alumnoId).all()).results;
+          results.forEach((r) => (r.serie = null));
+        }
         return json(results);
       }
 
@@ -473,32 +514,46 @@ export default {
 
       // --- EJERCICIOS (asignar del catálogo a un bloque) ---
       if (path === "/ejercicios" && method === "POST" && esProfe) {
-        const { bloque_id, catalogo_id, series, reps, pausa, notas, orden } = await request.json();
+        const body = await request.json();
+        const { bloque_id, catalogo_id, notas, orden } = body;
         if (!(await bloqueEsDelProfe(bloque_id, sesion.id, env))) return json({ error: "No autorizado" }, 403);
         if (!(await catalogoEsDelProfe(catalogo_id, sesion.id, env)))
           return json({ error: "Ese ejercicio no está en tu catálogo" }, 403);
+        // Prescripción por serie (nuevo) + resumen legacy (compat/degradación)
+        const plan = Array.isArray(body.series_plan) ? body.series_plan : null;
+        const series = plan ? plan.length : (body.series || null);
+        const reps = plan && plan[0] ? (plan[0].reps || null) : (body.reps || null);
+        const pausa = plan && plan[0] ? (plan[0].pausa || null) : (body.pausa || null);
         const r = await env.DB.prepare(
           `INSERT INTO ejercicios (bloque_id, catalogo_id, orden, series, reps, pausa, notas)
            VALUES (?, ?, ?, ?, ?, ?, ?)`
-        ).bind(bloque_id, catalogo_id, orden || 0, series || null, reps || null, pausa || null, notas || null).run();
-        return json({ id: r.meta.last_row_id }, 201);
+        ).bind(bloque_id, catalogo_id, orden || 0, series, reps, pausa, notas || null).run();
+        const ejId = r.meta.last_row_id;
+        if (plan) await guardarSeriesPlan(env, ejId, plan);
+        return json({ id: ejId }, 201);
       }
       if (seg[0] === "ejercicios" && seg.length === 2 && method === "PUT" && esProfe) {
         const ejId = Number(seg[1]);
         if (!(await ejercicioEsDelProfe(ejId, sesion.id, env))) return json({ error: "No autorizado" }, 403);
-        const { series, reps, pausa, notas, orden, catalogo_id } = await request.json();
+        const body = await request.json();
+        const { notas, orden, catalogo_id } = body;
+        const plan = Array.isArray(body.series_plan) ? body.series_plan : null;
+        const series = plan ? plan.length : (body.series || null);
+        const reps = plan && plan[0] ? (plan[0].reps || null) : (body.reps || null);
+        const pausa = plan && plan[0] ? (plan[0].pausa || null) : (body.pausa || null);
         if (catalogo_id != null) {
           // Cambio de ejercicio base: validar que el nuevo catálogo sea del profe
           if (!(await catalogoEsDelProfe(catalogo_id, sesion.id, env)))
             return json({ error: "Ese ejercicio no está en tu catálogo" }, 403);
           await env.DB.prepare(
             "UPDATE ejercicios SET catalogo_id = ?, series = ?, reps = ?, pausa = ?, notas = ?, orden = ? WHERE id = ?"
-          ).bind(catalogo_id, series || null, reps || null, pausa || null, notas || null, orden || 0, ejId).run();
+          ).bind(catalogo_id, series, reps, pausa, notas || null, orden || 0, ejId).run();
         } else {
           await env.DB.prepare(
             "UPDATE ejercicios SET series = ?, reps = ?, pausa = ?, notas = ?, orden = ? WHERE id = ?"
-          ).bind(series || null, reps || null, pausa || null, notas || null, orden || 0, ejId).run();
+          ).bind(series, reps, pausa, notas || null, orden || 0, ejId).run();
         }
+        if (plan) await guardarSeriesPlan(env, ejId, plan);
         return json({ ok: true });
       }
       if (seg[0] === "ejercicios" && seg.length === 2 && method === "DELETE" && esProfe) {
@@ -514,23 +569,57 @@ export default {
         return json({ alumno_id: sesion.id, dias });
       }
       if (path === "/cargas" && method === "POST" && esAlumno) {
-        const { ejercicio_id, peso, reps_hechas, completado, notas } = await request.json();
+        const body = await request.json();
+        const ejercicio_id = body.ejercicio_id;
         if (!(await ejercicioEsDelAlumno(ejercicio_id, sesion.id, env)))
           return json({ error: "Ese ejercicio no es de tu rutina" }, 403);
+        const sets = Array.isArray(body.sets) ? body.sets : null;
+        // Timestamp compartido para toda la tanda (agrupa las series de una misma carga)
+        const fecha = new Date().toISOString().slice(0, 19).replace("T", " ");
+        if (sets) {
+          try {
+            // Reemplazo la tanda de HOY de este ejercicio (evita duplicar si re-guarda el mismo día)
+            const hoy = fecha.slice(0, 10);
+            await env.DB.prepare(
+              "DELETE FROM cargas WHERE ejercicio_id = ? AND alumno_id = ? AND substr(fecha,1,10) = ?"
+            ).bind(ejercicio_id, sesion.id, hoy).run();
+            const stmts = sets.map((s) => env.DB.prepare(
+              `INSERT INTO cargas (ejercicio_id, alumno_id, fecha, serie, peso, reps_hechas, completado, notas)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+            ).bind(ejercicio_id, sesion.id, fecha, s.serie ?? null, s.peso ?? null, s.reps_hechas || null, s.completado ? 1 : 0, s.notas || null));
+            if (stmts.length) await env.DB.batch(stmts);
+            return json({ ok: true, n: stmts.length }, 201);
+          } catch (e) {
+            // La columna `serie` no existe (migración sin correr): caigo a legacy.
+          }
+        }
+        // Legacy: una sola carga por ejercicio
         const r = await env.DB.prepare(
           `INSERT INTO cargas (ejercicio_id, alumno_id, peso, reps_hechas, completado, notas)
            VALUES (?, ?, ?, ?, ?, ?)`
-        ).bind(ejercicio_id, sesion.id, peso ?? null, reps_hechas || null, completado ? 1 : 0, notas || null).run();
+        ).bind(ejercicio_id, sesion.id, body.peso ?? null, body.reps_hechas || null, body.completado ? 1 : 0, body.notas || null).run();
         return json({ id: r.meta.last_row_id }, 201);
       }
       if (path === "/mis-cargas" && method === "GET" && esAlumno) {
-        const { results } = await env.DB.prepare(
-          `SELECT c.id, c.ejercicio_id, ce.nombre AS ejercicio, c.fecha, c.peso, c.reps_hechas, c.completado, c.notas
-           FROM cargas c
-           JOIN ejercicios e ON e.id = c.ejercicio_id
-           JOIN catalogo_ejercicios ce ON ce.id = e.catalogo_id
-           WHERE c.alumno_id = ? ORDER BY c.fecha DESC`
-        ).bind(sesion.id).all();
+        let results;
+        try {
+          results = (await env.DB.prepare(
+            `SELECT c.id, c.ejercicio_id, ce.nombre AS ejercicio, c.fecha, c.serie, c.peso, c.reps_hechas, c.completado, c.notas
+             FROM cargas c
+             JOIN ejercicios e ON e.id = c.ejercicio_id
+             JOIN catalogo_ejercicios ce ON ce.id = e.catalogo_id
+             WHERE c.alumno_id = ? ORDER BY c.fecha DESC`
+          ).bind(sesion.id).all()).results;
+        } catch (e) {
+          results = (await env.DB.prepare(
+            `SELECT c.id, c.ejercicio_id, ce.nombre AS ejercicio, c.fecha, c.peso, c.reps_hechas, c.completado, c.notas
+             FROM cargas c
+             JOIN ejercicios e ON e.id = c.ejercicio_id
+             JOIN catalogo_ejercicios ce ON ce.id = e.catalogo_id
+             WHERE c.alumno_id = ? ORDER BY c.fecha DESC`
+          ).bind(sesion.id).all()).results;
+          results.forEach((r) => (r.serie = null));
+        }
         return json(results);
       }
 
