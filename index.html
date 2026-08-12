@@ -393,8 +393,8 @@
   .hgrande .hg-pill.hoy { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
   .hgrande .hg-sub { font-size: 12.5px; color: var(--muted); margin-top: 7px; text-transform: capitalize; }
 
-  /* Tira semanal (contexto, abajo) */
-  .wstrip { margin: 24px 0 6px; }
+  /* Tira semanal (posición estable, arriba de los bloques) */
+  .wstrip { margin: 10px 0 20px; }
   .wstrip .ws-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 10px; }
   .wstrip .ws-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
   .wstrip .ws-title { flex: 1; text-align: center; font-size: 13px; font-weight: 500; color: var(--text); }
@@ -402,9 +402,8 @@
   .wstrip .wnav:active { transform: scale(.92); }
   .wstrip .wnav.off { color: #333; background: transparent; border-color: transparent; cursor: default; }
   .wstrip .ws-row { display: flex; gap: 6px; }
-  .wstrip .wcol { flex: 1; min-width: 0; text-align: center; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 8px 0 9px; cursor: default; transition: transform .08s, border-color .12s; -webkit-tap-highlight-color: transparent; }
-  .wstrip .wcol.train { cursor: pointer; }
-  .wstrip .wcol.train:active { transform: scale(.94); }
+  .wstrip .wcol { flex: 1; min-width: 0; text-align: center; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 8px 0 9px; cursor: pointer; transition: transform .08s, border-color .12s; -webkit-tap-highlight-color: transparent; }
+  .wstrip .wcol:active { transform: scale(.94); }
   .wstrip .wcol .wc-dow { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
   .wstrip .wcol .wc-num { font-size: 15px; font-weight: 600; margin: 2px 0 5px; }
   .wstrip .wcol.today { border-color: var(--accent); background: rgba(196,240,0,.08); }
@@ -732,7 +731,6 @@
   <div class="ub-txt"><b>Hay una versión nueva</b><span>Actualizá para tener lo último.</span></div>
   <button id="update-btn">Actualizar</button>
 </div>
-<div style="position:fixed;bottom:5px;left:0;right:0;text-align:center;font-size:11px;color:#3a3a3a;pointer-events:none;z-index:1">Tu Profe v28</div>
 
 <script>
   const API = "https://tuprofe-api.juanbautistacrespialomar.workers.dev";
@@ -1469,7 +1467,8 @@
   let HECHOS = {};      // ejercicio_id -> última carga (para el ✓)
   let CARGAS = [];      // historial completo de cargas
   let alYo = null;      // datos del alumno (perfil)
-  let alDiaSel = null;  // día seleccionado en Sesión
+  let alDiaSel = null;  // día seleccionado en Sesión (modo sin fechas / id de rutina)
+  let alFechaSel = null; // fecha seleccionada en Sesión (modo calendario, YYYY-MM-DD)
   let alBloqueSel = null; // bloque abierto (drill dentro del día); null = lista de bloques
 
   async function cargarMiRutina() {
@@ -1480,6 +1479,7 @@
       MI_RUTINA = data.dias || [];
       await recargarCargas();
       alDiaSel = pickDiaInicial();
+      alFechaSel = hoyISO(); // el calendario arranca SIEMPRE en el día de hoy
       renderSesion();
     } catch (e) {
       $("al-sesion").innerHTML = `<div class="empty" style="padding:40px"><p>No pudimos cargar tu rutina.<br>${esc(e.message)}</p></div>`;
@@ -1540,12 +1540,40 @@
       return;
     }
     if (alBloqueSel != null) return renderSesionBloque();
-    const dia = findDia(MI_RUTINA, alDiaSel) || MI_RUTINA[0];
-    // Orden "Hoy + tira semanal": el día en grande arriba, sus bloques, y la semana abajo como contexto.
-    cont.innerHTML = hoyGrandeHTML(dia) + bloquesHTML(dia) + tiraHTML(dia);
+
+    // Dos modos de navegación:
+    //  - CON fechas: navegás por CALENDARIO. La referencia es una FECHA (alFechaSel),
+    //    arranca en HOY y podés tocar cualquier día (tenga bloques o sea descanso).
+    //  - SIN fechas: días genéricos (Día 1..N), se navega por id de día (alDiaSel).
+    const tieneFechas = MI_RUTINA.some((d) => d.fecha);
+    let dia;
+    if (tieneFechas) {
+      if (!alFechaSel) alFechaSel = hoyISO();
+      const rd = MI_RUTINA.find((d) => d.fecha === alFechaSel);
+      // Si la fecha elegida no tiene rutina cargada => día virtual de descanso.
+      dia = rd || { id: null, nombre: cap(fmtFechaLarga(alFechaSel)), fecha: alFechaSel, bloques: [] };
+      alDiaSel = rd ? rd.id : null;
+    } else {
+      dia = findDia(MI_RUTINA, alDiaSel) || MI_RUTINA[0];
+      alDiaSel = dia.id;
+    }
+
+    // Orden fijo: encabezado del día + semana (posición estable arriba) + bloques abajo.
+    cont.innerHTML = hoyGrandeHTML(dia) + tiraHTML(dia) + bloquesHTML(dia);
+
+    // Selección por fecha (modo calendario): cualquier día es clickeable.
+    cont.querySelectorAll("[data-fecha]").forEach((el) => (el.onclick = () => { alFechaSel = el.dataset.fecha; alBloqueSel = null; renderSesion(); }));
+    // Selección por día (modo sin fechas).
     cont.querySelectorAll("[data-dia]").forEach((el) => (el.onclick = () => { alDiaSel = Number(el.dataset.dia); alBloqueSel = null; renderSesion(); }));
     cont.querySelectorAll("[data-bloque]").forEach((el) => (el.onclick = () => { alBloqueSel = Number(el.dataset.bloque); renderSesion(); }));
-    cont.querySelectorAll("[data-week]").forEach((el) => (el.onclick = () => { const id = saltoSemana(dia, el.dataset.week); if (id != null) { alDiaSel = id; alBloqueSel = null; renderSesion(); } }));
+    // Flechas: mueven la semana ±7 días manteniendo el día de la semana elegido.
+    cont.querySelectorAll("[data-week]").forEach((el) => (el.onclick = () => {
+      const base = new Date((alFechaSel || hoyISO()) + "T00:00:00");
+      base.setDate(base.getDate() + (el.dataset.week === "prev" ? -7 : 7));
+      alFechaSel = isoDe(base);
+      alBloqueSel = null;
+      renderSesion();
+    }));
   }
 
   function week7HTML() {
@@ -1598,15 +1626,6 @@
     const mD = dom.toLocaleDateString("es-AR", { month: "short" }).replace(".", "");
     return mL === mD ? `${lun.getDate()} – ${dom.getDate()} ${mD}` : `${lun.getDate()} ${mL} – ${dom.getDate()} ${mD}`;
   }
-  // ¿A qué día saltar al tocar la flecha? Al entrenamiento más cercano fuera de la semana visible.
-  function saltoSemana(dia, dir) {
-    const lun = lunesDe(dia.fecha || hoyISO());
-    const dom = new Date(lun); dom.setDate(lun.getDate() + 6);
-    const lunK = isoDe(lun), domK = isoDe(dom);
-    const conF = MI_RUTINA.filter((d) => d.fecha);
-    if (dir === "prev") { const a = conF.filter((d) => d.fecha < lunK).sort((x, y) => (x.fecha < y.fecha ? 1 : -1)); return a.length ? a[0].id : null; }
-    const b = conF.filter((d) => d.fecha > domK).sort((x, y) => (x.fecha < y.fecha ? -1 : 1)); return b.length ? b[0].id : null;
-  }
   function dotHTML(estado) {
     // estado: 'done' | 'train' | 'rest'
     if (estado === "done") return '<div class="wcd"><span class="mk done">✓</span></div>';
@@ -1614,7 +1633,8 @@
     return '<div class="wcd"><span class="mk off"></span></div>';
   }
   function tiraSemanaHTML(dia) {
-    const lun = lunesDe(dia.fecha || hoyISO());
+    const baseISO = alFechaSel || dia.fecha || hoyISO();
+    const lun = lunesDe(baseISO);
     const hoyK = hoyISO();
     const porFecha = {}; MI_RUTINA.forEach((d) => { if (d.fecha) porFecha[d.fecha] = d; });
     let cols = "";
@@ -1622,19 +1642,20 @@
       const dd = new Date(lun); dd.setDate(lun.getDate() + i);
       const key = isoDe(dd), rd = porFecha[key];
       const c = rd ? contarEj(rd, HECHOS) : { total: 0, done: 0 };
-      const estado = !rd ? "rest" : (c.total > 0 && c.done >= c.total ? "done" : "train");
+      // 'done' = entrenamiento completo · 'train' = tiene bloques · 'rest' = descanso
+      const estado = (!rd || c.total === 0) ? "rest" : (c.done >= c.total ? "done" : "train");
       const cls = ["wcol"];
-      if (rd) cls.push("train");
-      if (rd && rd.id === dia.id) cls.push("sel");
-      if (key === hoyK) cls.push("today");
+      if (rd && c.total > 0) cls.push("train"); // hay algo cargado ese día
+      if (key === alFechaSel) cls.push("sel");  // día seleccionado
+      if (key === hoyK) cls.push("today");      // día de hoy
       const dow = dd.toLocaleDateString("es-AR", { weekday: "short" }).replace(".", "");
-      const attr = rd ? ` data-dia="${rd.id}"` : "";
-      cols += `<div class="${cls.join(" ")}"${attr}><div class="wc-dow">${esc(dow)}</div><div class="wc-num">${dd.getDate()}</div>${dotHTML(estado)}</div>`;
+      // TODOS los días son seleccionables (data-fecha), tengan o no rutina cargada.
+      cols += `<div class="${cls.join(" ")}" data-fecha="${key}"><div class="wc-dow">${esc(dow)}</div><div class="wc-num">${dd.getDate()}</div>${dotHTML(estado)}</div>`;
     }
     const dom = new Date(lun); dom.setDate(lun.getDate() + 6);
-    const prev = saltoSemana(dia, "prev"), next = saltoSemana(dia, "next");
-    const fL = prev != null ? '<button class="wnav" data-week="prev">‹</button>' : '<span class="wnav off">‹</span>';
-    const fR = next != null ? '<button class="wnav" data-week="next">›</button>' : '<span class="wnav off">›</span>';
+    // Navegación libre semana a semana (flechas siempre activas).
+    const fL = '<button class="wnav" data-week="prev">‹</button>';
+    const fR = '<button class="wnav" data-week="next">›</button>';
     return `<div class="wstrip"><div class="ws-label">Tu semana</div><div class="ws-head">${fL}<span class="ws-title">${rangoSemana(lun, dom)}</span>${fR}</div><div class="ws-row">${cols}</div></div>`;
   }
   // Rutina sin fechas: la tira muestra los días cargados (Día 1..N) en vez de Lun–Dom.
