@@ -243,8 +243,6 @@
   .mcal-cell.prog .mcal-num { color: var(--accent-ink); font-weight: 700; }
   /* pintado y además hoy: anillo interno oscuro para distinguir el día actual */
   .mcal-cell.prog.hoy { box-shadow: inset 0 0 0 2px var(--bg); }
-  /* día empezado pero todavía SIN ejercicios: solo contorno verde */
-  .mcal-cell.prog-empty { border-color: var(--accent); }
   .mcal-num { line-height: 1; }
   .mcal-sf-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin: 20px 0 10px; }
 
@@ -1071,8 +1069,8 @@
       const iso = isoLocal(y, m, d);
       const info = porFecha[iso];
       const clsHoy = iso === hoy ? " hoy" : "";
-      // celda pintada = día con ejercicios; solo contorno = día empezado pero vacío
-      const clsProg = info ? (info.total > 0 ? " prog" : " prog-empty") : "";
+      // pintada = día con ejercicios cargados. Un registro de día vacío (sin ejercicios) NO se marca.
+      const clsProg = info && info.total > 0 ? " prog" : "";
       // el día 1 arranca en su columna real (offset) via grid-column-start; sin celdas vacías de relleno
       const startStyle = d === 1 && offset > 0 ? ` style="grid-column-start:${offset + 1}"` : "";
       celdas += `<button class="mcal-cell${clsHoy}${clsProg}" data-iso="${iso}"${startStyle}><span class="mcal-num">${d}</span></button>`;
