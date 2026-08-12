@@ -236,7 +236,6 @@
   .mcal-dow { text-align: center; font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; padding: 2px 0; }
   .mcal-cell { position: relative; aspect-ratio: 1 / 1; min-width: 0; border-radius: 11px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform .08s, border-color .12s, background .12s; -webkit-tap-highlight-color: transparent; }
   .mcal-cell:active { transform: scale(.93); }
-  .mcal-cell.empty { background: transparent; border-color: transparent; pointer-events: none; }
   .mcal-cell.hoy { border-color: var(--accent); background: rgba(196,240,0,.08); }
   .mcal-cell.hoy .mcal-num { color: var(--accent); font-weight: 700; }
   /* día programado CON ejercicios: celda pintada */
@@ -1039,14 +1038,15 @@
 
     const hoy = hoyISO();
     let celdas = "";
-    for (let i = 0; i < offset; i++) celdas += `<div class="mcal-cell empty"></div>`;
     for (let d = 1; d <= diasEnMes; d++) {
       const iso = isoLocal(y, m, d);
       const info = porFecha[iso];
       const clsHoy = iso === hoy ? " hoy" : "";
       // celda pintada = día con ejercicios; solo contorno = día empezado pero vacío
       const clsProg = info ? (info.total > 0 ? " prog" : " prog-empty") : "";
-      celdas += `<button class="mcal-cell${clsHoy}${clsProg}" data-iso="${iso}"><span class="mcal-num">${d}</span></button>`;
+      // el día 1 arranca en su columna real (offset) via grid-column-start; sin celdas vacías de relleno
+      const startStyle = d === 1 && offset > 0 ? ` style="grid-column-start:${offset + 1}"` : "";
+      celdas += `<button class="mcal-cell${clsHoy}${clsProg}" data-iso="${iso}"${startStyle}><span class="mcal-num">${d}</span></button>`;
     }
     const dows = DOWS_CAL.map((x) => `<div class="mcal-dow">${x}</div>`).join("");
     return `<div class="mcal">
