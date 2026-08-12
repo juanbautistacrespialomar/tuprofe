@@ -448,6 +448,31 @@
   .splash-name { font-family: "Anton", sans-serif; font-size: 34px; text-align: center; letter-spacing: .5px; }
   .splash-spin { width: 26px; height: 26px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; margin: 24px auto 0; animation: splashspin .8s linear infinite; }
   @keyframes splashspin { to { transform: rotate(360deg); } }
+  /* ===== Editor de series por serie (profe) ===== */
+  .sctl { display: flex; align-items: center; gap: 8px; }
+  .sctl input { text-align: center; width: 64px; }
+  .sbtn { flex: 0 0 auto; width: 38px; height: 38px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); font-size: 20px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .sbtn:active { transform: scale(.92); }
+  .sghead { display: grid; grid-template-columns: 40px 1fr 1fr; gap: 8px; margin: 12px 0 6px; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  .sgrid { display: flex; flex-direction: column; gap: 6px; }
+  .sgrow { display: grid; grid-template-columns: 40px 1fr 1fr; gap: 8px; align-items: center; }
+  .sgrow .sg-n { font-family: "Anton", sans-serif; font-size: 16px; color: var(--accent); text-align: center; }
+
+  /* ===== Chips de series (listas de ejercicios) ===== */
+  .serchips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .serchip { font-size: 11px; color: var(--muted); background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 3px 8px; white-space: nowrap; }
+  .serchip b { color: var(--accent); font-weight: 700; margin-right: 3px; }
+
+  /* ===== Tabla PLANIFICADO (detalle del ejercicio) ===== */
+  .plan-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 12px 12px 6px; margin: 4px 0 12px; }
+  .plan-h { font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 8px; }
+  .plan-tbl { width: 100%; border-collapse: collapse; }
+  .plan-tbl th { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; font-weight: 600; text-align: left; padding: 4px 6px; }
+  .plan-tbl th:last-child, .plan-tbl td:last-child { text-align: right; }
+  .plan-tbl td { padding: 8px 6px; border-top: 1px solid var(--border); font-size: 14px; }
+  .plan-tbl .pl-n { font-family: "Anton", sans-serif; color: var(--accent); }
+  .plan-tbl .plkg { width: 74px; text-align: center; padding: 8px; }
+  .plan-tbl .plkg-ro { color: var(--text); }
 </style>
 </head>
 <body>
@@ -575,22 +600,6 @@
   </nav>
 </div>
 
-<!-- ============ MODAL registrar carga (alumno) ============ -->
-<div class="overlay" id="carga-overlay">
-  <div class="sheet">
-    <h3 id="carga-title">Registrar</h3>
-    <div class="msg" id="carga-msg"></div>
-    <div class="row2">
-      <div class="field"><label>Peso (kg)</label><input type="number" id="carga-peso" placeholder="20" inputmode="decimal" step="0.5" /></div>
-      <div class="field"><label>Reps hechas</label><input type="text" id="carga-reps" placeholder="10" /></div>
-    </div>
-    <label class="chk"><input type="checkbox" id="carga-completado" checked /> <span>Lo completé</span></label>
-    <div class="field"><label>Nota (opcional)</label><input type="text" id="carga-notas" placeholder="Cómo lo sentiste..." /></div>
-    <button class="btn" id="carga-guardar">Guardar</button>
-    <button class="btn ghost sm" id="carga-cancelar" style="margin-top:10px">Cancelar</button>
-  </div>
-</div>
-
 <!-- ============ MODAL detalle de ejercicio (video embebido) ============ -->
 <div class="overlay" id="det-overlay">
   <div class="sheet detail">
@@ -620,12 +629,13 @@
       <input type="text" id="edej-buscar" placeholder="Buscá otro ejercicio del catálogo..." style="display:none" />
       <div class="ac-list" id="edej-list"></div>
     </div>
-    <div class="row2">
-      <div class="field"><label>Series</label><input type="number" id="edej-series" placeholder="4" inputmode="numeric" /></div>
-      <div class="field"><label>Reps</label><input type="text" id="edej-reps" placeholder="10" /></div>
+    <div class="field">
+      <label>Series</label>
+      <div class="sctl"><button type="button" class="sbtn" id="edej-dec">−</button><input type="number" id="edej-series" inputmode="numeric" min="1" /><button type="button" class="sbtn" id="edej-inc">+</button></div>
     </div>
+    <div class="sghead"><span>Serie</span><span>Reps</span><span>Pausa</span></div>
+    <div id="edej-grid" class="sgrid"></div>
     <label class="chk"><input type="checkbox" id="edej-porlado" /> <span>Por lado <small>(agrega "/lado")</small></span></label>
-    <div class="field"><label>Pausa</label><input type="text" id="edej-pausa" placeholder="90 seg" /></div>
     <div class="field"><label>Nota para el alumno (opcional)</label><input type="text" id="edej-notas" placeholder="Cuidá la espalda, bajá lento..." /></div>
     <button class="btn" id="edej-guardar">Guardar cambios</button>
     <button class="btn ghost sm" id="edej-cancelar" style="margin-top:10px">Cancelar</button>
@@ -695,12 +705,13 @@
     <div class="field"><label>Buscá en tu catálogo</label><input type="text" id="rej-buscar" placeholder="Escribí el nombre..." /></div>
     <div class="ac-list" id="rej-list"></div>
     <div class="ac-sel" id="rej-sel"><span id="rej-sel-nombre"></span><button style="background:none;border:none;color:var(--muted);cursor:pointer" id="rej-sel-x">cambiar</button></div>
-    <div class="row2">
-      <div class="field"><label>Series</label><input type="number" id="rej-series" placeholder="3" inputmode="numeric" /></div>
-      <div class="field"><label>Reps</label><input type="text" id="rej-reps" placeholder="8-12 / al fallo" /></div>
+    <div class="field">
+      <label>Series</label>
+      <div class="sctl"><button type="button" class="sbtn" id="rej-dec">−</button><input type="number" id="rej-series" inputmode="numeric" min="1" /><button type="button" class="sbtn" id="rej-inc">+</button></div>
     </div>
+    <div class="sghead"><span>Serie</span><span>Reps</span><span>Pausa</span></div>
+    <div id="rej-grid" class="sgrid"></div>
     <label class="chk"><input type="checkbox" id="rej-porlado" /> <span>Por lado <small>(cada pierna/brazo)</small></span></label>
-    <div class="field"><label>Pausa (opcional)</label><input type="text" id="rej-pausa" placeholder="90s" /></div>
     <button class="btn" id="rej-guardar">Agregar a la rutina</button>
     <button class="btn ghost sm" id="rej-cancelar" style="margin-top:10px">Cancelar</button>
   </div>
@@ -950,6 +961,51 @@
     bloques.forEach((b) => (b.ejercicios || []).forEach((e) => { total++; if (hechos && hechos[e.id]) done++; }));
     return { total, done };
   }
+
+  // ===== Series por serie =====
+  // Devuelve el plan normalizado [{numero, reps, pausa}]. Si el ejercicio todavía
+  // no tiene series_plan (rutina vieja / migración sin correr), lo deriva de los
+  // campos legacy (series + reps + pausa) para que la UI se vea igual.
+  function planDe(ej) {
+    if (ej && Array.isArray(ej.series_plan) && ej.series_plan.length)
+      return ej.series_plan.map((s, i) => ({ numero: s.numero != null ? s.numero : i + 1, reps: s.reps || "", pausa: s.pausa || "" }));
+    const n = ej && ej.series > 0 ? ej.series : (ej && ej.reps ? 1 : 0);
+    const out = [];
+    for (let i = 1; i <= n; i++) out.push({ numero: i, reps: (ej && ej.reps) || "", pausa: (ej && ej.pausa) || "" });
+    return out;
+  }
+  // Chips "1·8  2·8  3·6  4·6" para las listas de ejercicios
+  function chipsPlanHTML(ej) {
+    const p = planDe(ej);
+    if (!p.length) return "";
+    return `<div class="serchips">` + p.map((s) => `<span class="serchip"><b>${s.numero}</b>${s.reps ? "·" + esc(s.reps) : ""}${s.pausa ? " " + esc(s.pausa) : ""}</span>`).join("") + `</div>`;
+  }
+  // Aplica "/lado" a las reps de una serie según el checkbox del editor
+  function aplicarLado(reps, lado) {
+    reps = (reps || "").trim();
+    if (!lado) return reps || null;
+    if (!reps) return "por lado";
+    return /\/lado$/.test(reps) ? reps : reps + "/lado";
+  }
+  // Grilla editable de series (compartida por Agregar y Editar ejercicio)
+  function renderSeriesGrid(contId, arr, countId) {
+    const cont = $(contId);
+    cont.innerHTML = arr.map((s, i) =>
+      `<div class="sgrow"><div class="sg-n">${i + 1}</div>` +
+      `<input type="text" class="sg-reps" data-i="${i}" placeholder="8-12" value="${esc(s.reps || "")}" />` +
+      `<input type="text" class="sg-pausa" data-i="${i}" placeholder="90s" value="${esc(s.pausa || "")}" /></div>`
+    ).join("");
+    cont.querySelectorAll(".sg-reps").forEach((el) => (el.oninput = () => { arr[Number(el.dataset.i)].reps = el.value; }));
+    cont.querySelectorAll(".sg-pausa").forEach((el) => (el.oninput = () => { arr[Number(el.dataset.i)].pausa = el.value; }));
+    if (countId) $(countId).value = arr.length;
+  }
+  // Ajusta la cantidad de series; las filas nuevas copian la última (entrada rápida)
+  function setSeriesCount(arr, n, contId, countId) {
+    n = Math.max(1, Math.min(20, Math.round(n) || 1));
+    while (arr.length < n) arr.push({ ...(arr[arr.length - 1] || { reps: "", pausa: "" }) });
+    while (arr.length > n) arr.pop();
+    renderSeriesGrid(contId, arr, countId);
+  }
   const chevron = `<div class="nc-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></div>`;
   const iconEdit = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>`;
   const iconTrash = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg>`;
@@ -1192,10 +1248,9 @@
       const thumb = e.video_id
         ? `<div class="er-thumb"><img src="${thumbURL(e.video_id)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:9px;display:block">${iconPlay}</div>`
         : `<div class="er-thumb ph"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M8 5v14l11-7z"/></svg></div>`;
-      const serie = `${e.series ? e.series + '×' : ''}${esc(e.reps || '')}${e.pausa ? ' · ' + esc(e.pausa) : ''}`;
       return `<div class="ejrow" data-ej="${e.id}">
         ${thumb}
-        <div class="er-info"><div class="er-n">${esc(e.nombre)}</div><div class="er-s">${serie || '—'}</div>${e.notas ? `<div class="er-s" style="color:var(--accent)">Nota: ${esc(e.notas)}</div>` : ''}</div>
+        <div class="er-info"><div class="er-n">${esc(e.nombre)}</div>${chipsPlanHTML(e) || '<div class="er-s">—</div>'}${e.notas ? `<div class="er-s" style="color:var(--accent)">Nota: ${esc(e.notas)}</div>` : ''}</div>
         <div class="er-acts">
           <button data-edit="${e.id}" title="Editar">${iconEdit}</button>
           <button class="danger" data-del="${e.id}" title="Borrar">${iconTrash}</button>
@@ -1295,14 +1350,19 @@
   };
 
   // Modal agregar ejercicio (autocomplete sobre el catalogo)
-  let rejBloqueId = null, catSeleccionado = null;
+  let rejBloqueId = null, catSeleccionado = null, rejSeries = [];
   function abrirRej(bloqueId) {
     rejBloqueId = bloqueId; catSeleccionado = null;
-    $("rej-buscar").value = ""; $("rej-series").value = ""; $("rej-reps").value = ""; $("rej-pausa").value = "";
+    $("rej-buscar").value = "";
+    rejSeries = [{ reps: "", pausa: "" }, { reps: "", pausa: "" }, { reps: "", pausa: "" }]; // arranca en 3
     $("rej-porlado").checked = false;
+    renderSeriesGrid("rej-grid", rejSeries, "rej-series");
     $("rej-sel").classList.remove("on"); $("rej-list").classList.remove("on"); $("rej-buscar").style.display = "";
     msg($("rej-msg"), "", ""); $("rej-overlay").classList.add("on"); $("rej-buscar").focus();
   }
+  $("rej-dec").onclick = () => setSeriesCount(rejSeries, rejSeries.length - 1, "rej-grid", "rej-series");
+  $("rej-inc").onclick = () => setSeriesCount(rejSeries, rejSeries.length + 1, "rej-grid", "rej-series");
+  $("rej-series").onchange = () => setSeriesCount(rejSeries, Number($("rej-series").value), "rej-grid", "rej-series");
   $("rej-cancelar").onclick = () => $("rej-overlay").classList.remove("on");
   $("rej-buscar").oninput = () => {
     const q = $("rej-buscar").value.trim().toLowerCase();
@@ -1320,41 +1380,52 @@
   $("rej-sel-x").onclick = () => { catSeleccionado = null; $("rej-sel").classList.remove("on"); $("rej-buscar").style.display = ""; $("rej-buscar").value = ""; $("rej-buscar").focus(); };
   $("rej-guardar").onclick = async () => {
     if (!catSeleccionado) return msg($("rej-msg"), "Elegi un ejercicio del catalogo", "error");
-    const series = $("rej-series").value ? Number($("rej-series").value) : null;
-    let reps = $("rej-reps").value.trim();
-    if ($("rej-porlado").checked) reps = reps ? reps + "/lado" : "por lado";
-    const pausa = $("rej-pausa").value.trim();
+    const lado = $("rej-porlado").checked;
+    const series_plan = rejSeries.map((s, i) => ({ numero: i + 1, reps: aplicarLado(s.reps, lado), pausa: s.pausa.trim() || null }));
     $("rej-guardar").disabled = true;
     try {
       const dia = findDia(RUTINA, rutNav.diaId);
       const bloque = findBloque(dia, rejBloqueId);
       const orden = bloque && bloque.ejercicios ? bloque.ejercicios.length : 0;
-      const r = await api("/ejercicios", "POST", { bloque_id: rejBloqueId, catalogo_id: catSeleccionado.id, series, reps, pausa, orden }, true);
+      const r = await api("/ejercicios", "POST", { bloque_id: rejBloqueId, catalogo_id: catSeleccionado.id, series_plan, orden }, true);
       $("rej-overlay").classList.remove("on");
-      if (bloque) { (bloque.ejercicios = bloque.ejercicios || []).push({ id: r.id, bloque_id: rejBloqueId, orden, series, reps: reps || null, pausa: pausa || null, notas: null, catalogo_id: catSeleccionado.id, nombre: catSeleccionado.nombre, material: catSeleccionado.material, video_id: catSeleccionado.video_id }); renderRutina(); }
-      else await cargarRutina();
+      if (bloque) {
+        (bloque.ejercicios = bloque.ejercicios || []).push({
+          id: r.id, bloque_id: rejBloqueId, orden,
+          series: series_plan.length, reps: series_plan[0] ? series_plan[0].reps : null, pausa: series_plan[0] ? series_plan[0].pausa : null,
+          series_plan: series_plan.map((s) => ({ numero: s.numero, reps: s.reps, pausa: s.pausa })),
+          notas: null, catalogo_id: catSeleccionado.id, nombre: catSeleccionado.nombre, material: catSeleccionado.material, video_id: catSeleccionado.video_id
+        });
+        renderRutina();
+      } else await cargarRutina();
     }
     catch (e) { msg($("rej-msg"), e.message, "error"); } finally { $("rej-guardar").disabled = false; }
   };
 
-  // Modal editar parametros de ejercicio (PUT /ejercicios/:id) -- punto 1
-  let edejEj = null, edejCat = null; // edejCat = catálogo elegido (para cambiar el ejercicio base)
+  // Modal editar parametros de ejercicio (PUT /ejercicios/:id)
+  let edejEj = null, edejCat = null, edejSeries = []; // edejCat = catálogo elegido (para cambiar el ejercicio base)
   function abrirEdej(ej) {
     if (!ej) return;
     edejEj = ej;
     edejCat = { id: ej.catalogo_id, nombre: ej.nombre, video_id: ej.video_id, material: ej.material };
-    const porLado = /\/lado$/.test(ej.reps || "") || /^por lado$/.test(ej.reps || "");
-    $("edej-series").value = ej.series != null ? ej.series : "";
-    $("edej-reps").value = (ej.reps || "").replace(/\/lado$/, "").replace(/^por lado$/, "");
-    $("edej-porlado").checked = porLado;
-    $("edej-pausa").value = ej.pausa || "";
+    const p = planDe(ej);
+    const conLado = p.some((s) => /\/lado$/.test(s.reps || "") || /^por lado$/.test(s.reps || ""));
+    edejSeries = (p.length ? p : [{ reps: "", pausa: "" }]).map((s) => ({
+      reps: (s.reps || "").replace(/\/lado$/, "").replace(/^por lado$/, ""),
+      pausa: s.pausa || ""
+    }));
+    $("edej-porlado").checked = conLado;
+    renderSeriesGrid("edej-grid", edejSeries, "edej-series");
     $("edej-notas").value = ej.notas || "";
     $("edej-title").textContent = "Editar ejercicio";
     $("edej-sel-nombre").textContent = ej.nombre || "";
     $("edej-sel").classList.add("on"); $("edej-buscar").style.display = "none"; $("edej-list").classList.remove("on"); $("edej-buscar").value = "";
     msg($("edej-msg"), "", "");
-    $("edej-overlay").classList.add("on"); $("edej-series").focus();
+    $("edej-overlay").classList.add("on");
   }
+  $("edej-dec").onclick = () => setSeriesCount(edejSeries, edejSeries.length - 1, "edej-grid", "edej-series");
+  $("edej-inc").onclick = () => setSeriesCount(edejSeries, edejSeries.length + 1, "edej-grid", "edej-series");
+  $("edej-series").onchange = () => setSeriesCount(edejSeries, Number($("edej-series").value), "edej-grid", "edej-series");
   // Cambiar el ejercicio base (buscador sobre el catálogo)
   $("edej-cambiar").onclick = () => { $("edej-sel").classList.remove("on"); $("edej-buscar").style.display = ""; $("edej-buscar").value = ""; $("edej-buscar").focus(); };
   $("edej-buscar").oninput = () => {
@@ -1373,19 +1444,20 @@
   $("edej-cancelar").onclick = () => $("edej-overlay").classList.remove("on");
   $("edej-guardar").onclick = async () => {
     if (!edejEj) return;
-    const series = $("edej-series").value ? Number($("edej-series").value) : null;
-    let reps = $("edej-reps").value.trim();
-    if ($("edej-porlado").checked) reps = reps ? reps + "/lado" : "por lado";
-    const pausa = $("edej-pausa").value.trim() || null;
+    const lado = $("edej-porlado").checked;
+    const series_plan = edejSeries.map((s, i) => ({ numero: i + 1, reps: aplicarLado(s.reps, lado), pausa: s.pausa.trim() || null }));
     const notas = $("edej-notas").value.trim() || null;
-    // ¿cambió el ejercicio del catálogo?
     const cambioCat = edejCat && edejCat.id !== edejEj.catalogo_id;
-    const body = { series, reps, pausa, notas, orden: edejEj.orden || 0 };
+    const body = { series_plan, notas, orden: edejEj.orden || 0 };
     if (cambioCat) body.catalogo_id = edejCat.id;
     const btn = $("edej-guardar"); btn.disabled = true;
     try {
       await api("/ejercicios/" + edejEj.id, "PUT", body, true);
-      edejEj.series = series; edejEj.reps = reps || null; edejEj.pausa = pausa; edejEj.notas = notas;
+      edejEj.series_plan = series_plan.map((s) => ({ numero: s.numero, reps: s.reps, pausa: s.pausa }));
+      edejEj.series = series_plan.length;
+      edejEj.reps = series_plan[0] ? series_plan[0].reps : null;
+      edejEj.pausa = series_plan[0] ? series_plan[0].pausa : null;
+      edejEj.notas = notas;
       if (cambioCat) { edejEj.catalogo_id = edejCat.id; edejEj.nombre = edejCat.nombre; edejEj.video_id = edejCat.video_id; edejEj.material = edejCat.material; }
       $("edej-overlay").classList.remove("on");
       renderRutina();
@@ -1487,7 +1559,19 @@
     HECHOS = {}; CARGAS = [];
     try {
       CARGAS = (await api("/mis-cargas", "GET", null, true)) || [];
-      CARGAS.forEach((c) => { if (!HECHOS[c.ejercicio_id]) HECHOS[c.ejercicio_id] = c; }); // vienen DESC
+      // CARGAS viene DESC por fecha. Para cada ejercicio me quedo con la ÚLTIMA tanda
+      // (la fecha más reciente) y armo sus series en un mapa por número de serie.
+      for (const c of CARGAS) {
+        const id = c.ejercicio_id;
+        if (!HECHOS[id]) HECHOS[id] = { fecha: c.fecha, sets: {}, peso: null, reps_hechas: null, completado: 0 };
+        const h = HECHOS[id];
+        if (c.fecha !== h.fecha) continue; // sólo la tanda más reciente
+        const serie = c.serie != null ? c.serie : 1; // cargas viejas (sin serie) => serie 1
+        h.sets[serie] = { peso: c.peso, reps_hechas: c.reps_hechas, completado: c.completado };
+        if (h.peso == null && c.peso != null) h.peso = c.peso;       // resumen para la lista
+        if (!h.reps_hechas && c.reps_hechas) h.reps_hechas = c.reps_hechas;
+        if (c.completado) h.completado = 1;
+      }
     } catch {}
   }
   function pickDiaInicial() {
@@ -1573,8 +1657,9 @@
   function week7HTML() {
     const hoy = new Date();
     const hoyKey = hoy.toLocaleDateString("en-CA");
-    const porDia = {};
-    CARGAS.forEach((c) => { const f = (c.fecha || "").slice(0, 10); if (f) porDia[f] = (porDia[f] || 0) + 1; });
+    const porDiaSet = {};
+    CARGAS.forEach((c) => { const f = (c.fecha || "").slice(0, 10); if (f) (porDiaSet[f] = porDiaSet[f] || new Set()).add(c.ejercicio_id); });
+    const porDia = {}; for (const k in porDiaSet) porDia[k] = porDiaSet[k].size;
     const cols = [];
     let max = 1;
     for (let i = 6; i >= 0; i--) { const d = new Date(hoy); d.setDate(hoy.getDate() - i); const key = d.toLocaleDateString("en-CA"); const n = porDia[key] || 0; max = Math.max(max, n); cols.push({ d, key, n }); }
@@ -1692,9 +1777,8 @@
       const thumb = e.video_id
         ? `<div class="er-thumb"><img src="${thumbURL(e.video_id)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:9px;display:block">${iconPlay}</div>`
         : `<div class="er-thumb ph"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M8 5v14l11-7z"/></svg></div>`;
-      const serie = `${e.series ? e.series + '×' : ''}${esc(e.reps || '')}${e.pausa ? ' · ' + esc(e.pausa) : ''}`;
       const doneHtml = done ? `<div class="er-done">✓ ${done.peso != null ? esc(String(done.peso)) + 'kg' : 'hecho'}${done.reps_hechas ? ' · ' + esc(done.reps_hechas) : ''}</div>` : '';
-      return `<div class="ejrow" data-ej="${e.id}">${thumb}<div class="er-info"><div class="er-n">${esc(e.nombre)}</div><div class="er-s">${serie || '—'}</div>${doneHtml}</div>${chevron}</div>`;
+      return `<div class="ejrow" data-ej="${e.id}">${thumb}<div class="er-info"><div class="er-n">${esc(e.nombre)}</div>${chipsPlanHTML(e) || '<div class="er-s">—</div>'}${doneHtml}</div>${chevron}</div>`;
     }).join("");
     cont.innerHTML = sub + (bloque.ejercicios && bloque.ejercicios.length ? rows : `<div class="empty"><p>Bloque sin ejercicios.</p></div>`);
     $("al-back").onclick = () => { alBloqueSel = null; renderSesion(); };
@@ -1712,7 +1796,22 @@
     CARGAS.forEach((c) => { const f = (c.fecha || "").slice(0, 10); (groups[f] = groups[f] || []).push(c); });
     const keys = Object.keys(groups).sort((a, b) => (a < b ? 1 : -1)); // más reciente primero
     cont.innerHTML = keys.map((k) => {
-      const items = groups[k].map((c) => `<div class="cg-item"><div class="cg-n">${esc(c.ejercicio || "Ejercicio")}<div class="cg-r">${c.reps_hechas ? esc(c.reps_hechas) + ' reps' : ''}${c.completado ? (c.reps_hechas ? ' · ' : '') + '✓ hecho' : ''}</div></div><div class="cg-v">${c.peso != null ? esc(String(c.peso)) + 'kg' : '—'}</div></div>`).join("");
+      // Dentro del día, agrupo por ejercicio y colapso las series en una fila con resumen de kg.
+      const porEj = {};
+      groups[k].forEach((c) => { (porEj[c.ejercicio_id] = porEj[c.ejercicio_id] || { nombre: c.ejercicio, sets: [] }).sets.push(c); });
+      const items = Object.keys(porEj).map((id) => {
+        const g = porEj[id];
+        const sets = g.sets.slice().sort((a, b) => (a.serie || 0) - (b.serie || 0));
+        const pesos = sets.map((s) => s.peso).filter((p) => p != null);
+        let kg = "—";
+        if (pesos.length) {
+          const same = pesos.every((p) => p === pesos[0]);
+          kg = same ? `${pesos[0]}kg${pesos.length > 1 ? " ×" + pesos.length : ""}` : pesos.join("·") + "kg";
+        }
+        const hechas = sets.filter((s) => s.completado).length;
+        const sub = sets.length > 1 ? `${hechas}/${sets.length} series` : (sets[0] && sets[0].completado ? "✓ hecho" : "");
+        return `<div class="cg-item"><div class="cg-n">${esc(g.nombre || "Ejercicio")}<div class="cg-r">${sub}</div></div><div class="cg-v">${kg}</div></div>`;
+      }).join("");
       return `<div class="cg-day">${esc(fmtFechaLarga(k))}</div>${items}`;
     }).join("");
   }
@@ -1723,6 +1822,8 @@
     const nombre = (alYo && alYo.nombre) || "Alumno";
     const inicial = nombre.trim().charAt(0).toUpperCase() || "?";
     const totalEj = MI_RUTINA.reduce((a, d) => a + contarEj(d, HECHOS).total, 0);
+    // Cargas registradas = sesiones de ejercicio distintas (ejercicio + día), no cada serie
+    const nCargas = new Set(CARGAS.map((c) => c.ejercicio_id + "|" + (c.fecha || "").slice(0, 10))).size;
     const edad = alYo && alYo.fecha_nac ? edadDesde(alYo.fecha_nac) : null;
     const sub = [edad != null ? edad + " años" : null, alYo && alYo.profe_nombre ? "Profe: " + alYo.profe_nombre : null].filter(Boolean).join("  ·  ");
     const avatar = alYo && alYo.foto
@@ -1742,7 +1843,7 @@
       <div class="pf-stats">
         <div class="pf-stat"><div class="ps-v">${MI_RUTINA.length}</div><div class="ps-l">Días</div></div>
         <div class="pf-stat"><div class="ps-v">${totalEj}</div><div class="ps-l">Ejercicios</div></div>
-        <div class="pf-stat"><div class="ps-v">${CARGAS.length}</div><div class="ps-l">Cargas</div></div>
+        <div class="pf-stat"><div class="ps-v">${nCargas}</div><div class="ps-l">Cargas</div></div>
       </div>
       <div class="pf-card" style="text-align:left;margin-top:14px">
         <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:7px">Tu objetivo</label>
@@ -1835,17 +1936,27 @@
       vid.className = "video-embed ph";
       vid.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M8 5v14l11-7z"/></svg>`;
     }
-    const cells = [];
-    if (ej.series != null && ej.series !== "") cells.push(`<div class="mcell"><div class="mv">${esc(String(ej.series))}</div><div class="ml">Series</div></div>`);
-    if (ej.reps) cells.push(`<div class="mcell"><div class="mv">${esc(ej.reps)}</div><div class="ml">Reps</div></div>`);
-    if (ej.pausa) cells.push(`<div class="mcell"><div class="mv" style="font-size:15px">${esc(ej.pausa)}</div><div class="ml">Pausa</div></div>`);
-    $("det-meta").innerHTML = cells.join("");
-    $("det-notas-wrap").innerHTML = ej.notas ? `<div class="detail-notas">${esc(ej.notas)}</div>` : "";
+    // Tabla PLANIFICADO (una fila por serie). KG editable para el alumno, solo lectura para el profe.
+    const plan = planDe(ej);
     const done = HECHOS[ej.id];
+    if (plan.length) {
+      const filas = plan.map((s) => {
+        const set = done && done.sets ? done.sets[s.numero] : null;
+        const kgVal = set && set.peso != null ? set.peso : "";
+        const kgCell = modo === "alumno"
+          ? `<input type="number" class="plkg" data-serie="${s.numero}" inputmode="decimal" step="0.5" placeholder="—" value="${kgVal}" />`
+          : `<span class="plkg-ro">${set && set.peso != null ? esc(String(set.peso)) + "kg" : "—"}</span>`;
+        return `<tr><td class="pl-n">${s.numero}</td><td>${s.reps ? esc(s.reps) : "—"}</td><td>${s.pausa ? esc(s.pausa) : "—"}</td><td>${kgCell}</td></tr>`;
+      }).join("");
+      $("det-meta").innerHTML = `<div class="plan-card"><div class="plan-h">Planificado</div><table class="plan-tbl"><thead><tr><th>#</th><th>Reps</th><th>Pausa</th><th>Kg</th></tr></thead><tbody>${filas}</tbody></table></div>`;
+    } else {
+      $("det-meta").innerHTML = "";
+    }
+    $("det-notas-wrap").innerHTML = ej.notas ? `<div class="detail-notas">${esc(ej.notas)}</div>` : "";
     if (modo === "alumno") {
-      $("det-done-wrap").innerHTML = done ? `<div class="detail-done">Ultima carga: ${done.peso != null ? esc(String(done.peso)) + 'kg' : 'hecho'}${done.reps_hechas ? ' · ' + esc(done.reps_hechas) + ' reps' : ''}</div>` : "";
-      $("det-accion").textContent = done ? "Actualizar carga" : "Registrar carga";
-      $("det-accion").onclick = () => { cerrarDetalle(); abrirCarga(ej.id, ej.nombre); };
+      $("det-done-wrap").innerHTML = "";
+      $("det-accion").textContent = done ? "Actualizar carga" : "Guardar carga";
+      $("det-accion").onclick = () => guardarCargaSeries(ej);
     } else {
       $("det-done-wrap").innerHTML = "";
       $("det-accion").textContent = "Editar ejercicio";
@@ -1857,34 +1968,23 @@
   $("det-cerrar").onclick = cerrarDetalle;
   $("det-overlay").onclick = (e) => { if (e.target === $("det-overlay")) cerrarDetalle(); };
 
-  // ---------- Registrar carga (alumno) ----------
-  let cargaEjId = null;
-  function abrirCarga(ejId, nombre) {
-    cargaEjId = ejId;
-    $("carga-title").textContent = nombre || "Registrar";
-    const prev = HECHOS[ejId];
-    $("carga-peso").value = prev && prev.peso != null ? prev.peso : "";
-    $("carga-reps").value = prev && prev.reps_hechas ? prev.reps_hechas : "";
-    $("carga-completado").checked = prev ? !!prev.completado : true;
-    $("carga-notas").value = "";
-    msg($("carga-msg"), "", "");
-    $("carga-overlay").classList.add("on");
-    $("carga-peso").focus();
-  }
-  $("carga-cancelar").onclick = () => $("carga-overlay").classList.remove("on");
-  $("carga-guardar").onclick = async () => {
-    const peso = $("carga-peso").value !== "" ? Number($("carga-peso").value) : null;
-    const reps_hechas = $("carga-reps").value.trim() || null;
-    const completado = $("carga-completado").checked;
-    const notas = $("carga-notas").value.trim() || null;
-    const btn = $("carga-guardar"); btn.disabled = true;
+  // Guardar la carga por serie desde la tabla PLANIFICADO del detalle (alumno)
+  async function guardarCargaSeries(ej) {
+    const inputs = document.querySelectorAll("#det-meta .plkg");
+    const sets = [];
+    inputs.forEach((el) => {
+      const peso = el.value !== "" ? Number(el.value) : null;
+      sets.push({ serie: Number(el.dataset.serie), peso, completado: true });
+    });
+    if (!sets.length) return;
+    const btn = $("det-accion"); btn.disabled = true;
     try {
-      await api("/cargas", "POST", { ejercicio_id: cargaEjId, peso, reps_hechas, completado, notas }, true);
-      await recargarCargas(); // trae el historial actualizado (para Cargas + últimos 7 días)
-      $("carga-overlay").classList.remove("on");
+      await api("/cargas", "POST", { ejercicio_id: ej.id, sets }, true);
+      await recargarCargas();
+      cerrarDetalle();
       renderMiRutina();
-    } catch (e) { msg($("carga-msg"), e.message, "error"); } finally { btn.disabled = false; }
-  };
+    } catch (e) { alert(e.message); } finally { btn.disabled = false; }
+  }
 
   // ---------- Tabs ----------
   function profeSwitchTab(tab) {
