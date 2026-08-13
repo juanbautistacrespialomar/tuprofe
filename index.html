@@ -21,6 +21,12 @@
     --nav-glass: rgba(20,20,20,.72);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  /* touch-action: manipulation en TODO -> mata el zoom por doble-tap (iOS/Android) SIN matar el pinch.
+     Es global (especificidad 0,0,0,0), así que los contenedores con scroll (body/.wrap/.body/.cal-strip...
+     que ya traen pan-y o pan-x) mantienen su regla por mayor especificidad. Lo que arregla son los
+     elementos "hoja" (botones, cards, inputs, thumbs, texto) que sin esto quedaban en touch-action:auto
+     y eran justamente los que disparaban el doble-tap-zoom al tocarlos. Cubre profe, alumno y admin. */
+  * { touch-action: manipulation; }
   html, body { height: 100%; width: 100%; max-width: 100%; overflow: hidden; overscroll-behavior: none; }
   /* iOS instalado: 100dvh viene corto y deja un hueco abajo (la barra queda flotando arriba).
      El script del final mide la altura real y la expone en --saH; acá la forzamos. */
@@ -104,6 +110,9 @@
   .toolbar { display: flex; gap: 8px; margin-bottom: 14px; }
 
   .ex { display: flex; gap: 12px; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; margin-bottom: 10px; }
+  /* En el catálogo la fila es clickeable (abre el preview del video). Solo ahí -> no afecta a alumnos/invitaciones. */
+  #cat-lista .ex { cursor: pointer; transition: border-color .12s; }
+  #cat-lista .ex:active { border-color: var(--accent); }
   .ex .thumb { width: 74px; height: 52px; border-radius: 9px; object-fit: cover; background: var(--surface-2); flex-shrink: 0; }
   .ex .thumb.ph { display: flex; align-items: center; justify-content: center; }
   .ex .thumb.ph svg { width: 22px; height: 22px; stroke: var(--muted); }
@@ -838,10 +847,13 @@
     if (lista.length === 0) { cont.innerHTML = `<div class="empty"><p>Ningún ejercicio coincide con "${esc(q)}".</p></div>`; return; }
     cont.innerHTML = lista.map((e) => {
       const thumb = e.video_id ? `<img class="thumb" src="${thumbURL(e.video_id)}" alt="" />` : `<div class="thumb ph"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M8 5v14l11-7z"/></svg></div>`;
-      return `<div class="ex">${thumb}<div class="info"><div class="n">${esc(e.nombre)}</div><div class="m">${esc(e.material || "Sin material")}</div></div><div class="acts"><button data-edit="${e.id}"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M4 20h4L18 10l-4-4L4 16z"/></svg></button><button data-del="${e.id}"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button></div></div>`;
+      return `<div class="ex" data-preview="${e.id}">${thumb}<div class="info"><div class="n">${esc(e.nombre)}</div><div class="m">${esc(e.material || "Sin material")}</div></div><div class="acts"><button data-edit="${e.id}"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M4 20h4L18 10l-4-4L4 16z"/></svg></button><button data-del="${e.id}"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button></div></div>`;
     }).join("");
-    cont.querySelectorAll("[data-edit]").forEach((b) => (b.onclick = () => abrirEditar(Number(b.dataset.edit))));
-    cont.querySelectorAll("[data-del]").forEach((b) => (b.onclick = () => borrarEjercicio(Number(b.dataset.del))));
+    // Tap en la fila -> preview del video (igual que lo ve el alumno). Los botones frenan la propagación
+    // con stopPropagation para que el lapicito y el tacho no disparen también el preview.
+    cont.querySelectorAll("[data-preview]").forEach((row) => (row.onclick = () => abrirDetalleEj(CATALOGO.find((x) => x.id === Number(row.dataset.preview)), "catalogo")));
+    cont.querySelectorAll("[data-edit]").forEach((b) => (b.onclick = (ev) => { ev.stopPropagation(); abrirEditar(Number(b.dataset.edit)); }));
+    cont.querySelectorAll("[data-del]").forEach((b) => (b.onclick = (ev) => { ev.stopPropagation(); borrarEjercicio(Number(b.dataset.del)); }));
   }
   $("cat-buscar").oninput = renderCatalogo;
   async function importarBase(btn) {
@@ -1936,6 +1948,18 @@
     } else {
       vid.className = "video-embed ph";
       vid.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M8 5v14l11-7z"/></svg>`;
+    }
+    // Reseteamos el botón de acción a visible (lo pudo haber ocultado un preview de catálogo anterior).
+    $("det-accion").style.display = "";
+    // MODO CATÁLOGO (profe): preview del video tal cual lo ve el alumno. Sin tabla planificado ni carga.
+    // Para editar el ejercicio ya está el lapicito de la fila, así que acá no repetimos botón de edición.
+    if (modo === "catalogo") {
+      $("det-meta").innerHTML = "";
+      $("det-notas-wrap").innerHTML = "";
+      $("det-done-wrap").innerHTML = "";
+      $("det-accion").style.display = "none";
+      $("det-overlay").classList.add("on");
+      return;
     }
     // Tabla PLANIFICADO (una fila por serie). KG editable para el alumno, solo lectura para el profe.
     const plan = planDe(ej);
