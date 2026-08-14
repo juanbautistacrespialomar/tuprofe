@@ -1066,9 +1066,7 @@
     calMes = null; // arranca siempre en el mes actual
     $("profe-main").style.display = "none";
     $("profe-rutina").style.display = "flex";
-    RUTINA = [];
-    renderRutina();      // muestra el calendario YA (sin esperar la red)
-    cargarRutina();      // en segundo plano: al llegar, pinta los días con contenido
+    await cargarRutina();
   }
   function rutBack() {
     if (rutNav.bloqueId != null) { rutNav.bloqueId = null; renderRutina(); }
