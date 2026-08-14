@@ -128,61 +128,61 @@ async function ejercicioEsDelAlumno(id, alumnoId, env) {
 //   incluirMoldes = true  -> trae TODO (para el profe: rutina real + cajón de sesiones)
 //   incluirMoldes = false -> excluye los moldes (para el alumno: nunca ve la biblioteca del profe)
 async function armarRutina(alumnoId, env, incluirMoldes = true) {
-  // Con fecha y marca de molde si las migraciones corrieron; si no, degradamos sin romper.
-  // Orden: primero los días CON fecha (en orden de fecha), después los sin fecha (por 'orden').
-  let dias;
-  try {
-    dias = (await env.DB.prepare(
-      "SELECT id, nombre, orden, fecha, es_molde FROM dias WHERE alumno_id = ? ORDER BY (fecha IS NULL), fecha, orden"
-    ).bind(alumnoId).all()).results;
-  } catch (e) {
-    // Sin columna es_molde (o sin fecha): caemos a lo de antes y marcamos es_molde=0.
-    try {
-      dias = (await env.DB.prepare(
-        "SELECT id, nombre, orden, fecha FROM dias WHERE alumno_id = ? ORDER BY (fecha IS NULL), fecha, orden"
-      ).bind(alumnoId).all()).results;
-    } catch (e2) {
-      dias = (await env.DB.prepare(
-        "SELECT id, nombre, orden FROM dias WHERE alumno_id = ? ORDER BY orden"
-      ).bind(alumnoId).all()).results;
-      for (const d of dias) d.fecha = null;
-    }
-    for (const d of dias) d.es_molde = 0;
-  }
-
-  // El alumno nunca ve los moldes. Filtramos acá: como los bloques/ejercicios se
-  // ensamblan por dia_id contra este array ya filtrado, los del molde se descartan solos.
-  if (!incluirMoldes) dias = dias.filter((d) => !Number(d.es_molde));
-
-  const bloques = (await env.DB.prepare(
-    `SELECT b.id, b.dia_id, b.nombre, b.orden, b.pausa
+  const qDias = "SELECT id, nombre, orden, fecha, es_molde FROM dias WHERE alumno_id = ? ORDER BY (fecha IS NULL), fecha, orden";
+  const qBloques = `SELECT b.id, b.dia_id, b.nombre, b.orden, b.pausa
      FROM bloques b JOIN dias d ON d.id = b.dia_id
-     WHERE d.alumno_id = ? ORDER BY b.orden`
-  ).bind(alumnoId).all()).results;
-
-  const ejercicios = (await env.DB.prepare(
-    `SELECT e.id, e.bloque_id, e.orden, e.series, e.reps, e.pausa, e.notas, e.catalogo_id,
+     WHERE d.alumno_id = ? ORDER BY b.orden`;
+  const qEjercicios = `SELECT e.id, e.bloque_id, e.orden, e.series, e.reps, e.pausa, e.notas, e.catalogo_id,
             c.nombre, c.material, c.video_id
      FROM ejercicios e
      JOIN catalogo_ejercicios c ON c.id = e.catalogo_id
      JOIN bloques b ON b.id = e.bloque_id
      JOIN dias d ON d.id = b.dia_id
-     WHERE d.alumno_id = ? ORDER BY e.orden`
-  ).bind(alumnoId).all()).results;
-
-  // Series planificadas por serie (si la migración ya corrió; si no, degradamos).
-  let planPorEj = {};
-  try {
-    const sp = (await env.DB.prepare(
-      `SELECT sp.ejercicio_id, sp.numero, sp.reps, sp.pausa
+     WHERE d.alumno_id = ? ORDER BY e.orden`;
+  const qSeries = `SELECT sp.ejercicio_id, sp.numero, sp.reps, sp.pausa
        FROM series_plan sp
        JOIN ejercicios e ON e.id = sp.ejercicio_id
        JOIN bloques b ON b.id = e.bloque_id
        JOIN dias d ON d.id = b.dia_id
-       WHERE d.alumno_id = ? ORDER BY sp.ejercicio_id, sp.numero`
-    ).bind(alumnoId).all()).results;
-    for (const r of sp) (planPorEj[r.ejercicio_id] = planPorEj[r.ejercicio_id] || []).push({ numero: r.numero, reps: r.reps, pausa: r.pausa });
-  } catch (e) { planPorEj = {}; }
+       WHERE d.alumno_id = ? ORDER BY sp.ejercicio_id, sp.numero`;
+
+  let dias, bloques, ejercicios, spRows;
+  try {
+    // Las 4 lecturas en un SOLO viaje a la base (batch). Es lo que hace que abrir
+    // la rutina sea rápido en vez de sumar 4 idas y vueltas.
+    const res = await env.DB.batch([
+      env.DB.prepare(qDias).bind(alumnoId),
+      env.DB.prepare(qBloques).bind(alumnoId),
+      env.DB.prepare(qEjercicios).bind(alumnoId),
+      env.DB.prepare(qSeries).bind(alumnoId),
+    ]);
+    dias = res[0].results; bloques = res[1].results;
+    ejercicios = res[2].results; spRows = res[3].results;
+  } catch (e) {
+    // Fallback (alguna migración no corrió): vamos query por query, degradando sin romper.
+    try {
+      dias = (await env.DB.prepare(qDias).bind(alumnoId).all()).results;
+    } catch (e1) {
+      try {
+        dias = (await env.DB.prepare("SELECT id, nombre, orden, fecha FROM dias WHERE alumno_id = ? ORDER BY (fecha IS NULL), fecha, orden").bind(alumnoId).all()).results;
+      } catch (e2) {
+        dias = (await env.DB.prepare("SELECT id, nombre, orden FROM dias WHERE alumno_id = ? ORDER BY orden").bind(alumnoId).all()).results;
+        for (const d of dias) d.fecha = null;
+      }
+      for (const d of dias) d.es_molde = 0;
+    }
+    bloques = (await env.DB.prepare(qBloques).bind(alumnoId).all()).results;
+    ejercicios = (await env.DB.prepare(qEjercicios).bind(alumnoId).all()).results;
+    try { spRows = (await env.DB.prepare(qSeries).bind(alumnoId).all()).results; }
+    catch (e3) { spRows = []; }
+  }
+
+  // El alumno nunca ve los moldes. Filtramos acá: los bloques/ejercicios se
+  // ensamblan por dia_id contra este array ya filtrado, así que los del molde se descartan solos.
+  if (!incluirMoldes) dias = dias.filter((d) => !Number(d.es_molde));
+
+  const planPorEj = {};
+  for (const r of (spRows || [])) (planPorEj[r.ejercicio_id] = planPorEj[r.ejercicio_id] || []).push({ numero: r.numero, reps: r.reps, pausa: r.pausa });
   for (const e of ejercicios) e.series_plan = planPorEj[e.id] || [];
 
   for (const b of bloques) b.ejercicios = ejercicios.filter((e) => e.bloque_id === b.id);
