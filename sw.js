@@ -8,7 +8,7 @@
 //
 // Para publicar: subí el número de CACHE (v23 -> v24 -> ...).
 
-const CACHE = "tuprofe-v39";
+const CACHE = "tuprofe-v40";
 const SHELL = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", (e) => {
@@ -38,7 +38,8 @@ self.addEventListener("fetch", (e) => {
     e.respondWith(
       fetch(e.request)
         .then((res) => {
-          caches.open(CACHE).then((c) => c.put(e.request, res.clone()));
+          const copia = res.clone();
+          caches.open(CACHE).then((c) => c.put(e.request, copia));
           return res;
         })
         .catch(() => caches.match(e.request).then((r) => r || caches.match("./index.html")))
