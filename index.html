@@ -1066,7 +1066,9 @@
     calMes = null; // arranca siempre en el mes actual
     $("profe-main").style.display = "none";
     $("profe-rutina").style.display = "flex";
-    await cargarRutina();
+    RUTINA = [];
+    renderRutina();      // muestra el calendario YA (sin esperar la red)
+    cargarRutina();      // en segundo plano: al llegar, pinta los días con contenido
   }
   function rutBack() {
     if (rutNav.bloqueId != null) { rutNav.bloqueId = null; renderRutina(); }
@@ -1395,21 +1397,18 @@
 
   // Guardar un día del calendario como sesión (lo copia como molde; el día original queda igual).
   // Feedback visual en el propio botón: se pone en verde con un tilde por un momento.
-  async function guardarEnCajon(dia, btn) {
-    if (btn) btn.disabled = true;
-    try {
-      await api("/dias/" + dia.id + "/duplicar", "POST", { como_molde: 1 }, true);
-      // Feedback en el propio botón. Recargamos RUTINA en silencio (sin redibujar
-      // la vista) para que el botón no se destruya y el tilde quede visible.
-      const data = await api("/alumnos/" + alumnoActual.id, "GET", null, true);
-      RUTINA = data.dias || [];
-      if (btn) {
-        btn.innerHTML = iconCheck;
-        btn.style.color = "var(--accent)";
-        btn.style.borderColor = "var(--accent)";
-        setTimeout(() => { btn.innerHTML = iconBookmark; btn.style.color = ""; btn.style.borderColor = ""; btn.disabled = false; }, 1600);
-      }
-    } catch (e) { alert("No se pudo guardar: " + e.message); if (btn) btn.disabled = false; }
+  function guardarEnCajon(dia, btn) {
+    // Feedback instantáneo: pintamos el tilde YA, sin esperar la red.
+    if (btn) {
+      btn.innerHTML = iconCheck;
+      btn.style.color = "var(--accent)";
+      btn.style.borderColor = "var(--accent)";
+      setTimeout(() => { btn.innerHTML = iconBookmark; btn.style.color = ""; btn.style.borderColor = ""; }, 1600);
+    }
+    // La copia al cajón se hace en segundo plano; sumamos el molde a RUTINA cuando vuelve.
+    api("/dias/" + dia.id + "/duplicar", "POST", { como_molde: 1 }, true)
+      .then((r) => { if (r && r.dias) { for (const d of r.dias) RUTINA.push(d); } })
+      .catch((e) => alert("No se pudo guardar: " + e.message));
   }
 
   // Usar una sesión guardada: elegir fecha inicial y, opcional, repetir por N semanas.
@@ -1445,9 +1444,9 @@
     const btn = $("um-guardar"); btn.disabled = true;
     try {
       const r = await api("/dias/" + moldeEnUso.id + "/duplicar", "POST", { fechas, como_molde: 0 }, true);
-      await cargarRutina();
+      if (r.dias && r.dias.length) { for (const d of r.dias) RUTINA.push(d); ordenarRutina(RUTINA); }
       $("usarmolde-overlay").classList.remove("on");
-      if (r.dias && r.dias.length) { rutNav.diaId = r.dias[0]; rutNav.bloqueId = null; renderRutina(); }
+      if (r.dias && r.dias.length) { rutNav.diaId = r.dias[0].id; rutNav.bloqueId = null; renderRutina(); }
     } catch (e) { alert("No se pudo agregar: " + e.message); } finally { btn.disabled = false; }
   };
 
@@ -1477,7 +1476,7 @@
       </div>`;
     }).join("");
     // Tocar la fila = traer a la fecha. Los botones editan/borran (con stopPropagation).
-    cont.querySelectorAll("[data-traer]").forEach((c) => (c.onclick = () => traerMoldeAFecha(Number(c.dataset.traer), nuevoDiaISO)));
+    cont.querySelectorAll("[data-traer]").forEach((c) => (c.onclick = () => traerMoldeAFecha(Number(c.dataset.traer), nuevoDiaISO, c)));
     cont.querySelectorAll("[data-edit]").forEach((b) => (b.onclick = (e) => {
       e.stopPropagation();
       $("nuevodia-overlay").classList.remove("on");
@@ -1501,16 +1500,24 @@
     catch (e) { alert("No se pudo crear el día: " + e.message); }
   };
   $("nd-cancelar").onclick = () => $("nuevodia-overlay").classList.remove("on");
-  async function traerMoldeAFecha(moldeId, iso) {
-    $("nuevodia-overlay").classList.remove("on");
-    const vacioId = nuevoDiaVacioId;  // capturo antes de recargar
+  async function traerMoldeAFecha(moldeId, iso, filaEl) {
+    const vacioId = nuevoDiaVacioId;
+    // No cerramos el overlay todavía (evita ver el calendario de por medio); marcamos la fila.
+    if (filaEl) { filaEl.style.opacity = "0.5"; filaEl.style.pointerEvents = "none"; }
     try {
-      // Si había un día vacío en esa fecha, lo saco para no duplicar la fecha.
-      if (vacioId) { RUTINA = RUTINA.filter((d) => d.id !== vacioId); try { await api("/dias/" + vacioId, "DELETE", null, true); } catch (e) {} }
+      // Si había un día vacío en esa fecha, lo saco (el borrado va en segundo plano).
+      if (vacioId) { RUTINA = RUTINA.filter((d) => d.id !== vacioId); api("/dias/" + vacioId, "DELETE", null, true).catch(() => {}); }
       const r = await api("/dias/" + moldeId + "/duplicar", "POST", { fechas: [iso], como_molde: 0 }, true);
-      await cargarRutina();
-      if (r.dias && r.dias.length) { rutNav.diaId = r.dias[0]; rutNav.bloqueId = null; renderRutina(); }
-    } catch (e) { alert("No se pudo traer la sesión: " + e.message); }
+      if (r.dias && r.dias.length) {
+        for (const d of r.dias) RUTINA.push(d);   // el worker ya los devuelve armados
+        ordenarRutina(RUTINA);
+        $("nuevodia-overlay").classList.remove("on");
+        rutNav.diaId = r.dias[0].id; rutNav.bloqueId = null; renderRutina();  // entro directo al día
+      }
+    } catch (e) {
+      if (filaEl) { filaEl.style.opacity = ""; filaEl.style.pointerEvents = ""; }
+      alert("No se pudo traer la sesión: " + e.message);
+    }
   }
 
   // Modal bloque (crear + editar)
