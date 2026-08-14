@@ -535,6 +535,8 @@ export default {
         const nombre = body.nombre || origen.nombre;
         const nuevos = [];
 
+        // Insertamos por lotes (batch) para minimizar los viajes a la base:
+        // 1 día + 1 batch de bloques + 1 batch de ejercicios + 1 batch de series, por fecha.
         for (const fecha of fechas) {
           let rd;
           try {
@@ -546,17 +548,41 @@ export default {
           }
           const nuevoDia = rd.meta.last_row_id;
 
-          for (const b of bloques) {
-            const rb = await env.DB.prepare("INSERT INTO bloques (dia_id, nombre, orden, pausa) VALUES (?, ?, ?, ?)")
-              .bind(nuevoDia, b.nombre, b.orden, b.pausa || null).run();
-            const nuevoBloque = rb.meta.last_row_id;
-            for (const ex of ejercicios.filter((x) => x.bloque_id === b.id)) {
-              const re = await env.DB.prepare(
+          // Bloques en un solo batch; guardamos el mapeo viejo->nuevo para los hijos.
+          const mapaBloque = {};
+          if (bloques.length) {
+            const stmtsB = bloques.map((b) =>
+              env.DB.prepare("INSERT INTO bloques (dia_id, nombre, orden, pausa) VALUES (?, ?, ?, ?)")
+                .bind(nuevoDia, b.nombre, b.orden, b.pausa || null));
+            const resB = await env.DB.batch(stmtsB);
+            bloques.forEach((b, i) => { mapaBloque[b.id] = resB[i].meta.last_row_id; });
+          }
+
+          // Ejercicios de todos los bloques en un solo batch.
+          const mapaEj = {};
+          const ejList = ejercicios.filter((e) => mapaBloque[e.bloque_id]);
+          if (ejList.length) {
+            const stmtsE = ejList.map((e) =>
+              env.DB.prepare(
                 "INSERT INTO ejercicios (bloque_id, catalogo_id, orden, series, reps, pausa, notas) VALUES (?, ?, ?, ?, ?, ?, ?)"
-              ).bind(nuevoBloque, ex.catalogo_id, ex.orden, ex.series, ex.reps, ex.pausa, ex.notas).run();
-              if (plan[ex.id] && plan[ex.id].length) await guardarSeriesPlan(env, re.meta.last_row_id, plan[ex.id]);
+              ).bind(mapaBloque[e.bloque_id], e.catalogo_id, e.orden, e.series, e.reps, e.pausa, e.notas));
+            const resE = await env.DB.batch(stmtsE);
+            ejList.forEach((e, i) => { mapaEj[e.id] = resE[i].meta.last_row_id; });
+          }
+
+          // Series planificadas en un solo batch (degradamos si la tabla no existe).
+          const stmtsS = [];
+          for (const viejoId in plan) {
+            const nuevoEjId = mapaEj[viejoId];
+            if (!nuevoEjId) continue;
+            for (const s of plan[viejoId]) {
+              stmtsS.push(env.DB.prepare(
+                "INSERT INTO series_plan (ejercicio_id, numero, reps, pausa) VALUES (?, ?, ?, ?)"
+              ).bind(nuevoEjId, s.numero, s.reps || null, s.pausa || null));
             }
           }
+          if (stmtsS.length) { try { await env.DB.batch(stmtsS); } catch (e) {} }
+
           nuevos.push(nuevoDia);
         }
         return json({ ok: true, dias: nuevos }, 201);
