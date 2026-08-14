@@ -585,7 +585,11 @@ export default {
 
           nuevos.push(nuevoDia);
         }
-        return json({ ok: true, dias: nuevos }, 201);
+        // Devolvemos los días YA armados (con bloques/ejercicios) para que el cliente
+        // no tenga que volver a pedir la rutina: un solo viaje a la red.
+        const todos = await armarRutina(origen.alumno_id, env, true);
+        const nuevosCompletos = todos.filter((d) => nuevos.includes(d.id));
+        return json({ ok: true, dias: nuevosCompletos }, 201);
       }
       if (seg[0] === "dias" && seg.length === 2 && method === "PUT" && esProfe) {
         const diaId = Number(seg[1]);
