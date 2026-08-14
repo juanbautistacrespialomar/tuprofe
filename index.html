@@ -692,17 +692,6 @@
   </div>
 </div>
 
-<!-- ============ MODAL cajón de sesiones guardadas ============ -->
-<div class="overlay" id="cajon-overlay">
-  <div class="sheet">
-    <h3>Sesiones guardadas</h3>
-    <div class="hint" style="margin-bottom:12px">Guardá una sesión una vez y traéla a cualquier fecha con un toque.</div>
-    <div id="cajon-list"></div>
-    <button class="btn" id="cajon-nueva" style="margin-top:12px">＋ Nueva sesión</button>
-    <button class="btn ghost sm" id="cajon-cerrar" style="margin-top:10px">Cerrar</button>
-  </div>
-</div>
-
 <!-- ============ MODAL usar una sesión guardada (elegir fecha) ============ -->
 <div class="overlay" id="usarmolde-overlay">
   <div class="sheet">
@@ -1065,6 +1054,7 @@
   const iconPlay = `<span class="play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>`;
   const iconCal = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>`;
   const iconBookmark = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`;
+  const iconCheck = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>`;
 
   // ---------- RUTINA (PROFE) ----------
   let alumnoActual = null;
@@ -1228,18 +1218,8 @@
     if (!calMes) calInit();
     const cont = $("rut-dias");
 
-    // Barra del cajón de sesiones guardadas (moldes: días con es_molde, sin fecha).
-    const moldes = RUTINA.filter((d) => d.es_molde);
-    const cajonBar = `<div class="navcard" id="cajon-abrir" style="cursor:pointer;margin-bottom:10px">
-      <div class="nc-main">
-        <div class="nc-t">🗂️ Sesiones guardadas</div>
-        <div class="nc-s">${moldes.length} guardada${moldes.length !== 1 ? 's' : ''} · tocá para usar o crear</div>
-      </div>
-      ${chevron}
-    </div>`;
-
     // Guardrail: los días SIN fecha no tienen casillero. Si existen, los listamos abajo para no esconderlos.
-    // (Los moldes también son "sin fecha" pero NO van acá: viven en el cajón.)
+    // (Los moldes también son "sin fecha" pero NO van acá: viven en el cajón, se accede al tocar un día.)
     const sinFecha = RUTINA.filter((d) => !d.fecha && !d.es_molde);
     let sfHTML = "";
     if (sinFecha.length) {
@@ -1261,11 +1241,7 @@
       sfHTML = `<div class="mcal-sf-label">Días sin fecha</div>${items}`;
     }
 
-    cont.innerHTML = cajonBar + calGridHTML() + sfHTML;
-
-    // Abrir el cajón de sesiones guardadas
-    const cajonBtn = cont.querySelector("#cajon-abrir");
-    if (cajonBtn) cajonBtn.onclick = abrirCajon;
+    cont.innerHTML = calGridHTML() + sfHTML;
 
     // Navegación de meses
     cont.querySelectorAll("[data-cal]").forEach((b) => (b.onclick = () => {
@@ -1321,7 +1297,7 @@
     const be = cont.querySelector("[data-dia-edit]"); if (be) be.onclick = () => abrirDia("editar", dia);
     const bd = cont.querySelector("[data-dia-del]"); if (bd) bd.onclick = () => borrarNodo("dias", dia.id, esMolde ? "¿Borrar esta sesión guardada?" : "Borrar el dia completo?");
     const bu = cont.querySelector("[data-dia-usar]"); if (bu) bu.onclick = () => abrirUsarMolde(dia);
-    const bg = cont.querySelector("[data-dia-guardar]"); if (bg) bg.onclick = () => guardarEnCajon(dia);
+    const bg = cont.querySelector("[data-dia-guardar]"); if (bg) bg.onclick = () => guardarEnCajon(dia, bg);
     cont.querySelectorAll("[data-bloque]").forEach((c) => (c.onclick = () => { rutNav.bloqueId = Number(c.dataset.bloque); renderRutina(); }));
     cont.querySelectorAll("[data-edit]").forEach((btn) => (btn.onclick = (e) => { e.stopPropagation(); abrirBloque(dia.id, findBloque(dia, Number(btn.dataset.edit))); }));
     cont.querySelectorAll("[data-del]").forEach((btn) => (btn.onclick = (e) => { e.stopPropagation(); borrarNodo("bloques", Number(btn.dataset.del), "Borrar el bloque?"); }));
@@ -1408,66 +1384,26 @@
   };
 
   // ============================================================
-  //  CAJÓN DE SESIONES GUARDADAS (moldes)
-  //  Un molde es un día con es_molde=1 y sin fecha. Se edita con el
-  //  mismo editor de siempre; se "usa" duplicándolo a una fecha real.
+  //  SESIONES GUARDADAS (moldes)
+  //  Un molde es un día con es_molde=1 y sin fecha. Se crea guardando
+  //  un día real (ícono marcador), se usa trayéndolo a una fecha, y se
+  //  edita/borra desde el menú que aparece al tocar un día del calendario.
   // ============================================================
-  function abrirCajon() { renderCajon(); $("cajon-overlay").classList.add("on"); }
-  function cerrarCajon() { $("cajon-overlay").classList.remove("on"); }
 
-  function renderCajon() {
-    const moldes = RUTINA.filter((d) => d.es_molde);
-    const cont = $("cajon-list");
-    if (!moldes.length) {
-      cont.innerHTML = `<div class="empty"><p>Todavía no tenés sesiones guardadas.<br>Creá una nueva acá abajo, o guardá un día desde el calendario con el ícono de marcador.</p></div>`;
-      return;
-    }
-    cont.innerHTML = moldes.map((m) => {
-      const nb = (m.bloques || []).length;
-      const { total } = contarEj(m);
-      return `<div class="navcard" data-molde="${m.id}">
-        <div class="nc-main">
-          <div class="nc-t">${esc(m.nombre)}</div>
-          <div class="nc-s">${nb} bloque${nb !== 1 ? 's' : ''} · ${total} ejercicio${total !== 1 ? 's' : ''}</div>
-        </div>
-        <div class="acts">
-          <button data-usar="${m.id}" title="Usar en una fecha">${iconCal}</button>
-          <button data-edit="${m.id}" title="Editar">${iconEdit}</button>
-          <button class="danger" data-del="${m.id}" title="Borrar">${iconTrash}</button>
-        </div>
-      </div>`;
-    }).join("");
-    cont.querySelectorAll("[data-usar]").forEach((b) => (b.onclick = () => { const m = findDia(RUTINA, Number(b.dataset.usar)); cerrarCajon(); abrirUsarMolde(m); }));
-    cont.querySelectorAll("[data-edit]").forEach((b) => (b.onclick = () => { cerrarCajon(); rutNav.diaId = Number(b.dataset.edit); rutNav.bloqueId = null; renderRutina(); }));
-    cont.querySelectorAll("[data-del]").forEach((b) => (b.onclick = async () => {
-      const id = Number(b.dataset.del);
-      if (!confirm("¿Borrar esta sesión guardada?")) return;
-      RUTINA = RUTINA.filter((d) => d.id !== id);
-      renderCajon();
-      try { await api("/dias/" + id, "DELETE", null, true); }
-      catch (e) { alert("No se pudo borrar: " + e.message); await cargarRutina(); renderCajon(); }
-    }));
-  }
-
-  // Nueva sesión: crea un molde vacío y entra directo a armarlo.
-  $("cajon-nueva").onclick = async () => {
-    const btn = $("cajon-nueva"); btn.disabled = true;
-    try {
-      const r = await api("/dias", "POST", { alumno_id: alumnoActual.id, nombre: "Nueva sesión", orden: 0, es_molde: 1 }, true);
-      await cargarRutina();               // trae el molde nuevo a RUTINA
-      cerrarCajon();
-      rutNav.diaId = r.id; rutNav.bloqueId = null; renderRutina();
-    } catch (e) { alert("No se pudo crear: " + e.message); } finally { btn.disabled = false; }
-  };
-  $("cajon-cerrar").onclick = cerrarCajon;
-
-  // Guardar un día del calendario en el cajón (lo copia como molde; el día original queda igual).
-  async function guardarEnCajon(dia) {
+  // Guardar un día del calendario como sesión (lo copia como molde; el día original queda igual).
+  // Feedback visual en el propio botón: se pone en verde con un tilde por un momento.
+  async function guardarEnCajon(dia, btn) {
+    if (btn) btn.disabled = true;
     try {
       await api("/dias/" + dia.id + "/duplicar", "POST", { como_molde: 1 }, true);
       await cargarRutina();
-      alert("Listo, la guardé en el cajón de sesiones. El día del calendario queda igual.");
-    } catch (e) { alert("No se pudo guardar: " + e.message); }
+      if (btn) {
+        btn.innerHTML = iconCheck;
+        btn.style.color = "var(--accent)";
+        btn.style.borderColor = "var(--accent)";
+        setTimeout(() => { btn.innerHTML = iconBookmark; btn.style.color = ""; btn.style.borderColor = ""; btn.disabled = false; }, 1600);
+      }
+    } catch (e) { alert("No se pudo guardar: " + e.message); if (btn) btn.disabled = false; }
   }
 
   // Usar una sesión guardada: elegir fecha inicial y, opcional, repetir por N semanas.
@@ -1509,22 +1445,45 @@
     } catch (e) { alert("No se pudo agregar: " + e.message); } finally { btn.disabled = false; }
   };
 
-  // Menú al tocar una fecha vacía teniendo cajón: en blanco o traer una sesión guardada.
+  // Menú al tocar una fecha vacía teniendo sesiones guardadas: en blanco o traer una.
   let nuevoDiaISO = null;
   function abrirNuevoDia(iso) {
     nuevoDiaISO = iso;
     $("nd-sub").textContent = nombreDiaPorFecha(iso);
+    renderNdMoldes();
+    $("nuevodia-overlay").classList.add("on");
+  }
+  function renderNdMoldes() {
     const moldes = RUTINA.filter((d) => d.es_molde);
     $("nd-moldes-label").style.display = moldes.length ? "" : "none";
-    $("nd-moldes").innerHTML = moldes.map((m) => {
+    const cont = $("nd-moldes");
+    cont.innerHTML = moldes.map((m) => {
       const { total } = contarEj(m);
+      const nb = (m.bloques || []).length;
       return `<div class="navcard" data-traer="${m.id}" style="cursor:pointer">
-        <div class="nc-main"><div class="nc-t">${esc(m.nombre)}</div><div class="nc-s">${total} ejercicio${total !== 1 ? 's' : ''}</div></div>
-        ${chevron}
+        <div class="nc-main"><div class="nc-t">${esc(m.nombre)}</div><div class="nc-s">${nb} bloque${nb !== 1 ? 's' : ''} · ${total} ejercicio${total !== 1 ? 's' : ''}</div></div>
+        <div class="acts">
+          <button data-edit="${m.id}" title="Editar sesión">${iconEdit}</button>
+          <button class="danger" data-del="${m.id}" title="Borrar sesión">${iconTrash}</button>
+        </div>
       </div>`;
     }).join("");
-    $("nd-moldes").querySelectorAll("[data-traer]").forEach((c) => (c.onclick = () => traerMoldeAFecha(Number(c.dataset.traer), nuevoDiaISO)));
-    $("nuevodia-overlay").classList.add("on");
+    // Tocar la fila = traer a la fecha. Los botones editan/borran (con stopPropagation).
+    cont.querySelectorAll("[data-traer]").forEach((c) => (c.onclick = () => traerMoldeAFecha(Number(c.dataset.traer), nuevoDiaISO)));
+    cont.querySelectorAll("[data-edit]").forEach((b) => (b.onclick = (e) => {
+      e.stopPropagation();
+      $("nuevodia-overlay").classList.remove("on");
+      rutNav.diaId = Number(b.dataset.edit); rutNav.bloqueId = null; renderRutina();
+    }));
+    cont.querySelectorAll("[data-del]").forEach((b) => (b.onclick = async (e) => {
+      e.stopPropagation();
+      const id = Number(b.dataset.del);
+      if (!confirm("¿Borrar esta sesión guardada?")) return;
+      RUTINA = RUTINA.filter((d) => d.id !== id);
+      renderNdMoldes();
+      try { await api("/dias/" + id, "DELETE", null, true); }
+      catch (err) { alert("No se pudo borrar: " + err.message); await cargarRutina(); renderNdMoldes(); }
+    }));
   }
   $("nd-blanco").onclick = async () => {
     $("nuevodia-overlay").classList.remove("on");
