@@ -1202,12 +1202,15 @@
   //  - si el cajón está vacío, creo en blanco directo (flujo de siempre).
   async function onCalDia(iso) {
     const existentes = RUTINA.filter((d) => d.fecha === iso);
-    if (existentes.length) {
-      rutNav.diaId = existentes[0].id; rutNav.bloqueId = null; renderRutina();
-      return;
-    }
+    // Si ya hay un día CON contenido en esa fecha, entro directo.
+    const conContenido = existentes.find((d) => (d.bloques || []).length > 0);
+    if (conContenido) { rutNav.diaId = conContenido.id; rutNav.bloqueId = null; renderRutina(); return; }
+    // Si no, puede haber un día vacío en esa fecha (lo reutilizamos o reemplazamos).
+    const vacio = existentes[0] || null;
     const hayMoldes = RUTINA.some((d) => d.es_molde);
-    if (hayMoldes) { abrirNuevoDia(iso); return; }
+    if (hayMoldes) { abrirNuevoDia(iso, vacio); return; }
+    // Sin sesiones guardadas: entro al vacío si existe, o creo uno nuevo.
+    if (vacio) { rutNav.diaId = vacio.id; rutNav.bloqueId = null; renderRutina(); return; }
     try { await crearDiaEnBlanco(iso); }
     catch (e) { alert("No se pudo crear el día: " + e.message); }
   }
@@ -1396,7 +1399,10 @@
     if (btn) btn.disabled = true;
     try {
       await api("/dias/" + dia.id + "/duplicar", "POST", { como_molde: 1 }, true);
-      await cargarRutina();
+      // Feedback en el propio botón. Recargamos RUTINA en silencio (sin redibujar
+      // la vista) para que el botón no se destruya y el tilde quede visible.
+      const data = await api("/alumnos/" + alumnoActual.id, "GET", null, true);
+      RUTINA = data.dias || [];
       if (btn) {
         btn.innerHTML = iconCheck;
         btn.style.color = "var(--accent)";
@@ -1445,10 +1451,12 @@
     } catch (e) { alert("No se pudo agregar: " + e.message); } finally { btn.disabled = false; }
   };
 
-  // Menú al tocar una fecha vacía teniendo sesiones guardadas: en blanco o traer una.
-  let nuevoDiaISO = null;
-  function abrirNuevoDia(iso) {
+  // Menú al tocar una fecha: en blanco o traer una sesión guardada.
+  // diaVacio = día ya existente en esa fecha pero sin bloques (lo reutilizamos o reemplazamos).
+  let nuevoDiaISO = null, nuevoDiaVacioId = null;
+  function abrirNuevoDia(iso, diaVacio) {
     nuevoDiaISO = iso;
+    nuevoDiaVacioId = diaVacio ? diaVacio.id : null;
     $("nd-sub").textContent = nombreDiaPorFecha(iso);
     renderNdMoldes();
     $("nuevodia-overlay").classList.add("on");
@@ -1487,13 +1495,18 @@
   }
   $("nd-blanco").onclick = async () => {
     $("nuevodia-overlay").classList.remove("on");
+    // Si ya había un día vacío en esa fecha, entro a él en vez de crear otro.
+    if (nuevoDiaVacioId) { rutNav.diaId = nuevoDiaVacioId; rutNav.bloqueId = null; renderRutina(); return; }
     try { await crearDiaEnBlanco(nuevoDiaISO); }
     catch (e) { alert("No se pudo crear el día: " + e.message); }
   };
   $("nd-cancelar").onclick = () => $("nuevodia-overlay").classList.remove("on");
   async function traerMoldeAFecha(moldeId, iso) {
     $("nuevodia-overlay").classList.remove("on");
+    const vacioId = nuevoDiaVacioId;  // capturo antes de recargar
     try {
+      // Si había un día vacío en esa fecha, lo saco para no duplicar la fecha.
+      if (vacioId) { RUTINA = RUTINA.filter((d) => d.id !== vacioId); try { await api("/dias/" + vacioId, "DELETE", null, true); } catch (e) {} }
       const r = await api("/dias/" + moldeId + "/duplicar", "POST", { fechas: [iso], como_molde: 0 }, true);
       await cargarRutina();
       if (r.dias && r.dias.length) { rutNav.diaId = r.dias[0]; rutNav.bloqueId = null; renderRutina(); }
