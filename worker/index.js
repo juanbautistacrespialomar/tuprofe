@@ -125,20 +125,34 @@ async function ejercicioEsDelAlumno(id, alumnoId, env) {
 }
 
 // Rutina anidada: días -> bloques -> ejercicios (con datos del catálogo)
-async function armarRutina(alumnoId, env) {
-  // Con fecha si la migración ya corrió; si no, degradamos sin romper.
+//   incluirMoldes = true  -> trae TODO (para el profe: rutina real + cajón de sesiones)
+//   incluirMoldes = false -> excluye los moldes (para el alumno: nunca ve la biblioteca del profe)
+async function armarRutina(alumnoId, env, incluirMoldes = true) {
+  // Con fecha y marca de molde si las migraciones corrieron; si no, degradamos sin romper.
   // Orden: primero los días CON fecha (en orden de fecha), después los sin fecha (por 'orden').
   let dias;
   try {
     dias = (await env.DB.prepare(
-      "SELECT id, nombre, orden, fecha FROM dias WHERE alumno_id = ? ORDER BY (fecha IS NULL), fecha, orden"
+      "SELECT id, nombre, orden, fecha, es_molde FROM dias WHERE alumno_id = ? ORDER BY (fecha IS NULL), fecha, orden"
     ).bind(alumnoId).all()).results;
   } catch (e) {
-    dias = (await env.DB.prepare(
-      "SELECT id, nombre, orden FROM dias WHERE alumno_id = ? ORDER BY orden"
-    ).bind(alumnoId).all()).results;
-    for (const d of dias) d.fecha = null;
+    // Sin columna es_molde (o sin fecha): caemos a lo de antes y marcamos es_molde=0.
+    try {
+      dias = (await env.DB.prepare(
+        "SELECT id, nombre, orden, fecha FROM dias WHERE alumno_id = ? ORDER BY (fecha IS NULL), fecha, orden"
+      ).bind(alumnoId).all()).results;
+    } catch (e2) {
+      dias = (await env.DB.prepare(
+        "SELECT id, nombre, orden FROM dias WHERE alumno_id = ? ORDER BY orden"
+      ).bind(alumnoId).all()).results;
+      for (const d of dias) d.fecha = null;
+    }
+    for (const d of dias) d.es_molde = 0;
   }
+
+  // El alumno nunca ve los moldes. Filtramos acá: como los bloques/ejercicios se
+  // ensamblan por dia_id contra este array ya filtrado, los del molde se descartan solos.
+  if (!incluirMoldes) dias = dias.filter((d) => !Number(d.es_molde));
 
   const bloques = (await env.DB.prepare(
     `SELECT b.id, b.dia_id, b.nombre, b.orden, b.pausa
@@ -456,18 +470,96 @@ export default {
 
       // --- DÍAS ---
       if (path === "/dias" && method === "POST" && esProfe) {
-        const { alumno_id, nombre, orden, fecha } = await request.json();
+        const { alumno_id, nombre, orden, fecha, es_molde } = await request.json();
         if (!(await alumnoEsDelProfe(alumno_id, sesion.id, env))) return json({ error: "No es tu alumno" }, 403);
+        const molde = es_molde ? 1 : 0;
+        const fechaFinal = molde ? null : (fecha || null);  // un molde no lleva fecha
         let r;
         try {
-          r = await env.DB.prepare("INSERT INTO dias (alumno_id, nombre, orden, fecha) VALUES (?, ?, ?, ?)")
-            .bind(alumno_id, nombre, orden || 0, fecha || null).run();
+          r = await env.DB.prepare("INSERT INTO dias (alumno_id, nombre, orden, fecha, es_molde) VALUES (?, ?, ?, ?, ?)")
+            .bind(alumno_id, nombre, orden || 0, fechaFinal, molde).run();
         } catch (e) {
-          // Migración de `fecha` todavía no corrida: guardamos el día igual (sin fecha).
-          r = await env.DB.prepare("INSERT INTO dias (alumno_id, nombre, orden) VALUES (?, ?, ?)")
-            .bind(alumno_id, nombre, orden || 0).run();
+          // Migración de es_molde sin correr: intentamos al menos con fecha.
+          try {
+            r = await env.DB.prepare("INSERT INTO dias (alumno_id, nombre, orden, fecha) VALUES (?, ?, ?, ?)")
+              .bind(alumno_id, nombre, orden || 0, fechaFinal).run();
+          } catch (e2) {
+            // Migración de `fecha` tampoco: guardamos el día igual (sin fecha).
+            r = await env.DB.prepare("INSERT INTO dias (alumno_id, nombre, orden) VALUES (?, ?, ?)")
+              .bind(alumno_id, nombre, orden || 0).run();
+          }
         }
         return json({ id: r.meta.last_row_id }, 201);
+      }
+
+      // Duplicar un día dentro del MISMO alumno.
+      //   body: { fechas: ["YYYY-MM-DD", ...], nombre?, como_molde? }
+      //   - como_molde=1  -> la copia nace en el cajón (es_molde=1, sin fecha), ignora `fechas`.
+      //   - como_molde=0  -> una copia por cada fecha (o una sin fecha si no mandan `fechas`).
+      //   NO copia las cargas: clona la prescripción (bloques + ejercicios + series_plan), no el historial.
+      if (seg[0] === "dias" && seg.length === 3 && seg[2] === "duplicar" && method === "POST" && esProfe) {
+        const diaId = Number(seg[1]);
+        if (!(await diaEsDelProfe(diaId, sesion.id, env))) return json({ error: "No autorizado" }, 403);
+        const body = await request.json().catch(() => ({}));
+        const comoMolde = body.como_molde ? 1 : 0;
+
+        const origen = await env.DB.prepare("SELECT alumno_id, nombre FROM dias WHERE id = ?").bind(diaId).first();
+        if (!origen) return json({ error: "Día no encontrado" }, 404);
+
+        const bloques = (await env.DB.prepare(
+          "SELECT id, nombre, orden, pausa FROM bloques WHERE dia_id = ? ORDER BY orden"
+        ).bind(diaId).all()).results;
+        const bloqueIds = bloques.map((b) => b.id);
+
+        let ejercicios = [], plan = {};
+        if (bloqueIds.length) {
+          const ph = bloqueIds.map(() => "?").join(",");
+          ejercicios = (await env.DB.prepare(
+            `SELECT id, bloque_id, catalogo_id, orden, series, reps, pausa, notas
+             FROM ejercicios WHERE bloque_id IN (${ph}) ORDER BY orden`
+          ).bind(...bloqueIds).all()).results;
+          const ejIds = ejercicios.map((e) => e.id);
+          if (ejIds.length) {
+            try {
+              const ph2 = ejIds.map(() => "?").join(",");
+              const sp = (await env.DB.prepare(
+                `SELECT ejercicio_id, numero, reps, pausa FROM series_plan WHERE ejercicio_id IN (${ph2}) ORDER BY numero`
+              ).bind(...ejIds).all()).results;
+              for (const s of sp) (plan[s.ejercicio_id] = plan[s.ejercicio_id] || []).push(s);
+            } catch (e) { plan = {}; }  // migración de series_plan sin correr: degradamos
+          }
+        }
+
+        // Qué fechas: un molde no lleva fecha; si no, las que manden (o una sin fecha).
+        const fechas = comoMolde ? [null] : (Array.isArray(body.fechas) && body.fechas.length ? body.fechas : [null]);
+        const nombre = body.nombre || origen.nombre;
+        const nuevos = [];
+
+        for (const fecha of fechas) {
+          let rd;
+          try {
+            rd = await env.DB.prepare("INSERT INTO dias (alumno_id, nombre, orden, fecha, es_molde) VALUES (?, ?, ?, ?, ?)")
+              .bind(origen.alumno_id, nombre, 0, fecha || null, comoMolde).run();
+          } catch (e) {
+            rd = await env.DB.prepare("INSERT INTO dias (alumno_id, nombre, orden, fecha) VALUES (?, ?, ?, ?)")
+              .bind(origen.alumno_id, nombre, 0, fecha || null).run();
+          }
+          const nuevoDia = rd.meta.last_row_id;
+
+          for (const b of bloques) {
+            const rb = await env.DB.prepare("INSERT INTO bloques (dia_id, nombre, orden, pausa) VALUES (?, ?, ?, ?)")
+              .bind(nuevoDia, b.nombre, b.orden, b.pausa || null).run();
+            const nuevoBloque = rb.meta.last_row_id;
+            for (const ex of ejercicios.filter((x) => x.bloque_id === b.id)) {
+              const re = await env.DB.prepare(
+                "INSERT INTO ejercicios (bloque_id, catalogo_id, orden, series, reps, pausa, notas) VALUES (?, ?, ?, ?, ?, ?, ?)"
+              ).bind(nuevoBloque, ex.catalogo_id, ex.orden, ex.series, ex.reps, ex.pausa, ex.notas).run();
+              if (plan[ex.id] && plan[ex.id].length) await guardarSeriesPlan(env, re.meta.last_row_id, plan[ex.id]);
+            }
+          }
+          nuevos.push(nuevoDia);
+        }
+        return json({ ok: true, dias: nuevos }, 201);
       }
       if (seg[0] === "dias" && seg.length === 2 && method === "PUT" && esProfe) {
         const diaId = Number(seg[1]);
@@ -565,7 +657,7 @@ export default {
 
       // ================= ALUMNO =================
       if (path === "/mi-rutina" && method === "GET" && esAlumno) {
-        const dias = await armarRutina(sesion.id, env);
+        const dias = await armarRutina(sesion.id, env, false);  // sin moldes
         return json({ alumno_id: sesion.id, dias });
       }
       if (path === "/cargas" && method === "POST" && esAlumno) {
