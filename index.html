@@ -686,9 +686,48 @@
   <div class="sheet">
     <h3 id="dia-h3">Nuevo día</h3>
     <div class="field"><label>Nombre del día</label><input type="text" id="dia-nombre" placeholder="Día 1 - Tren superior" /></div>
-    <div class="field"><label>¿Qué día lo hace el alumno?</label><input type="date" id="dia-fecha" /><div class="hint" id="dia-fecha-hint" style="margin-top:6px"></div></div>
+    <div class="field" id="dia-fecha-field"><label>¿Qué día lo hace el alumno?</label><input type="date" id="dia-fecha" /><div class="hint" id="dia-fecha-hint" style="margin-top:6px"></div></div>
     <button class="btn" id="dia-guardar">Agregar día</button>
     <button class="btn ghost sm" id="dia-cancelar" style="margin-top:10px">Cancelar</button>
+  </div>
+</div>
+
+<!-- ============ MODAL cajón de sesiones guardadas ============ -->
+<div class="overlay" id="cajon-overlay">
+  <div class="sheet">
+    <h3>Sesiones guardadas</h3>
+    <div class="hint" style="margin-bottom:12px">Guardá una sesión una vez y traéla a cualquier fecha con un toque.</div>
+    <div id="cajon-list"></div>
+    <button class="btn" id="cajon-nueva" style="margin-top:12px">＋ Nueva sesión</button>
+    <button class="btn ghost sm" id="cajon-cerrar" style="margin-top:10px">Cerrar</button>
+  </div>
+</div>
+
+<!-- ============ MODAL usar una sesión guardada (elegir fecha) ============ -->
+<div class="overlay" id="usarmolde-overlay">
+  <div class="sheet">
+    <h3 id="um-h3">Usar sesión</h3>
+    <div class="hint" id="um-sub" style="margin-bottom:12px"></div>
+    <div class="field"><label>¿Desde qué día?</label><input type="date" id="um-fecha" /></div>
+    <div class="field">
+      <label>¿Repetir por varias semanas?</label>
+      <div class="sctl"><button type="button" class="sbtn" id="um-dec">−</button><input type="number" id="um-semanas" inputmode="numeric" min="1" max="12" value="1" /><button type="button" class="sbtn" id="um-inc">+</button></div>
+      <div class="hint" id="um-hint" style="margin-top:6px"></div>
+    </div>
+    <button class="btn" id="um-guardar">Agregar al calendario</button>
+    <button class="btn ghost sm" id="um-cancelar" style="margin-top:10px">Cancelar</button>
+  </div>
+</div>
+
+<!-- ============ MODAL nuevo día (en blanco o desde el cajón) ============ -->
+<div class="overlay" id="nuevodia-overlay">
+  <div class="sheet">
+    <h3 id="nd-h3">Nuevo día</h3>
+    <div class="hint" id="nd-sub" style="margin-bottom:12px"></div>
+    <button class="btn" id="nd-blanco">Empezar en blanco</button>
+    <div class="mcal-sf-label" id="nd-moldes-label" style="margin-top:14px">O traer una sesión guardada</div>
+    <div id="nd-moldes"></div>
+    <button class="btn ghost sm" id="nd-cancelar" style="margin-top:12px">Cancelar</button>
   </div>
 </div>
 
@@ -1024,6 +1063,8 @@
   const iconTrash = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg>`;
   const iconBack = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>`;
   const iconPlay = `<span class="play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>`;
+  const iconCal = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>`;
+  const iconBookmark = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`;
 
   // ---------- RUTINA (PROFE) ----------
   let alumnoActual = null;
@@ -1156,20 +1197,29 @@
     </div>`;
   }
 
-  // Tocar un día del calendario: si ya hay día en esa fecha, entro; si no, lo creo y entro directo.
+  // Crea un día vacío en una fecha y entra directo a armarlo.
+  async function crearDiaEnBlanco(iso) {
+    const nombre = nombreDiaPorFecha(iso);
+    const r = await api("/dias", "POST", { alumno_id: alumnoActual.id, nombre, orden: RUTINA.length, fecha: iso }, true);
+    RUTINA.push({ id: r.id, nombre, orden: RUTINA.length, fecha: iso, bloques: [], es_molde: 0 });
+    ordenarRutina(RUTINA);
+    rutNav.diaId = r.id; rutNav.bloqueId = null; renderRutina();
+  }
+
+  // Tocar un día del calendario:
+  //  - si ya hay día en esa fecha, entro;
+  //  - si está vacío y tengo sesiones en el cajón, ofrezco elegir (en blanco / traer una);
+  //  - si el cajón está vacío, creo en blanco directo (flujo de siempre).
   async function onCalDia(iso) {
     const existentes = RUTINA.filter((d) => d.fecha === iso);
     if (existentes.length) {
       rutNav.diaId = existentes[0].id; rutNav.bloqueId = null; renderRutina();
       return;
     }
-    const nombre = nombreDiaPorFecha(iso);
-    try {
-      const r = await api("/dias", "POST", { alumno_id: alumnoActual.id, nombre, orden: RUTINA.length, fecha: iso }, true);
-      RUTINA.push({ id: r.id, nombre, orden: RUTINA.length, fecha: iso, bloques: [] });
-      ordenarRutina(RUTINA);
-      rutNav.diaId = r.id; rutNav.bloqueId = null; renderRutina();
-    } catch (e) { alert("No se pudo crear el día: " + e.message); }
+    const hayMoldes = RUTINA.some((d) => d.es_molde);
+    if (hayMoldes) { abrirNuevoDia(iso); return; }
+    try { await crearDiaEnBlanco(iso); }
+    catch (e) { alert("No se pudo crear el día: " + e.message); }
   }
 
   // NIVEL 1: calendario mensual (+ guardrail de días sin fecha, si los hubiera)
@@ -1178,8 +1228,19 @@
     if (!calMes) calInit();
     const cont = $("rut-dias");
 
+    // Barra del cajón de sesiones guardadas (moldes: días con es_molde, sin fecha).
+    const moldes = RUTINA.filter((d) => d.es_molde);
+    const cajonBar = `<div class="navcard" id="cajon-abrir" style="cursor:pointer;margin-bottom:10px">
+      <div class="nc-main">
+        <div class="nc-t">🗂️ Sesiones guardadas</div>
+        <div class="nc-s">${moldes.length} guardada${moldes.length !== 1 ? 's' : ''} · tocá para usar o crear</div>
+      </div>
+      ${chevron}
+    </div>`;
+
     // Guardrail: los días SIN fecha no tienen casillero. Si existen, los listamos abajo para no esconderlos.
-    const sinFecha = RUTINA.filter((d) => !d.fecha);
+    // (Los moldes también son "sin fecha" pero NO van acá: viven en el cajón.)
+    const sinFecha = RUTINA.filter((d) => !d.fecha && !d.es_molde);
     let sfHTML = "";
     if (sinFecha.length) {
       const items = sinFecha.map((d) => {
@@ -1200,7 +1261,11 @@
       sfHTML = `<div class="mcal-sf-label">Días sin fecha</div>${items}`;
     }
 
-    cont.innerHTML = calGridHTML() + sfHTML;
+    cont.innerHTML = cajonBar + calGridHTML() + sfHTML;
+
+    // Abrir el cajón de sesiones guardadas
+    const cajonBtn = cont.querySelector("#cajon-abrir");
+    if (cajonBtn) cajonBtn.onclick = abrirCajon;
 
     // Navegación de meses
     cont.querySelectorAll("[data-cal]").forEach((b) => (b.onclick = () => {
@@ -1220,10 +1285,18 @@
     $("rut-nombre").textContent = dia.nombre;
     const cont = $("rut-dias");
     // Barra del día: muestra la fecha y permite editar (nombre/fecha) o borrar el día completo.
-    const fechaTxt = dia.fecha ? esc(fmtFecha(dia.fecha)) + (esHoy(dia.fecha) ? ' · <span style="color:var(--accent)">hoy</span>' : '') : 'Sin fecha';
+    const esMolde = !!dia.es_molde;
+    const fechaTxt = esMolde
+      ? '🗂️ Sesión guardada'
+      : (dia.fecha ? esc(fmtFecha(dia.fecha)) + (esHoy(dia.fecha) ? ' · <span style="color:var(--accent)">hoy</span>' : '') : 'Sin fecha');
+    // Molde -> "Usar en una fecha".  Día real -> "Guardar en el cajón".
+    const accionExtra = esMolde
+      ? `<button data-dia-usar title="Usar en una fecha">${iconCal}</button>`
+      : `<button data-dia-guardar title="Guardar en el cajón">${iconBookmark}</button>`;
     const diaBar = `<div class="dia-bar">
       <div class="dia-bar-info">${fechaTxt}</div>
       <div class="dia-bar-acts">
+        ${accionExtra}
         <button data-dia-edit title="Editar día">${iconEdit}</button>
         <button class="danger" data-dia-del title="Borrar día">${iconTrash}</button>
       </div>
@@ -1246,7 +1319,9 @@
       `<button class="btn sm" id="rut-add" style="margin-top:6px">+ Agregar bloque</button>`;
     // Handlers de la barra del día
     const be = cont.querySelector("[data-dia-edit]"); if (be) be.onclick = () => abrirDia("editar", dia);
-    const bd = cont.querySelector("[data-dia-del]"); if (bd) bd.onclick = () => borrarNodo("dias", dia.id, "Borrar el dia completo?");
+    const bd = cont.querySelector("[data-dia-del]"); if (bd) bd.onclick = () => borrarNodo("dias", dia.id, esMolde ? "¿Borrar esta sesión guardada?" : "Borrar el dia completo?");
+    const bu = cont.querySelector("[data-dia-usar]"); if (bu) bu.onclick = () => abrirUsarMolde(dia);
+    const bg = cont.querySelector("[data-dia-guardar]"); if (bg) bg.onclick = () => guardarEnCajon(dia);
     cont.querySelectorAll("[data-bloque]").forEach((c) => (c.onclick = () => { rutNav.bloqueId = Number(c.dataset.bloque); renderRutina(); }));
     cont.querySelectorAll("[data-edit]").forEach((btn) => (btn.onclick = (e) => { e.stopPropagation(); abrirBloque(dia.id, findBloque(dia, Number(btn.dataset.edit))); }));
     cont.querySelectorAll("[data-del]").forEach((btn) => (btn.onclick = (e) => { e.stopPropagation(); borrarNodo("bloques", Number(btn.dataset.del), "Borrar el bloque?"); }));
@@ -1289,7 +1364,7 @@
   }
 
   // Modal dia (crear + editar)
-  let diaEnEdicion = null;
+  let diaEnEdicion = null, diaEnEdicionEsMolde = false;
   function actualizarHintFecha() {
     const v = $("dia-fecha").value;
     const hint = $("dia-fecha-hint");
@@ -1301,10 +1376,12 @@
   }
   function abrirDia(modo, dia) {
     diaEnEdicion = modo === "editar" && dia ? dia.id : null;
-    $("dia-h3").textContent = diaEnEdicion ? "Editar dia" : "Nuevo dia";
+    diaEnEdicionEsMolde = !!(dia && dia.es_molde);
+    $("dia-h3").textContent = diaEnEdicionEsMolde ? "Editar sesión" : (diaEnEdicion ? "Editar dia" : "Nuevo dia");
     $("dia-guardar").textContent = diaEnEdicion ? "Guardar cambios" : "Agregar dia";
     $("dia-nombre").value = dia ? dia.nombre : "Dia " + (RUTINA.length + 1);
     $("dia-fecha").value = dia && dia.fecha ? dia.fecha : "";
+    $("dia-fecha-field").style.display = diaEnEdicionEsMolde ? "none" : "";  // un molde no lleva fecha
     actualizarHintFecha();
     $("dia-overlay").classList.add("on"); $("dia-nombre").focus();
   }
@@ -1312,7 +1389,7 @@
   $("dia-cancelar").onclick = () => $("dia-overlay").classList.remove("on");
   $("dia-guardar").onclick = async () => {
     const nombre = $("dia-nombre").value.trim(); if (!nombre) return;
-    const fecha = $("dia-fecha").value || null;
+    const fecha = diaEnEdicionEsMolde ? null : ($("dia-fecha").value || null);
     const btn = $("dia-guardar"); btn.disabled = true;
     try {
       if (diaEnEdicion) {
@@ -1329,6 +1406,140 @@
       renderRutina();
     } catch (e) { alert(e.message); } finally { btn.disabled = false; }
   };
+
+  // ============================================================
+  //  CAJÓN DE SESIONES GUARDADAS (moldes)
+  //  Un molde es un día con es_molde=1 y sin fecha. Se edita con el
+  //  mismo editor de siempre; se "usa" duplicándolo a una fecha real.
+  // ============================================================
+  function abrirCajon() { renderCajon(); $("cajon-overlay").classList.add("on"); }
+  function cerrarCajon() { $("cajon-overlay").classList.remove("on"); }
+
+  function renderCajon() {
+    const moldes = RUTINA.filter((d) => d.es_molde);
+    const cont = $("cajon-list");
+    if (!moldes.length) {
+      cont.innerHTML = `<div class="empty"><p>Todavía no tenés sesiones guardadas.<br>Creá una nueva acá abajo, o guardá un día desde el calendario con el ícono de marcador.</p></div>`;
+      return;
+    }
+    cont.innerHTML = moldes.map((m) => {
+      const nb = (m.bloques || []).length;
+      const { total } = contarEj(m);
+      return `<div class="navcard" data-molde="${m.id}">
+        <div class="nc-main">
+          <div class="nc-t">${esc(m.nombre)}</div>
+          <div class="nc-s">${nb} bloque${nb !== 1 ? 's' : ''} · ${total} ejercicio${total !== 1 ? 's' : ''}</div>
+        </div>
+        <div class="acts">
+          <button data-usar="${m.id}" title="Usar en una fecha">${iconCal}</button>
+          <button data-edit="${m.id}" title="Editar">${iconEdit}</button>
+          <button class="danger" data-del="${m.id}" title="Borrar">${iconTrash}</button>
+        </div>
+      </div>`;
+    }).join("");
+    cont.querySelectorAll("[data-usar]").forEach((b) => (b.onclick = () => { const m = findDia(RUTINA, Number(b.dataset.usar)); cerrarCajon(); abrirUsarMolde(m); }));
+    cont.querySelectorAll("[data-edit]").forEach((b) => (b.onclick = () => { cerrarCajon(); rutNav.diaId = Number(b.dataset.edit); rutNav.bloqueId = null; renderRutina(); }));
+    cont.querySelectorAll("[data-del]").forEach((b) => (b.onclick = async () => {
+      const id = Number(b.dataset.del);
+      if (!confirm("¿Borrar esta sesión guardada?")) return;
+      RUTINA = RUTINA.filter((d) => d.id !== id);
+      renderCajon();
+      try { await api("/dias/" + id, "DELETE", null, true); }
+      catch (e) { alert("No se pudo borrar: " + e.message); await cargarRutina(); renderCajon(); }
+    }));
+  }
+
+  // Nueva sesión: crea un molde vacío y entra directo a armarlo.
+  $("cajon-nueva").onclick = async () => {
+    const btn = $("cajon-nueva"); btn.disabled = true;
+    try {
+      const r = await api("/dias", "POST", { alumno_id: alumnoActual.id, nombre: "Nueva sesión", orden: 0, es_molde: 1 }, true);
+      await cargarRutina();               // trae el molde nuevo a RUTINA
+      cerrarCajon();
+      rutNav.diaId = r.id; rutNav.bloqueId = null; renderRutina();
+    } catch (e) { alert("No se pudo crear: " + e.message); } finally { btn.disabled = false; }
+  };
+  $("cajon-cerrar").onclick = cerrarCajon;
+
+  // Guardar un día del calendario en el cajón (lo copia como molde; el día original queda igual).
+  async function guardarEnCajon(dia) {
+    try {
+      await api("/dias/" + dia.id + "/duplicar", "POST", { como_molde: 1 }, true);
+      await cargarRutina();
+      alert("Listo, la guardé en el cajón de sesiones. El día del calendario queda igual.");
+    } catch (e) { alert("No se pudo guardar: " + e.message); }
+  }
+
+  // Usar una sesión guardada: elegir fecha inicial y, opcional, repetir por N semanas.
+  let moldeEnUso = null;
+  function actualizarHintUsar() {
+    const iso = $("um-fecha").value;
+    const n = Math.max(1, Math.min(12, Number($("um-semanas").value) || 1));
+    const h = $("um-hint");
+    if (!iso) { h.textContent = "Elegí la primera fecha."; return; }
+    if (n === 1) { h.textContent = nombreDiaPorFecha(iso); return; }
+    const fin = new Date(iso + "T00:00:00"); fin.setDate(fin.getDate() + 7 * (n - 1));
+    h.textContent = `${n} sesiones · ${nombreDiaPorFecha(iso)} → ${fin.toLocaleDateString("es-AR", { day: "numeric", month: "long" })} (una por semana)`;
+  }
+  function abrirUsarMolde(molde) {
+    moldeEnUso = molde;
+    $("um-h3").textContent = "Usar: " + molde.nombre;
+    $("um-sub").textContent = "Se copia entera a la fecha que elijas. Después ajustás solo lo que cambie.";
+    $("um-fecha").value = ""; $("um-semanas").value = "1";
+    actualizarHintUsar();
+    $("usarmolde-overlay").classList.add("on");
+  }
+  $("um-fecha").oninput = actualizarHintUsar;
+  $("um-semanas").oninput = actualizarHintUsar;
+  $("um-dec").onclick = () => { $("um-semanas").value = Math.max(1, (Number($("um-semanas").value) || 1) - 1); actualizarHintUsar(); };
+  $("um-inc").onclick = () => { $("um-semanas").value = Math.min(12, (Number($("um-semanas").value) || 1) + 1); actualizarHintUsar(); };
+  $("um-cancelar").onclick = () => $("usarmolde-overlay").classList.remove("on");
+  $("um-guardar").onclick = async () => {
+    const iso = $("um-fecha").value;
+    if (!iso) { alert("Elegí una fecha."); return; }
+    const n = Math.max(1, Math.min(12, Number($("um-semanas").value) || 1));
+    const fechas = [];
+    for (let k = 0; k < n; k++) { const d = new Date(iso + "T00:00:00"); d.setDate(d.getDate() + 7 * k); fechas.push(isoLocal(d.getFullYear(), d.getMonth(), d.getDate())); }
+    const btn = $("um-guardar"); btn.disabled = true;
+    try {
+      const r = await api("/dias/" + moldeEnUso.id + "/duplicar", "POST", { fechas, como_molde: 0 }, true);
+      await cargarRutina();
+      $("usarmolde-overlay").classList.remove("on");
+      if (r.dias && r.dias.length) { rutNav.diaId = r.dias[0]; rutNav.bloqueId = null; renderRutina(); }
+    } catch (e) { alert("No se pudo agregar: " + e.message); } finally { btn.disabled = false; }
+  };
+
+  // Menú al tocar una fecha vacía teniendo cajón: en blanco o traer una sesión guardada.
+  let nuevoDiaISO = null;
+  function abrirNuevoDia(iso) {
+    nuevoDiaISO = iso;
+    $("nd-sub").textContent = nombreDiaPorFecha(iso);
+    const moldes = RUTINA.filter((d) => d.es_molde);
+    $("nd-moldes-label").style.display = moldes.length ? "" : "none";
+    $("nd-moldes").innerHTML = moldes.map((m) => {
+      const { total } = contarEj(m);
+      return `<div class="navcard" data-traer="${m.id}" style="cursor:pointer">
+        <div class="nc-main"><div class="nc-t">${esc(m.nombre)}</div><div class="nc-s">${total} ejercicio${total !== 1 ? 's' : ''}</div></div>
+        ${chevron}
+      </div>`;
+    }).join("");
+    $("nd-moldes").querySelectorAll("[data-traer]").forEach((c) => (c.onclick = () => traerMoldeAFecha(Number(c.dataset.traer), nuevoDiaISO)));
+    $("nuevodia-overlay").classList.add("on");
+  }
+  $("nd-blanco").onclick = async () => {
+    $("nuevodia-overlay").classList.remove("on");
+    try { await crearDiaEnBlanco(nuevoDiaISO); }
+    catch (e) { alert("No se pudo crear el día: " + e.message); }
+  };
+  $("nd-cancelar").onclick = () => $("nuevodia-overlay").classList.remove("on");
+  async function traerMoldeAFecha(moldeId, iso) {
+    $("nuevodia-overlay").classList.remove("on");
+    try {
+      const r = await api("/dias/" + moldeId + "/duplicar", "POST", { fechas: [iso], como_molde: 0 }, true);
+      await cargarRutina();
+      if (r.dias && r.dias.length) { rutNav.diaId = r.dias[0]; rutNav.bloqueId = null; renderRutina(); }
+    } catch (e) { alert("No se pudo traer la sesión: " + e.message); }
+  }
 
   // Modal bloque (crear + editar)
   let bloqueDiaId = null, bloqueEnEdicion = null;
