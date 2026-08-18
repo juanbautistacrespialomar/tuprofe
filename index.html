@@ -1397,8 +1397,21 @@
     else if (tipo === "bloques") RUTINA.forEach((d) => { d.bloques = (d.bloques || []).filter((b) => b.id !== id); });
     else if (tipo === "ejercicios") RUTINA.forEach((d) => (d.bloques || []).forEach((b) => { b.ejercicios = (b.ejercicios || []).filter((e) => e.id !== id); }));
     renderRutina();
-    try { await api("/" + tipo + "/" + id, "DELETE", null, true); }
+    try {
+      const r = await api("/" + tipo + "/" + id, "DELETE", null, true);
+      if (tipo === "dias") aplicarOrigenDesmarcado(r && r.origen);
+    }
     catch (e) { alert("No se pudo borrar: " + e.message); await cargarRutina(); }
+  }
+  // Si al borrar un molde el servidor nos avisa que el día ORIGEN se quedó sin ninguna copia
+  // guardada (ver DELETE /dias/:id en el worker), reflejamos el destildado acá: el tilde de
+  // "Guardar en el cajón" representa "tengo una copia guardada AHORA", no "alguna vez la guardé".
+  // Si ese día no está cargado en este momento (quedó fuera de la ventana del calendario), no hay
+  // nada que actualizar en memoria — cuando se vuelva a cargar ese mes, ya va a venir bien del server.
+  function aplicarOrigenDesmarcado(origen) {
+    if (!origen) return;
+    const d = findDia(RUTINA, origen.id);
+    if (d) d.guardado_cajon = origen.guardado_cajon;
   }
 
   // Modal dia (crear + editar)
@@ -1550,7 +1563,10 @@
       if (!confirm("¿Borrar esta sesión guardada?")) return;
       RUTINA = RUTINA.filter((d) => d.id !== id);
       renderNdMoldes();
-      try { await api("/dias/" + id, "DELETE", null, true); }
+      try {
+        const r = await api("/dias/" + id, "DELETE", null, true);
+        aplicarOrigenDesmarcado(r && r.origen);
+      }
       catch (err) { alert("No se pudo borrar: " + err.message); await cargarRutina(); renderNdMoldes(); }
     }));
   }
