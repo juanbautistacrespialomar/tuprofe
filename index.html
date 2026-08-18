@@ -1858,6 +1858,14 @@
       }
     } catch {}
   }
+  // Mejor marca histórica por ejercicio del catálogo (para "Tu mejor marca anterior" y el aviso de PR).
+  async function cargarMejoresMarcas() {
+    MEJORES_MARCAS = {};
+    try {
+      const filas = (await api("/mis-mejores-marcas", "GET", null, true)) || [];
+      for (const f of filas) if (f.peso != null) MEJORES_MARCAS[f.catalogo_id] = f.peso;
+    } catch {}
+  }
   function pickDiaInicial() {
     if (!MI_RUTINA.length) return null;
     // 1) ¿Entreno hoy? Ese es el día. (foco en HOY)
