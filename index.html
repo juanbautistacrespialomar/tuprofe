@@ -1325,12 +1325,12 @@
     const fechaTxt = esMolde
       ? '🗂️ Sesión guardada'
       : (dia.fecha ? esc(fmtFecha(dia.fecha)) + (esHoy(dia.fecha) ? ' · <span style="color:var(--accent)">hoy</span>' : '') : 'Sin fecha');
-    // Molde -> "Usar en una fecha".  Día real -> "Guardar en el cajón" (tildado y persistente
-    // si dia.guardado_cajon viene en 1, es decir, si ya se guardó como sesión alguna vez).
+    // Molde -> "Usar en una fecha".  Día real -> "Guardar en el cajón" / "Quitar del cajón",
+    // toggle según dia.guardado_cajon (persistente en la base, no solo visual).
     const yaGuardado = !!dia.guardado_cajon;
     const accionExtra = esMolde
       ? `<button data-dia-usar title="Usar en una fecha">${iconCal}</button>`
-      : `<button data-dia-guardar title="${yaGuardado ? 'Ya guardado en el cajón (tocá para guardar de nuevo)' : 'Guardar en el cajón'}" style="${yaGuardado ? 'color:var(--accent);border-color:var(--accent)' : ''}">${yaGuardado ? iconCheck : iconBookmark}</button>`;
+      : `<button data-dia-guardar title="${yaGuardado ? 'Guardado en el cajón (tocá para quitarlo)' : 'Guardar en el cajón'}" style="${yaGuardado ? 'color:var(--accent);border-color:var(--accent)' : ''}">${yaGuardado ? iconCheck : iconBookmark}</button>`;
     const diaBar = `<div class="dia-bar">
       <div class="dia-bar-info">${fechaTxt}</div>
       <div class="dia-bar-acts">
@@ -1359,7 +1359,7 @@
     const be = cont.querySelector("[data-dia-edit]"); if (be) be.onclick = () => abrirDia("editar", dia);
     const bd = cont.querySelector("[data-dia-del]"); if (bd) bd.onclick = () => borrarNodo("dias", dia.id, esMolde ? "¿Borrar esta sesión guardada?" : "Borrar el dia completo?");
     const bu = cont.querySelector("[data-dia-usar]"); if (bu) bu.onclick = () => abrirUsarMolde(dia);
-    const bg = cont.querySelector("[data-dia-guardar]"); if (bg) bg.onclick = () => guardarEnCajon(dia, bg);
+    const bg = cont.querySelector("[data-dia-guardar]"); if (bg) bg.onclick = () => toggleGuardarEnCajon(dia, bg);
     cont.querySelectorAll("[data-bloque]").forEach((c) => (c.onclick = () => { rutNav.bloqueId = Number(c.dataset.bloque); renderRutina(); }));
     cont.querySelectorAll("[data-edit]").forEach((btn) => (btn.onclick = (e) => { e.stopPropagation(); abrirBloque(dia.id, findBloque(dia, Number(btn.dataset.edit))); }));
     cont.querySelectorAll("[data-del]").forEach((btn) => (btn.onclick = (e) => { e.stopPropagation(); borrarNodo("bloques", Number(btn.dataset.del), "Borrar el bloque?"); }));
@@ -1465,6 +1465,14 @@
   //  edita/borra desde el menú que aparece al tocar un día del calendario.
   // ============================================================
 
+  // Botón "Guardar en el cajón": es un TOGGLE, no un botón de una sola dirección.
+  //   - Si el día no tiene copia guardada -> la crea (guardarEnCajon).
+  //   - Si ya tiene copia guardada (tilde puesto) -> tocarlo la BORRA (quitarDeCajon).
+  function toggleGuardarEnCajon(dia, btn) {
+    if (dia.guardado_cajon) quitarDeCajon(dia, btn);
+    else guardarEnCajon(dia, btn);
+  }
+
   // Guardar un día del calendario como sesión (lo copia como molde; el día original queda igual).
   // El tilde queda PERSISTENTE (dia.guardado_cajon en la base, vía columna guardado_cajon):
   // no es solo un feedback visual que se pierde al salir y volver a entrar.
@@ -1484,6 +1492,27 @@
         if (btn) { btn.innerHTML = iconBookmark; btn.style.color = ""; btn.style.borderColor = ""; }
         alert("No se pudo guardar: " + e.message);
       });
+  }
+
+  // Quitar del cajón: es la mitad "destildar" del toggle. Busca el/los molde(s) que salieron de
+  // este día (por origen_dia_id) y los borra. Sin confirm() a propósito: es un toggle rápido, no
+  // un borrado explícito desde el cajón (ese sigue pidiendo confirmación aparte).
+  async function quitarDeCajon(dia, btn) {
+    const moldes = RUTINA.filter((d) => d.es_molde && d.origen_dia_id === dia.id);
+    if (btn) { btn.innerHTML = iconBookmark; btn.style.color = ""; btn.style.borderColor = ""; }
+    dia.guardado_cajon = 0;  // optimista: destildamos ya, sin esperar la red
+    if (!moldes.length) { if (rutNav.diaId === dia.id) renderRutina(); return; }  // nada que borrar en el server
+    try {
+      for (const m of moldes) {
+        RUTINA = RUTINA.filter((d) => d.id !== m.id);
+        const r = await api("/dias/" + m.id, "DELETE", null, true);
+        aplicarOrigenDesmarcado(r && r.origen);  // por las dudas, nos autocorregimos con lo que diga el server
+      }
+      if (rutNav.diaId === dia.id) renderRutina();
+    } catch (e) {
+      alert("No se pudo quitar del cajón: " + e.message);
+      await cargarRutina();  // ante la duda, resincronizamos todo con el server
+    }
   }
 
   // Usar una sesión guardada: elegir fecha inicial y, opcional, repetir por N semanas.
