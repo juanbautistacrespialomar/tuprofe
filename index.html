@@ -1465,54 +1465,68 @@
   //  edita/borra desde el menú que aparece al tocar un día del calendario.
   // ============================================================
 
-  // Botón "Guardar en el cajón": es un TOGGLE, no un botón de una sola dirección.
-  //   - Si el día no tiene copia guardada -> la crea (guardarEnCajon).
-  //   - Si ya tiene copia guardada (tilde puesto) -> tocarlo la BORRA (quitarDeCajon).
+  // Botón "Guardar en el cajón": TOGGLE instantáneo.
+  //   - Cambiamos el estado local (dia.guardado_cajon) y repintamos AHORA MISMO, sin esperar la red.
+  //   - La llamada al server va por detrás; si falla, revertimos.
+  //   Clave: el estado se invierte ANTES de disparar la red. Así un segundo toque ya lee el valor
+  //   nuevo y hace lo contrario (no "vuelve a guardar"), aunque la primera llamada todavía no volvió.
+  //   Un flag `_cajonBusy` en el día bloquea toques mientras hay una operación en vuelo, para no
+  //   pisar dos requests encimados.
   function toggleGuardarEnCajon(dia, btn) {
+    if (dia._cajonBusy) return;            // ya hay un guardar/quitar en curso para este día
     if (dia.guardado_cajon) quitarDeCajon(dia, btn);
     else guardarEnCajon(dia, btn);
   }
 
-  // Guardar un día del calendario como sesión (lo copia como molde; el día original queda igual).
-  // El tilde queda PERSISTENTE (dia.guardado_cajon en la base, vía columna guardado_cajon):
-  // no es solo un feedback visual que se pierde al salir y volver a entrar.
+  // Repinta SOLO el botón del cajón según dia.guardado_cajon (sin re-render de todo el día,
+  // así es instantáneo y no “parpadea”).
+  function pintarBotonCajon(btn, guardado) {
+    if (!btn) return;
+    btn.innerHTML = guardado ? iconCheck : iconBookmark;
+    btn.style.color = guardado ? "var(--accent)" : "";
+    btn.style.borderColor = guardado ? "var(--accent)" : "";
+    btn.title = guardado ? "Guardado en el cajón (tocá para quitarlo)" : "Guardar en el cajón";
+  }
+
+  // Guardar un día como sesión (lo copia como molde; el día original queda igual).
+  // Estado optimista: marcamos y pintamos YA, la red va detrás.
   function guardarEnCajon(dia, btn) {
-    // Feedback instantáneo en el botón mientras esperamos la red.
-    if (btn) { btn.innerHTML = iconCheck; btn.style.color = "var(--accent)"; btn.style.borderColor = "var(--accent)"; }
-    // La copia al cajón se hace en segundo plano; sumamos el molde a RUTINA cuando vuelve,
-    // y marcamos el día ORIGEN como ya guardado (persistente) con lo que devuelve el worker.
+    dia.guardado_cajon = 1;          // estado nuevo YA (un segundo toque ya ve el tilde puesto)
+    dia._cajonBusy = true;
+    pintarBotonCajon(btn, true);     // feedback instantáneo
     api("/dias/" + dia.id + "/duplicar", "POST", { como_molde: 1 }, true)
       .then((r) => {
-        if (r && r.dias) { for (const d of r.dias) RUTINA.push(d); }
-        dia.guardado_cajon = 1;  // reflejamos el estado persistido ya mismo, sin esperar un reload
-        if (rutNav.diaId === dia.id) renderRutina();  // repinta con el tilde fijo (title actualizado)
+        if (r && r.dias) { for (const d of r.dias) RUTINA.push(d); }  // sumamos el molde al cajón
+        dia._cajonBusy = false;
       })
       .catch((e) => {
-        // Si falló, volvemos el botón a como estaba (no quedó guardado).
-        if (btn) { btn.innerHTML = iconBookmark; btn.style.color = ""; btn.style.borderColor = ""; }
+        // Falló: revertimos el estado y el botón.
+        dia.guardado_cajon = 0; dia._cajonBusy = false;
+        pintarBotonCajon(btn, false);
         alert("No se pudo guardar: " + e.message);
       });
   }
 
-  // Quitar del cajón: es la mitad "destildar" del toggle. Busca el/los molde(s) que salieron de
-  // este día (por origen_dia_id) y los borra. Sin confirm() a propósito: es un toggle rápido, no
-  // un borrado explícito desde el cajón (ese sigue pidiendo confirmación aparte).
-  async function quitarDeCajon(dia, btn) {
+  // Quitar del cajón: borra el/los molde(s) que salieron de este día (por origen_dia_id).
+  // Estado optimista igual que guardar. Sin confirm(): es un toggle rápido.
+  function quitarDeCajon(dia, btn) {
     const moldes = RUTINA.filter((d) => d.es_molde && d.origen_dia_id === dia.id);
-    if (btn) { btn.innerHTML = iconBookmark; btn.style.color = ""; btn.style.borderColor = ""; }
-    dia.guardado_cajon = 0;  // optimista: destildamos ya, sin esperar la red
-    if (!moldes.length) { if (rutNav.diaId === dia.id) renderRutina(); return; }  // nada que borrar en el server
-    try {
-      for (const m of moldes) {
-        RUTINA = RUTINA.filter((d) => d.id !== m.id);
-        const r = await api("/dias/" + m.id, "DELETE", null, true);
-        aplicarOrigenDesmarcado(r && r.origen);  // por las dudas, nos autocorregimos con lo que diga el server
-      }
-      if (rutNav.diaId === dia.id) renderRutina();
-    } catch (e) {
-      alert("No se pudo quitar del cajón: " + e.message);
-      await cargarRutina();  // ante la duda, resincronizamos todo con el server
-    }
+    dia.guardado_cajon = 0;          // estado nuevo YA
+    dia._cajonBusy = true;
+    pintarBotonCajon(btn, false);    // feedback instantáneo
+    // Sacamos los moldes de RUTINA en memoria de una (así el cajón se actualiza al toque).
+    const ids = moldes.map((m) => m.id);
+    RUTINA = RUTINA.filter((d) => !ids.includes(d.id));
+    if (!ids.length) { dia._cajonBusy = false; return; }  // no había nada que borrar en el server
+    // Borramos en el server en paralelo; si algo falla, resincronizamos con el server.
+    Promise.all(ids.map((id) => api("/dias/" + id, "DELETE", null, true)))
+      .then(() => { dia._cajonBusy = false; })
+      .catch(async (e) => {
+        dia._cajonBusy = false;
+        alert("No se pudo quitar del cajón: " + e.message);
+        await cargarRutina();
+        renderRutina();
+      });
   }
 
   // Usar una sesión guardada: elegir fecha inicial y, opcional, repetir por N semanas.
