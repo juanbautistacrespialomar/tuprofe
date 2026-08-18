@@ -293,6 +293,10 @@
   .detail-meta { display: block; margin-bottom: 8px; }
   .detail-notas { background: var(--surface-2); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 10px; padding: 12px; font-size: 13.5px; color: var(--text); margin-bottom: 16px; line-height: 1.45; }
   .detail-done { font-size: 13px; color: var(--accent); text-align: center; margin-bottom: 12px; }
+  .marca-box { display: flex; align-items: center; justify-content: space-between; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+  .marca-box b { color: var(--accent); font-size: 14px; }
+  .pr-toast { position: fixed; left: 50%; bottom: calc(90px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(12px); background: var(--accent); color: var(--accent-ink); font-weight: 700; font-size: 14px; padding: 12px 18px; border-radius: 999px; box-shadow: 0 8px 24px rgba(0,0,0,.35); z-index: 999; opacity: 0; transition: opacity .22s, transform .22s; pointer-events: none; text-align: center; white-space: nowrap; }
+  .pr-toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
   .detail-back { position: absolute; top: 12px; left: 12px; z-index: 3; width: 36px; height: 36px; border-radius: 50%; background: rgba(0,0,0,.55); backdrop-filter: blur(4px); border: none; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; }
   .detail-back svg { width: 22px; height: 22px; }
 
@@ -615,6 +619,7 @@
       <div class="detail-body">
         <h3 id="det-nombre">Ejercicio</h3>
         <div class="dmat" id="det-material"></div>
+        <div id="det-marca-wrap"></div>
         <div class="detail-meta" id="det-meta"></div>
         <div id="det-notas-wrap"></div>
         <div id="det-done-wrap"></div>
@@ -667,6 +672,9 @@
     <button class="btn ghost sm" id="bloqueo-salir">Cerrar sesión</button>
   </div>
 </div>
+
+<!-- ============ TOAST (aviso de nueva marca / PR) ============ -->
+<div id="pr-toast" class="pr-toast"></div>
 
 <!-- ============ MODAL ejercicio de catálogo ============ -->
 <div class="overlay" id="ex-overlay">
@@ -827,6 +835,16 @@
     $("app-alumno").classList.toggle("active", rol === "alumno");
   }
   function msg(el, t, tipo) { el.textContent = t; el.className = "msg " + (tipo || ""); }
+  // Toast flotante para avisos puntuales (hoy: nueva marca personal). Se pisa solo si se llama de nuevo.
+  let prToastTimer = null;
+  function mostrarToast(texto) {
+    const el = $("pr-toast");
+    if (!el) return;
+    clearTimeout(prToastTimer);
+    el.textContent = texto;
+    el.classList.add("on");
+    prToastTimer = setTimeout(() => el.classList.remove("on"), 2800);
+  }
   const token = () => localStorage.getItem(TOKEN_KEY);
   const guardarToken = (t) => localStorage.setItem(TOKEN_KEY, t);
   const borrarToken = () => localStorage.removeItem(TOKEN_KEY);
@@ -1106,11 +1124,24 @@
   $("prog-cerrar").onclick = () => $("prog-overlay").classList.remove("on");
 
   let RUTINA = [];
-  async function cargarRutina() {
-    const data = await api("/alumnos/" + alumnoActual.id, "GET", null, true);
+  let RUTINA_RANGO = null; // { desde, hasta } (YYYY-MM-DD): ventana de meses actualmente cargada en RUTINA.
+  // Trae la rutina del alumno acotada a una ventana de meses alrededor de (y, m) en vez de TODO
+  // el historial. Por qué: antes esto pedía SIEMPRE el historial completo del alumno, y con meses
+  // de uso real eso crece indefinidamente — es la causa más probable de que el calendario se haya
+  // ido poniendo cada vez más lento ("antes no tardaba"). Reemplaza RUTINA entera con lo que
+  // devuelve el servidor para esa ventana (los días sin fecha y las sesiones guardadas siempre
+  // vienen completos, así que nada de eso se pierde al acotar por fecha).
+  async function cargarRutinaEnRango(y, m) {
+    const r = rangoAmplioParaMes(y, m);
+    const data = await api(`/alumnos/${alumnoActual.id}?desde=${r.desde}&hasta=${r.hasta}`, "GET", null, true);
     alumnoActual.objetivo = data.objetivo;
     alumnoActual.observaciones = data.observaciones;
     RUTINA = data.dias || [];
+    RUTINA_RANGO = r;
+  }
+  async function cargarRutina() {
+    const hoy = new Date();
+    await cargarRutinaEnRango(hoy.getFullYear(), hoy.getMonth());
     renderRutina();
   }
 
@@ -1133,12 +1164,38 @@
   const iconChevR = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>`;
 
   function calInit() { const h = new Date(); calMes = { y: h.getFullYear(), m: h.getMonth() }; }
-  function calShift(delta) {
+
+  // Cuántos meses de margen carga cada pedido al servidor alrededor del mes que se está mirando.
+  // 3 atrás / 6 adelante cubre navegación normal sin pedir nada nuevo; si el profe va más lejos
+  // (mucho para atrás o para adelante), se vuelve a pedir centrado en el mes nuevo.
+  const CAL_MESES_ATRAS = 3, CAL_MESES_ADELANTE = 6;
+  function rangoAmplioParaMes(y, m) {
+    const desdeD = new Date(y, m - CAL_MESES_ATRAS, 1);
+    const hastaD = new Date(y, m + CAL_MESES_ADELANTE + 1, 0); // día 0 del mes siguiente = último día del mes buscado
+    return {
+      desde: isoLocal(desdeD.getFullYear(), desdeD.getMonth(), desdeD.getDate()),
+      hasta: isoLocal(hastaD.getFullYear(), hastaD.getMonth(), hastaD.getDate()),
+    };
+  }
+  // ¿El mes (y, m) ya está completo dentro de la ventana cargada en RUTINA_RANGO?
+  function dentroDeRango(y, m) {
+    if (!RUTINA_RANGO) return false;
+    const primero = isoLocal(y, m, 1);
+    const ultimo = isoLocal(y, m, new Date(y, m + 1, 0).getDate());
+    return primero >= RUTINA_RANGO.desde && ultimo <= RUTINA_RANGO.hasta;
+  }
+  async function calShift(delta) {
     let { y, m } = calMes; m += delta;
     if (m < 0) { m = 11; y--; } else if (m > 11) { m = 0; y++; }
-    calMes = { y, m }; renderRutina();
+    calMes = { y, m };
+    if (!dentroDeRango(y, m)) { try { await cargarRutinaEnRango(y, m); } catch (e) { alert("No se pudo cargar ese mes: " + e.message); } }
+    renderRutina();
   }
-  function calHoy() { calInit(); renderRutina(); }
+  async function calHoy() {
+    calInit();
+    if (!dentroDeRango(calMes.y, calMes.m)) { try { await cargarRutinaEnRango(calMes.y, calMes.m); } catch (e) { alert("No se pudo cargar: " + e.message); } }
+    renderRutina();
+  }
 
   // Nombre por defecto de un día creado al tocar una fecha del calendario: "Lunes 20 de febrero"
   function nombreDiaPorFecha(iso) {
@@ -1268,10 +1325,12 @@
     const fechaTxt = esMolde
       ? '🗂️ Sesión guardada'
       : (dia.fecha ? esc(fmtFecha(dia.fecha)) + (esHoy(dia.fecha) ? ' · <span style="color:var(--accent)">hoy</span>' : '') : 'Sin fecha');
-    // Molde -> "Usar en una fecha".  Día real -> "Guardar en el cajón".
+    // Molde -> "Usar en una fecha".  Día real -> "Guardar en el cajón" (tildado y persistente
+    // si dia.guardado_cajon viene en 1, es decir, si ya se guardó como sesión alguna vez).
+    const yaGuardado = !!dia.guardado_cajon;
     const accionExtra = esMolde
       ? `<button data-dia-usar title="Usar en una fecha">${iconCal}</button>`
-      : `<button data-dia-guardar title="Guardar en el cajón">${iconBookmark}</button>`;
+      : `<button data-dia-guardar title="${yaGuardado ? 'Ya guardado en el cajón (tocá para guardar de nuevo)' : 'Guardar en el cajón'}" style="${yaGuardado ? 'color:var(--accent);border-color:var(--accent)' : ''}">${yaGuardado ? iconCheck : iconBookmark}</button>`;
     const diaBar = `<div class="dia-bar">
       <div class="dia-bar-info">${fechaTxt}</div>
       <div class="dia-bar-acts">
@@ -1394,19 +1453,24 @@
   // ============================================================
 
   // Guardar un día del calendario como sesión (lo copia como molde; el día original queda igual).
-  // Feedback visual en el propio botón: se pone en verde con un tilde por un momento.
+  // El tilde queda PERSISTENTE (dia.guardado_cajon en la base, vía columna guardado_cajon):
+  // no es solo un feedback visual que se pierde al salir y volver a entrar.
   function guardarEnCajon(dia, btn) {
-    // Feedback instantáneo: pintamos el tilde YA, sin esperar la red.
-    if (btn) {
-      btn.innerHTML = iconCheck;
-      btn.style.color = "var(--accent)";
-      btn.style.borderColor = "var(--accent)";
-      setTimeout(() => { btn.innerHTML = iconBookmark; btn.style.color = ""; btn.style.borderColor = ""; }, 1600);
-    }
-    // La copia al cajón se hace en segundo plano; sumamos el molde a RUTINA cuando vuelve.
+    // Feedback instantáneo en el botón mientras esperamos la red.
+    if (btn) { btn.innerHTML = iconCheck; btn.style.color = "var(--accent)"; btn.style.borderColor = "var(--accent)"; }
+    // La copia al cajón se hace en segundo plano; sumamos el molde a RUTINA cuando vuelve,
+    // y marcamos el día ORIGEN como ya guardado (persistente) con lo que devuelve el worker.
     api("/dias/" + dia.id + "/duplicar", "POST", { como_molde: 1 }, true)
-      .then((r) => { if (r && r.dias) { for (const d of r.dias) RUTINA.push(d); } })
-      .catch((e) => alert("No se pudo guardar: " + e.message));
+      .then((r) => {
+        if (r && r.dias) { for (const d of r.dias) RUTINA.push(d); }
+        dia.guardado_cajon = 1;  // reflejamos el estado persistido ya mismo, sin esperar un reload
+        if (rutNav.diaId === dia.id) renderRutina();  // repinta con el tilde fijo (title actualizado)
+      })
+      .catch((e) => {
+        // Si falló, volvemos el botón a como estaba (no quedó guardado).
+        if (btn) { btn.innerHTML = iconBookmark; btn.style.color = ""; btn.style.borderColor = ""; }
+        alert("No se pudo guardar: " + e.message);
+      });
   }
 
   // Usar una sesión guardada: elegir fecha inicial y, opcional, repetir por N semanas.
@@ -1737,6 +1801,7 @@
   let MI_RUTINA = [];
   let HECHOS = {};      // ejercicio_id -> última carga (para el ✓)
   let CARGAS = [];      // historial completo de cargas
+  let MEJORES_MARCAS = {}; // catalogo_id -> mejor peso histórico (para "Tu mejor marca anterior" y el aviso de PR)
   let alYo = null;      // datos del alumno (perfil)
   let alDiaSel = null;  // día seleccionado en Sesión (modo sin fechas / id de rutina)
   let alFechaSel = null; // fecha seleccionada en Sesión (modo calendario, YYYY-MM-DD)
@@ -1748,7 +1813,9 @@
     try {
       const data = await api("/mi-rutina", "GET", null, true);
       MI_RUTINA = data.dias || [];
-      await recargarCargas();
+      // Cargas y mejores marcas en paralelo: son dos consultas independientes,
+      // no hace falta esperar una para pedir la otra.
+      await Promise.all([recargarCargas(), cargarMejoresMarcas()]);
       alDiaSel = pickDiaInicial();
       alFechaSel = hoyISO(); // el calendario arranca SIEMPRE en el día de hoy
       renderSesion();
@@ -2129,6 +2196,14 @@
     detEj = ej;
     $("det-nombre").textContent = ej.nombre || "Ejercicio";
     $("det-material").textContent = ej.material ? ("Material: " + ej.material) : "";
+    // "Tu mejor marca anterior": solo tiene sentido en la vista del alumno (es su propio historial;
+    // MEJORES_MARCAS no se carga en la sesión del profe). Va antes de la tabla PLANIFICADO,
+    // así el alumno ve el objetivo a superar ANTES de cargar el peso de hoy.
+    const marcaWrap = $("det-marca-wrap");
+    const mejorMarca = MEJORES_MARCAS[ej.catalogo_id];
+    marcaWrap.innerHTML = (modo === "alumno" && mejorMarca != null)
+      ? `<div class="marca-box"><span>Tu mejor marca anterior</span><b>${esc(String(mejorMarca))} kg</b></div>`
+      : "";
     const vid = $("det-video");
     if (ej.video_id) {
       vid.className = "video-embed";
@@ -2192,10 +2267,24 @@
     if (!sets.length) return;
     const btn = $("det-accion"); btn.disabled = true;
     try {
+      // Mejor marca ANTES de guardar (para comparar contra lo recién cargado).
+      const mejorAnterior = MEJORES_MARCAS[ej.catalogo_id];
+      const pesos = sets.map((s) => s.peso).filter((p) => p != null && !isNaN(p));
+      const pesoMax = pesos.length ? Math.max(...pesos) : null;
+
       await api("/cargas", "POST", { ejercicio_id: ej.id, sets }, true);
       await recargarCargas();
       cerrarDetalle();
       renderMiRutina();
+
+      // ¿Superó su marca anterior? Avisamos con un toast y actualizamos el mapa local
+      // (así, si carga otra serie más pesada en la misma sesión, compara contra el nuevo récord).
+      if (pesoMax != null) {
+        if (mejorAnterior != null && pesoMax > mejorAnterior) {
+          mostrarToast(`💪 ¡Superaste tu marca anterior en ${ej.nombre || "este ejercicio"}! ${mejorAnterior}kg → ${pesoMax}kg`);
+        }
+        MEJORES_MARCAS[ej.catalogo_id] = mejorAnterior != null ? Math.max(mejorAnterior, pesoMax) : pesoMax;
+      }
     } catch (e) { alert(e.message); } finally { btn.disabled = false; }
   }
 

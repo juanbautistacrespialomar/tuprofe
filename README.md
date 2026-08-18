@@ -66,7 +66,7 @@ Se sirve desde **GitHub Pages** (Settings → Pages → branch `main`, root). Se
 
 **Profe:** `GET/POST /catalogo`, `PUT/DELETE /catalogo/:id`, `GET /alumnos`, `GET /alumnos/:id`, `GET /alumnos/:id/cargas`, `POST /alumnos/:id/reset-password`, `GET/POST/DELETE /invitaciones`, `POST/PUT/DELETE` de `/dias`, `/bloques`, `/ejercicios`
 
-**Alumno:** `GET /mi-rutina`, `POST /cargas`, `GET /mis-cargas`, `PUT /mi-perfil` (foto, objetivo, observaciones)
+**Alumno:** `GET /mi-rutina`, `POST /cargas`, `GET /mis-cargas`, `GET /mis-mejores-marcas`, `PUT /mi-perfil` (foto, objetivo, observaciones)
 
 **Admin:** `GET /admin/profesores`, `PUT/DELETE /admin/profesores/:id`, `POST /admin/profesores/:id/reset-password`
 
