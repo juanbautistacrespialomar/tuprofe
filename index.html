@@ -1465,21 +1465,22 @@
   //  edita/borra desde el menú que aparece al tocar un día del calendario.
   // ============================================================
 
-  // Botón "Guardar en el cajón": TOGGLE instantáneo.
-  //   - Cambiamos el estado local (dia.guardado_cajon) y repintamos AHORA MISMO, sin esperar la red.
-  //   - La llamada al server va por detrás; si falla, revertimos.
-  //   Clave: el estado se invierte ANTES de disparar la red. Así un segundo toque ya lee el valor
-  //   nuevo y hace lo contrario (no "vuelve a guardar"), aunque la primera llamada todavía no volvió.
-  //   Un flag `_cajonBusy` en el día bloquea toques mientras hay una operación en vuelo, para no
-  //   pisar dos requests encimados.
+  // ============================================================
+  //  TOGGLE "Guardar en el cajón" — instantáneo, sin bloqueos.
+  //  ------------------------------------------------------------
+  //  El botón NUNCA se traba: cada toque invierte el estado local y repinta al instante.
+  //  Por detrás, un "reconciliador" por día compara lo que el usuario QUIERE (dia.guardado_cajon)
+  //  contra lo que hay en el SERVER, y hace solo lo necesario para que coincidan. Si tocás
+  //  muchas veces rápido, se ejecuta una sola vez al final contra el estado deseado final
+  //  (guardar y desguardar seguido = no hace nada). Así nunca duplica ni se cuelga.
+  // ============================================================
   function toggleGuardarEnCajon(dia, btn) {
-    if (dia._cajonBusy) return;            // ya hay un guardar/quitar en curso para este día
-    if (dia.guardado_cajon) quitarDeCajon(dia, btn);
-    else guardarEnCajon(dia, btn);
+    dia.guardado_cajon = dia.guardado_cajon ? 0 : 1;   // invertir estado deseado, YA
+    pintarBotonCajon(btn, dia.guardado_cajon);         // feedback instantáneo, sin esperar nada
+    reconciliarCajon(dia);                              // sincroniza con el server en segundo plano
   }
 
-  // Repinta SOLO el botón del cajón según dia.guardado_cajon (sin re-render de todo el día,
-  // así es instantáneo y no “parpadea”).
+  // Repinta SOLO el botón del cajón (rápido, sin re-render del día, sin parpadeo).
   function pintarBotonCajon(btn, guardado) {
     if (!btn) return;
     btn.innerHTML = guardado ? iconCheck : iconBookmark;
@@ -1488,45 +1489,39 @@
     btn.title = guardado ? "Guardado en el cajón (tocá para quitarlo)" : "Guardar en el cajón";
   }
 
-  // Guardar un día como sesión (lo copia como molde; el día original queda igual).
-  // Estado optimista: marcamos y pintamos YA, la red va detrás.
-  function guardarEnCajon(dia, btn) {
-    dia.guardado_cajon = 1;          // estado nuevo YA (un segundo toque ya ve el tilde puesto)
-    dia._cajonBusy = true;
-    pintarBotonCajon(btn, true);     // feedback instantáneo
-    api("/dias/" + dia.id + "/duplicar", "POST", { como_molde: 1 }, true)
-      .then((r) => {
-        if (r && r.dias) { for (const d of r.dias) RUTINA.push(d); }  // sumamos el molde al cajón
-        dia._cajonBusy = false;
-      })
-      .catch((e) => {
-        // Falló: revertimos el estado y el botón.
-        dia.guardado_cajon = 0; dia._cajonBusy = false;
-        pintarBotonCajon(btn, false);
-        alert("No se pudo guardar: " + e.message);
-      });
-  }
+  // Lleva el estado del server al estado deseado (dia.guardado_cajon). Corre de a uno por día:
+  // si ya hay una reconciliación en curso, esta se marca "pendiente" y se vuelve a correr al
+  // terminar, comparando de nuevo contra el estado deseado (que pudo cambiar por más toques).
+  async function reconciliarCajon(dia) {
+    if (dia._cajonSync) { dia._cajonSyncPend = true; return; }  // ya hay una corriendo: se re-evalúa al final
+    dia._cajonSync = true;
+    try {
+      do {
+        dia._cajonSyncPend = false;
+        const deseado = dia.guardado_cajon ? 1 : 0;
+        const moldes = RUTINA.filter((d) => d.es_molde && d.origen_dia_id === dia.id);
+        const hayEnServer = moldes.length > 0;
 
-  // Quitar del cajón: borra el/los molde(s) que salieron de este día (por origen_dia_id).
-  // Estado optimista igual que guardar. Sin confirm(): es un toggle rápido.
-  function quitarDeCajon(dia, btn) {
-    const moldes = RUTINA.filter((d) => d.es_molde && d.origen_dia_id === dia.id);
-    dia.guardado_cajon = 0;          // estado nuevo YA
-    dia._cajonBusy = true;
-    pintarBotonCajon(btn, false);    // feedback instantáneo
-    // Sacamos los moldes de RUTINA en memoria de una (así el cajón se actualiza al toque).
-    const ids = moldes.map((m) => m.id);
-    RUTINA = RUTINA.filter((d) => !ids.includes(d.id));
-    if (!ids.length) { dia._cajonBusy = false; return; }  // no había nada que borrar en el server
-    // Borramos en el server en paralelo; si algo falla, resincronizamos con el server.
-    Promise.all(ids.map((id) => api("/dias/" + id, "DELETE", null, true)))
-      .then(() => { dia._cajonBusy = false; })
-      .catch(async (e) => {
-        dia._cajonBusy = false;
-        alert("No se pudo quitar del cajón: " + e.message);
-        await cargarRutina();
-        renderRutina();
-      });
+        if (deseado && !hayEnServer) {
+          // Falta la copia en el server -> crearla.
+          const r = await api("/dias/" + dia.id + "/duplicar", "POST", { como_molde: 1 }, true);
+          if (r && r.dias) for (const d of r.dias) RUTINA.push(d);
+        } else if (!deseado && hayEnServer) {
+          // Sobra la copia en el server -> borrarla.
+          const ids = moldes.map((m) => m.id);
+          RUTINA = RUTINA.filter((d) => !ids.includes(d.id));
+          await Promise.all(ids.map((id) => api("/dias/" + id, "DELETE", null, true)));
+        }
+        // si deseado === hayEnServer, ya están en sync: nada que hacer
+      } while (dia._cajonSyncPend);  // hubo más toques mientras sincronizábamos: re-evaluamos
+    } catch (e) {
+      // Algo falló: resincronizamos todo con el server para no quedar en un estado inconsistente.
+      alert("No se pudo actualizar el cajón: " + e.message);
+      await cargarRutina();
+      renderRutina();
+    } finally {
+      dia._cajonSync = false;
+    }
   }
 
   // Usar una sesión guardada: elegir fecha inicial y, opcional, repetir por N semanas.
