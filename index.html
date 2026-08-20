@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- tuprofe · v49 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
@@ -422,6 +423,19 @@
   .wstrip .wcd .mk { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
   .wstrip .wcd .mk.off { background: transparent; border: 1px solid var(--border); }
   .wstrip .wcd .mk.done { width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; color: var(--accent-ink); font-size: 10px; font-weight: 800; }
+
+  /* Días que el profe cargó sin asignarles fecha (no tienen casillero en la semana) */
+  .sfbox { margin: -6px 0 18px; }
+  .sfbox-h { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 8px; }
+  .sfbox-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .sfchip { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 2px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 8px 12px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .sfchip:active { transform: scale(.96); }
+  .sfchip.sel { border-color: var(--accent); }
+  .sfchip .sfc-n { font-size: 14px; font-weight: 600; color: var(--text); }
+  .sfchip .sfc-b { font-size: 11px; color: var(--muted); }
+  /* Botón para saltar al próximo entreno desde un día de descanso */
+  .rest-cta { margin-top: 16px; height: 44px; padding: 0 18px; border: 1px solid var(--accent); border-radius: 12px; background: rgba(196,240,0,.08); color: var(--accent); font-size: 14px; font-weight: 600; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .rest-cta:active { transform: scale(.97); }
 
   /* --- Vista Cargas --- */
   .cg-day { font-size: 12px; color: var(--muted); text-transform: capitalize; margin: 16px 0 8px; font-weight: 600; }
@@ -1860,6 +1874,7 @@
   let alDiaSel = null;  // día seleccionado en Sesión (modo sin fechas / id de rutina)
   let alFechaSel = null; // fecha seleccionada en Sesión (modo calendario, YYYY-MM-DD)
   let alBloqueSel = null; // bloque abierto (drill dentro del día); null = lista de bloques
+  let alDiaForzado = null; // id de un día "sin fecha" abierto a mano (no tiene casillero en el calendario)
 
   async function cargarMiRutina() {
     $("al-sesion").innerHTML = `<div class="empty" style="padding:40px"><p>Cargando tu rutina...</p></div>`;
@@ -1871,7 +1886,10 @@
       // no hace falta esperar una para pedir la otra.
       await Promise.all([recargarCargas(), cargarMejoresMarcas()]);
       alDiaSel = pickDiaInicial();
-      alFechaSel = hoyISO(); // el calendario arranca SIEMPRE en el día de hoy
+      alDiaForzado = null;
+      // El calendario arranca en HOY si hoy tiene día cargado; si no, en el
+      // entreno cargado más cercano (así no ves "descanso" con laburo cargado al lado).
+      alFechaSel = fechaInicialSesion();
       renderSesion();
     } catch (e) {
       $("al-sesion").innerHTML = `<div class="empty" style="padding:40px"><p>No pudimos cargar tu rutina.<br>${esc(e.message)}</p></div>`;
@@ -1923,6 +1941,55 @@
     // 3) Rutina sin fechas (días genéricos): el primero.
     return MI_RUTINA[0].id;
   }
+  // Normaliza cualquier fecha a "YYYY-MM-DD" (por si alguna vez viene con hora, ej "2026-08-20 00:00:00").
+  const diaISO = (f) => (f || "").slice(0, 10);
+  // Días que el profe realmente cargó (con al menos un bloque): a un día vacío no queremos mandar al alumno.
+  const diasConCarga = () => MI_RUTINA.filter((d) => (d.bloques || []).length);
+  // Entreno CON FECHA más cercano a una fecha base (prioriza el próximo por venir; si no hay, el más cercano hacia atrás).
+  function proximoEntreno(desdeISO) {
+    const base = new Date(diaISO(desdeISO) + "T00:00:00").getTime();
+    const conFecha = diasConCarga().filter((d) => d.fecha);
+    if (!conFecha.length) return null;
+    const futuros = conFecha.filter((d) => new Date(diaISO(d.fecha) + "T00:00:00").getTime() > base);
+    const pool = futuros.length ? futuros : conFecha;
+    return pool.slice().sort((a, b) =>
+      Math.abs(new Date(diaISO(a.fecha) + "T00:00:00") - base) -
+      Math.abs(new Date(diaISO(b.fecha) + "T00:00:00") - base)
+    )[0];
+  }
+  // Fecha en la que abrir la Sesión: hoy si hoy tiene día; si no, el entreno cargado más cercano.
+  function fechaInicialSesion() {
+    const hoy = hoyISO();
+    if (MI_RUTINA.some((d) => diaISO(d.fecha) === hoy)) return hoy;
+    const prox = proximoEntreno(hoy);
+    return prox ? diaISO(prox.fecha) : hoy;
+  }
+  // TODOS los días con esa fecha (puede haber más de uno: p.ej. un día vacío que quedó +
+  // una sesión que el profe duplicó encima). Antes esto era el bug: la tira agarraba uno
+  // y el panel otro. Ahora los tratamos como UN SOLO día lógico.
+  function diasDeFecha(iso) {
+    if (!iso) return [];
+    return MI_RUTINA.filter((d) => diaISO(d.fecha) === iso);
+  }
+  // Día lógico de una fecha: fusiona los bloques de todos los días de esa fecha en uno solo.
+  // Nombre/id salen del primero CON contenido (si hay), para no mostrar el placeholder vacío.
+  function diaMergedDeFecha(iso) {
+    const ds = diasDeFecha(iso);
+    if (!ds.length) return { id: null, nombre: cap(fmtFechaLarga(iso)), fecha: iso, bloques: [] };
+    if (ds.length === 1) return ds[0];
+    const principal = ds.find((d) => (d.bloques || []).length) || ds[0];
+    const bloques = ds.reduce((acc, d) => acc.concat(d.bloques || []), []);
+    return { id: principal.id, nombre: principal.nombre, fecha: iso, bloques };
+  }
+  // El día lógico que la Sesión está mostrando ahora mismo. Fuente ÚNICA de verdad:
+  // la usan el panel, la tira y el drill de bloques, así nunca discrepan entre sí.
+  function diaActualSesion() {
+    const modoCalendario = MI_RUTINA.length === 0 || MI_RUTINA.some((d) => d.fecha);
+    if (!modoCalendario) return findDia(MI_RUTINA, alDiaSel) || MI_RUTINA[0];
+    if (alDiaForzado != null) { const f = MI_RUTINA.find((d) => d.id === alDiaForzado); if (f) return f; }
+    if (!alFechaSel) alFechaSel = hoyISO();
+    return diaMergedDeFecha(alFechaSel);
+  }
   function chipFecha(iso) {
     const d = new Date(iso + "T00:00:00");
     return {
@@ -1949,35 +2016,25 @@
     const cont = $("al-sesion");
     if (alBloqueSel != null) return renderSesionBloque();
 
-    // Modo calendario (Lun–Dom) si hay días con fecha O si el profe todavía no cargó
-    // nada: así SIEMPRE ves hoy + la semana arriba, aunque no haya rutina.
-    const sinRutina = MI_RUTINA.length === 0;
-    const modoCalendario = sinRutina || MI_RUTINA.some((d) => d.fecha);
+    let dia = diaActualSesion();
+    alDiaSel = dia.id;
+    if (dia.fecha && alDiaForzado == null) alFechaSel = diaISO(dia.fecha);
 
-    let dia;
-    if (modoCalendario) {
-      if (!alFechaSel) alFechaSel = hoyISO();
-      const rd = MI_RUTINA.find((d) => d.fecha === alFechaSel);
-      // Si la fecha elegida no tiene rutina cargada => día virtual de descanso.
-      dia = rd || { id: null, nombre: cap(fmtFechaLarga(alFechaSel)), fecha: alFechaSel, bloques: [] };
-      alDiaSel = rd ? rd.id : null;
-    } else {
-      dia = findDia(MI_RUTINA, alDiaSel) || MI_RUTINA[0];
-      alDiaSel = dia.id;
-    }
+    // Orden fijo: encabezado del día + semana + días sin fecha (si los hay) + bloques abajo.
+    cont.innerHTML = hoyGrandeHTML(dia) + tiraHTML(dia) + sinFechaHTML() + bloquesHTML(dia);
 
-    // Orden fijo: encabezado del día + semana (posición estable arriba) + bloques abajo.
-    cont.innerHTML = hoyGrandeHTML(dia) + tiraHTML(dia) + bloquesHTML(dia);
-
-    // Selección por fecha (modo calendario): cualquier día es clickeable.
-    cont.querySelectorAll("[data-fecha]").forEach((el) => (el.onclick = () => { alFechaSel = el.dataset.fecha; alBloqueSel = null; renderSesion(); }));
+    // Selección por fecha (modo calendario): cualquier día es clickeable. Sale del modo "día forzado".
+    cont.querySelectorAll("[data-fecha]").forEach((el) => (el.onclick = () => { alDiaForzado = null; alFechaSel = el.dataset.fecha; alBloqueSel = null; renderSesion(); }));
     // Selección por día (modo sin fechas).
     cont.querySelectorAll("[data-dia]").forEach((el) => (el.onclick = () => { alDiaSel = Number(el.dataset.dia); alBloqueSel = null; renderSesion(); }));
+    // Selección de un día SIN fecha (modo calendario): lo abrimos forzado.
+    cont.querySelectorAll("[data-dia-forzado]").forEach((el) => (el.onclick = () => { alDiaForzado = Number(el.dataset.diaForzado); alBloqueSel = null; renderSesion(); }));
     cont.querySelectorAll("[data-bloque]").forEach((el) => (el.onclick = () => { alBloqueSel = Number(el.dataset.bloque); renderSesion(); }));
     // Flechas: mueven la semana ±7 días manteniendo el día de la semana elegido.
     cont.querySelectorAll("[data-week]").forEach((el) => (el.onclick = () => {
       const base = new Date((alFechaSel || hoyISO()) + "T00:00:00");
       base.setDate(base.getDate() + (el.dataset.week === "prev" ? -7 : 7));
+      alDiaForzado = null;
       alFechaSel = isoDe(base);
       alBloqueSel = null;
       renderSesion();
@@ -2046,16 +2103,17 @@
     const baseISO = alFechaSel || dia.fecha || hoyISO();
     const lun = lunesDe(baseISO);
     const hoyK = hoyISO();
-    const porFecha = {}; MI_RUTINA.forEach((d) => { if (d.fecha) porFecha[d.fecha] = d; });
     let cols = "";
     for (let i = 0; i < 7; i++) {
       const dd = new Date(lun); dd.setDate(lun.getDate() + i);
-      const key = isoDe(dd), rd = porFecha[key];
-      const c = rd ? contarEj(rd, HECHOS) : { total: 0, done: 0 };
+      const key = isoDe(dd);
+      const rd = diaMergedDeFecha(key);          // día LÓGICO: fusiona todos los de esa fecha
+      const c = contarEj(rd, HECHOS);
+      const hayContenido = c.total > 0;
       // 'done' = entrenamiento completo · 'train' = tiene bloques · 'rest' = descanso
-      const estado = (!rd || c.total === 0) ? "rest" : (c.done >= c.total ? "done" : "train");
+      const estado = !hayContenido ? "rest" : (c.done >= c.total ? "done" : "train");
       const cls = ["wcol"];
-      if (rd && c.total > 0) cls.push("train"); // hay algo cargado ese día
+      if (hayContenido) cls.push("train"); // hay algo cargado ese día
       if (key === alFechaSel) cls.push("sel");  // día seleccionado
       if (key === hoyK) cls.push("today");      // día de hoy
       const dow = dd.toLocaleDateString("es-AR", { weekday: "short" }).replace(".", "");
@@ -2079,9 +2137,34 @@
     return `<div class="wstrip"><div class="ws-label">Tus días</div><div class="ws-row">${cols}</div></div>`;
   }
 
+  // Días que el profe cargó SIN asignarles fecha: en modo calendario no tienen
+  // casillero en ninguna semana, así que quedarían invisibles. Los mostramos acá
+  // para que el alumno igual los pueda abrir (mismo criterio que el guardrail del profe).
+  function sinFechaHTML() {
+    if (!MI_RUTINA.some((d) => d.fecha)) return ""; // modo sin-fechas: la tira ya los muestra a todos
+    const sf = MI_RUTINA.filter((d) => !d.fecha && (d.bloques || []).length);
+    if (!sf.length) return "";
+    const chips = sf.map((d) => {
+      const sel = d.id === alDiaForzado ? " sel" : "";
+      const { total, done } = contarBloques(d);
+      return `<button class="sfchip${sel}" data-dia-forzado="${d.id}"><span class="sfc-n">${esc(d.nombre)}</span><span class="sfc-b">${done}/${total} bloque${total !== 1 ? "s" : ""}</span></button>`;
+    }).join("");
+    return `<div class="sfbox"><div class="sfbox-h">Días sin fecha asignada</div><div class="sfbox-row">${chips}</div></div>`;
+  }
+
   function bloquesHTML(dia) {
     const bloques = dia.bloques || [];
-    if (!bloques.length) return `<div class="empty" style="padding:34px 20px"><p>Día de descanso.<br>No hay bloques cargados para este día.</p></div>`;
+    if (!bloques.length) {
+      // Callejón sin salida no: si hay un entreno cargado en otro día, ofrecemos saltar a él.
+      const prox = proximoEntreno(dia.fecha || hoyISO());
+      let cta = "";
+      if (prox && diaISO(prox.fecha) !== diaISO(dia.fecha)) {
+        const c = chipFecha(diaISO(prox.fecha));
+        const cuando = esHoy(diaISO(prox.fecha)) ? "hoy" : `${c.dow} ${c.num}`;
+        cta = `<button class="rest-cta" data-fecha="${diaISO(prox.fecha)}">Ver tu próximo entreno · ${esc(cuando)}</button>`;
+      }
+      return `<div class="empty" style="padding:34px 20px"><p>Día de descanso.<br>No hay bloques cargados para este día.</p>${cta}</div>`;
+    }
     const pal = ['#c4f000', '#33c4e8', '#9d7bff', '#ffa31a', '#ff5d5d'];
     return bloques.map((b, i) => {
       const { total, done } = contarEj(b, HECHOS);
@@ -2097,7 +2180,7 @@
 
   // Drill: ejercicios de un bloque
   function renderSesionBloque() {
-    const dia = findDia(MI_RUTINA, alDiaSel);
+    const dia = diaActualSesion();
     const bloque = findBloque(dia, alBloqueSel);
     if (!bloque) { alBloqueSel = null; return renderSesion(); }
     const cont = $("al-sesion");
