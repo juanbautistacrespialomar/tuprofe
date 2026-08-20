@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- tuprofe · v49 -->
+<!-- tuprofe · v50 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
@@ -2375,9 +2375,9 @@
     if (plan.length) {
       const filas = plan.map((s) => {
         const set = done && done.sets ? done.sets[s.numero] : null;
-        const kgVal = set && set.peso != null ? set.peso : "";
+        const kgVal = set && set.peso != null ? String(set.peso).replace(".", ",") : "";
         const kgCell = modo === "alumno"
-          ? `<input type="number" class="plkg" data-serie="${s.numero}" inputmode="decimal" step="0.5" placeholder="—" value="${kgVal}" />`
+          ? `<input type="text" class="plkg" data-serie="${s.numero}" inputmode="decimal" enterkeyhint="done" placeholder="—" value="${kgVal}" oninput="this.value=this.value.replace(/[^0-9.,]/g,'')" />`
           : `<span class="plkg-ro">${set && set.peso != null ? esc(String(set.peso)) + "kg" : "—"}</span>`;
         return `<tr><td class="pl-n">${s.numero}</td><td>${s.reps ? esc(s.reps) : "—"}</td><td>${s.pausa ? esc(s.pausa) : "—"}</td><td>${kgCell}</td></tr>`;
       }).join("");
@@ -2406,7 +2406,10 @@
     const inputs = document.querySelectorAll("#det-meta .plkg");
     const sets = [];
     inputs.forEach((el) => {
-      const peso = el.value !== "" ? Number(el.value) : null;
+      // Aceptamos coma (teclado es-AR) o punto: normalizamos antes de Number().
+      const raw = (el.value || "").trim().replace(",", ".");
+      const num = raw !== "" ? Number(raw) : null;
+      const peso = num != null && !isNaN(num) ? num : null;
       sets.push({ serie: Number(el.dataset.serie), peso, completado: true });
     });
     if (!sets.length) return;
