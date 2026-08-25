@@ -443,6 +443,30 @@
   .cg-item .cg-n { flex: 1; min-width: 0; font-size: 14px; font-weight: 500; }
   .cg-item .cg-v { font-family: "Anton", sans-serif; font-size: 18px; color: var(--accent); }
   .cg-item .cg-r { font-size: 12px; color: var(--muted); margin-top: 1px; }
+  /* ===== Progreso del profe: tarjetas por ejercicio (acordeón) ===== */
+  .ej-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 8px; overflow: hidden; cursor: pointer; }
+  .ej-head { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
+  .ej-main { flex: 1; min-width: 0; }
+  .ej-nombre { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .ej-sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .ej-sub b { color: var(--text); font-weight: 600; }
+  .ej-side { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; }
+  .spark { width: 72px; height: 26px; display: block; }
+  .ej-pr { font-family: "Anton", sans-serif; font-size: 13px; color: var(--accent); letter-spacing: .3px; }
+  .ej-chev { width: 18px; height: 18px; stroke: var(--muted); flex-shrink: 0; transition: transform .2s; }
+  .ej-card.open .ej-chev { transform: rotate(180deg); }
+  .ej-hist { display: none; padding: 0 14px 12px; border-top: 1px solid var(--border); }
+  .ej-card.open .ej-hist { display: block; }
+  .ej-hist-t { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin: 10px 0 4px; }
+  .ph-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 7px 0; font-size: 13px; border-bottom: 1px dashed var(--border); }
+  .ph-row:last-child { border-bottom: none; }
+  .ph-f { color: var(--muted); flex-shrink: 0; }
+  .ph-k { font-weight: 500; text-align: right; }
+  .ph-pr { background: var(--accent); color: var(--accent-ink); font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 4px; letter-spacing: .3px; }
+  .tr { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 5px; margin-left: 4px; white-space: nowrap; }
+  .tr.up { color: var(--accent); background: rgba(196,240,0,.1); }
+  .tr.down { color: var(--danger); background: rgba(255,93,93,.1); }
+  .tr.eq, .tr.nueva { color: var(--muted); background: var(--surface-2); }
 
   /* --- Vista Perfil --- */
   .pf-card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 22px; text-align: center; margin-bottom: 18px; }
@@ -573,6 +597,7 @@
       <div class="tabview" id="tv-alumnos">
         <div class="toolbar"><button class="btn sm" id="al-invitar">+ Invitar alumno</button></div>
         <div id="al-pendientes"></div>
+        <div class="search" id="al-buscar-wrap" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input type="text" id="al-buscar" placeholder="Buscar alumno..." /></div>
         <div id="al-lista"></div>
       </div>
     </div>
@@ -966,11 +991,40 @@
     cp.querySelectorAll("[data-copiar]").forEach((b) => (b.onclick = () => copiarTexto(linkInvitacion(b.dataset.copiar), b)));
     cp.querySelectorAll("[data-cancelar]").forEach((b) => (b.onclick = async () => { if (!confirm("¿Cancelar esta invitación? El link quedará inválido.")) return; await api("/invitaciones/" + b.dataset.cancelar, "DELETE", null, true); cargarAlumnos(); }));
 
-    // Alumnos registrados
-    const alumnos = await api("/alumnos", "GET", null, true);
+    // Alumnos registrados: los cacheamos y delegamos el pintado en renderListaAlumnos,
+    // así el buscador filtra en memoria sin volver a pegarle al servidor en cada tecla.
+    HAY_PENDIENTES = pend.length > 0;
+    ALUMNOS_PROF = await api("/alumnos", "GET", null, true);
+    renderListaAlumnos();
+  }
+
+  // Cache de alumnos + estado de invitaciones, para el buscador.
+  let ALUMNOS_PROF = [];
+  let HAY_PENDIENTES = false;
+  // Normaliza para buscar sin importar mayúsculas ni tildes (María == maria, Muñoz == munoz).
+  const normaliza = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  function itemAlumnoHTML(a) {
+    return `<div class="ex click" data-alumno="${a.id}"><div class="thumb ph" style="width:44px;height:44px;border-radius:50%"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div><div class="info"><div class="n">${esc(a.nombre)}</div><div class="m">${edadDesde(a.fecha_nac) != null ? edadDesde(a.fecha_nac) + " años" : esc(a.objetivo || "Sin datos")}</div></div><div class="acts"><button class="reset-al" data-reset-alumno="${a.id}" title="Resetear contraseña"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M17 6l2 2M15 8l2 2"/></svg></button><button class="del-al" data-del-alumno="${a.id}" title="Borrar alumno"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button></div></div>`;
+  }
+  function renderListaAlumnos() {
     const cont = $("al-lista");
-    if (alumnos.length === 0) { cont.innerHTML = pend.length ? "" : `<div class="empty"><p>Todavía no tenés alumnos.<br>Tocá "Invitar alumno" para sumar el primero.</p></div>`; return; }
-    cont.innerHTML = `<div style="font-size:12px;color:var(--muted);margin:16px 0 8px">Tus alumnos (${alumnos.length})</div>` + alumnos.map((a) => `<div class="ex click" data-alumno="${a.id}"><div class="thumb ph" style="width:44px;height:44px;border-radius:50%"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div><div class="info"><div class="n">${esc(a.nombre)}</div><div class="m">${edadDesde(a.fecha_nac) != null ? edadDesde(a.fecha_nac) + " años" : esc(a.objetivo || "Sin datos")}</div></div><div class="acts"><button class="reset-al" data-reset-alumno="${a.id}" title="Resetear contraseña"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M17 6l2 2M15 8l2 2"/></svg></button><button class="del-al" data-del-alumno="${a.id}" title="Borrar alumno"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button></div></div>`).join("");
+    const wrap = $("al-buscar-wrap");
+    const total = ALUMNOS_PROF.length;
+    // El buscador solo aporta con varios alumnos; con pocos, ocupa lugar al pedo.
+    if (wrap) wrap.style.display = total > 3 ? "" : "none";
+    if (total === 0) {
+      // Si hay invitaciones pendientes no metemos el cartel de "vacío" (ya se ven arriba).
+      cont.innerHTML = HAY_PENDIENTES ? "" : `<div class="empty"><p>Todavía no tenés alumnos.<br>Tocá "Invitar alumno" para sumar el primero.</p></div>`;
+      return;
+    }
+    const q = normaliza(($("al-buscar") && $("al-buscar").value) || "");
+    const lista = q ? ALUMNOS_PROF.filter((a) => normaliza(a.nombre).includes(q)) : ALUMNOS_PROF;
+    const encabezado = `<div style="font-size:12px;color:var(--muted);margin:16px 0 8px">Tus alumnos (${q ? lista.length + " de " + total : total})</div>`;
+    if (!lista.length) {
+      cont.innerHTML = encabezado + `<div class="empty"><p>Ningún alumno coincide con la búsqueda.</p></div>`;
+      return;
+    }
+    cont.innerHTML = encabezado + lista.map(itemAlumnoHTML).join("");
     cont.querySelectorAll("[data-alumno]").forEach((el) => (el.onclick = () => abrirAlumno(Number(el.dataset.alumno), el.querySelector(".n").textContent)));
     cont.querySelectorAll("[data-del-alumno]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); borrarAlumno(Number(b.dataset.delAlumno), b.closest("[data-alumno]").querySelector(".n").textContent); }));
     cont.querySelectorAll("[data-reset-alumno]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); resetAlumno(Number(b.dataset.resetAlumno), b.closest("[data-alumno]").querySelector(".n").textContent); }));
@@ -980,6 +1034,8 @@
     try { await api("/alumnos/" + id, "DELETE", null, true); cargarAlumnos(); }
     catch (e) { alert("No se pudo borrar: " + e.message); }
   }
+  // Buscador de alumnos: filtra en memoria sobre la lista ya cargada (sin request por tecla).
+  if ($("al-buscar")) $("al-buscar").oninput = () => renderListaAlumnos();
   // Modal invitar
   $("al-invitar").onclick = () => { $("inv-nota").value = ""; $("inv-overlay").classList.add("on"); $("inv-nota").focus(); };
   $("inv-cancelar").onclick = () => $("inv-overlay").classList.remove("on");
@@ -1132,15 +1188,102 @@
       cargas.forEach((c) => { if (c.peso != null) conPeso.add(c.ejercicio_id + "|" + dia(c)); });
       const cargasVisibles = cargas.filter((c) => conPeso.has(c.ejercicio_id + "|" + dia(c)));
       if (!cargasVisibles.length) { $("prog-lista").innerHTML = `<div class="empty"><p>${esc(alumnoActual.nombre)} todavía no registró ninguna carga.</p></div>`; return; }
-      $("prog-lista").innerHTML = cargasVisibles.map((c) => {
-        const dato = [c.peso != null ? c.peso + " kg" : "", c.reps_hechas ? c.reps_hechas + " reps" : ""].filter(Boolean).join(" · ");
-        const hecho = c.completado ? ` · <span style="color:var(--accent)">✓ hecho</span>` : "";
-        const notas = c.notas ? `<div class="m" style="margin-top:3px;font-style:italic">"${esc(c.notas)}"</div>` : "";
-        return `<div class="ex"><div class="info"><div class="n">${esc(c.ejercicio)}</div><div class="m">${fechaCorta(c.fecha)}${dato ? " · " + esc(dato) : ""}${hecho}</div>${notas}</div></div>`;
-      }).join("");
+      $("prog-lista").innerHTML = renderProgresoPorEjercicio(cargasVisibles);
+      // Acordeón: al tocar la tarjeta se despliega/pliega el historial de ese ejercicio.
+      $("prog-lista").querySelectorAll("[data-ej-card]").forEach((el) => {
+        el.onclick = () => el.classList.toggle("open");
+      });
     } catch (e) {
       $("prog-lista").innerHTML = `<div class="empty"><p>${esc(e.message)}</p></div>`;
     }
+  }
+
+  // Mini-gráfico de evolución (sin librerías): una polyline SVG con los pesos por sesión.
+  // Se estira al ancho del contenedor; el último punto va marcado con un círculo.
+  function sparkline(vals) {
+    if (!vals || vals.length < 2) return "";
+    const w = 100, h = 30, pad = 4;
+    const min = Math.min(...vals), max = Math.max(...vals), rng = (max - min) || 1;
+    const step = (w - pad * 2) / (vals.length - 1);
+    const y = (v) => (h - pad) - ((v - min) / rng) * (h - pad * 2);
+    const pts = vals.map((v, i) => `${(pad + i * step).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+    const lx = pad + (vals.length - 1) * step, ly = y(vals[vals.length - 1]);
+    return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="2.8" fill="var(--accent)"/></svg>`;
+  }
+  // Flecha de tendencia: compara la última sesión contra la anterior.
+  function badgeTendencia(ult, prev) {
+    if (prev == null) return `<span class="tr nueva">nuevo</span>`;
+    const d = Math.round((ult - prev) * 100) / 100;
+    if (d > 0) return `<span class="tr up">▲ ${d}kg</span>`;
+    if (d < 0) return `<span class="tr down">▼ ${Math.abs(d)}kg</span>`;
+    return `<span class="tr eq">= igual</span>`;
+  }
+  // Resumen de kg de una sesión: "10kg ×3" si son todos iguales, "8·10·10kg" si varían.
+  function resumenKg(pesos) {
+    if (!pesos.length) return "—";
+    const same = pesos.every((p) => p === pesos[0]);
+    return same ? `${pesos[0]}kg${pesos.length > 1 ? " ×" + pesos.length : ""}` : pesos.join("·") + "kg";
+  }
+  const fechaDia = (d) => { const p = (d || "").split("-"); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0].slice(2)}` : d; };
+
+  // Arma la vista de progreso AGRUPADA POR EJERCICIO (no por fecha).
+  // Agrupo por catalogo_id para que la marca "viaje" entre semanas aunque el profe reutilice el día
+  // (cada reutilización crea una fila nueva en `ejercicios`, pero el catalogo_id es el mismo).
+  // Si por alguna migración vieja no viene catalogo_id, caigo al nombre del ejercicio.
+  function renderProgresoPorEjercicio(cargas) {
+    const keyEj = (c) => (c.catalogo_id != null ? "c" + c.catalogo_id : "n:" + (c.ejercicio || ""));
+    const porEj = {};
+    cargas.forEach((c) => {
+      const k = keyEj(c);
+      const g = (porEj[k] = porEj[k] || { nombre: c.ejercicio, dias: {} });
+      const d = (c.fecha || "").slice(0, 10);
+      (g.dias[d] = g.dias[d] || []).push(c);
+    });
+    // Para cada ejercicio armo sus sesiones (una por día) en orden cronológico.
+    const ejercicios = Object.keys(porEj).map((k) => {
+      const g = porEj[k];
+      const sesiones = Object.keys(g.dias).sort().map((d) => {
+        const sets = g.dias[d].slice().sort((a, b) => (a.serie || 0) - (b.serie || 0));
+        const pesos = sets.map((s) => s.peso).filter((p) => p != null);
+        return { fecha: d, sets, pesos, top: pesos.length ? Math.max(...pesos) : null };
+      }).filter((s) => s.top != null);
+      if (!sesiones.length) return null;
+      const tops = sesiones.map((s) => s.top);
+      return {
+        nombre: g.nombre,
+        sesiones,
+        pr: Math.max(...tops),
+        ultima: sesiones[sesiones.length - 1],
+        previoTop: sesiones.length > 1 ? sesiones[sesiones.length - 2].top : null,
+      };
+    }).filter(Boolean);
+    // Orden: primero los que entrenó más recientemente (lo que está "en juego" ahora arriba).
+    ejercicios.sort((a, b) => (a.ultima.fecha < b.ultima.fecha ? 1 : -1));
+
+    return ejercicios.map((e) => {
+      const tops = e.sesiones.map((s) => s.top);
+      const esPR = e.ultima.top >= e.pr; // ¿la última sesión igualó o superó su récord?
+      // Historial desplegable: de la sesión más nueva a la más vieja.
+      const hist = e.sesiones.slice().reverse().map((s) => {
+        const reps = s.sets.map((x) => x.reps_hechas).filter(Boolean).join("/");
+        const marca = s.top >= e.pr ? ` <span class="ph-pr">PR</span>` : "";
+        return `<div class="ph-row"><span class="ph-f">${fechaDia(s.fecha)}</span><span class="ph-k">${resumenKg(s.pesos)}${reps ? ` · ${esc(reps)} reps` : ""}${marca}</span></div>`;
+      }).join("");
+      return `<div class="ej-card" data-ej-card>
+        <div class="ej-head">
+          <div class="ej-main">
+            <div class="ej-nombre">${esc(e.nombre)}${esPR ? ` <span class="ph-pr">PR</span>` : ""}</div>
+            <div class="ej-sub">Última: <b>${resumenKg(e.ultima.pesos)}</b> · ${fechaDia(e.ultima.fecha)} ${badgeTendencia(e.ultima.top, e.previoTop)}</div>
+          </div>
+          <div class="ej-side">
+            ${sparkline(tops)}
+            <div class="ej-pr">PR ${e.pr}kg</div>
+          </div>
+          <svg class="ej-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="ej-hist"><div class="ej-hist-t">Historial (${e.sesiones.length} ${e.sesiones.length === 1 ? "sesión" : "sesiones"})</div>${hist}</div>
+      </div>`;
+    }).join("");
   }
   $("rut-progreso").onclick = abrirProgreso;
   $("prog-cerrar").onclick = () => $("prog-overlay").classList.remove("on");
