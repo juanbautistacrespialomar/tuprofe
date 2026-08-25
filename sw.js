@@ -8,7 +8,10 @@
 //
 // Para publicar: subí el número de CACHE (v23 -> v24 -> ...).
 
-const CACHE = "tuprofe-v56";
+const CACHE = "tuprofe-v58";
+// Caché SEPARADO para las miniaturas de YouTube. Persiste entre versiones (no se
+// borra al actualizar), así lo que el alumno vio con internet lo sigue viendo offline.
+const THUMBS = "tuprofe-thumbs";
 const SHELL = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", (e) => {
@@ -23,15 +26,40 @@ self.addEventListener("message", (e) => {
 self.addEventListener("activate", (e) => {
   e.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
+      // Borramos versiones viejas del shell, pero PRESERVAMOS el caché de miniaturas.
+      Promise.all(keys.filter((k) => k !== CACHE && k !== THUMBS).map((k) => caches.delete(k)))
     )
   );
   self.clients.claim();
 });
 
+// ¿Es una miniatura de YouTube? (la imagen del ejercicio, no el video)
+function esMiniatura(url) {
+  return url.hostname === "img.youtube.com" || url.hostname === "i.ytimg.com";
+}
+
 self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
   if (url.hostname.endsWith("workers.dev")) return; // API siempre a la red
+
+  // Miniaturas: cache-first con guardado. La primera vez que se ven CON internet
+  // quedan guardadas; después se muestran aunque no haya conexión.
+  // (El video reproducible en sí NO se puede cachear: es un stream protegido de YouTube.)
+  if (esMiniatura(url)) {
+    e.respondWith(
+      caches.match(e.request).then((cached) => {
+        if (cached) return cached;
+        return fetch(e.request)
+          .then((res) => {
+            const copia = res.clone();
+            caches.open(THUMBS).then((c) => c.put(e.request, copia));
+            return res;
+          })
+          .catch(() => cached || Response.error());  // sin red y sin caché: el <img> queda vacío, no rompe
+      })
+    );
+    return;
+  }
 
   const esDoc = e.request.mode === "navigate" || e.request.destination === "document";
   if (esDoc) {

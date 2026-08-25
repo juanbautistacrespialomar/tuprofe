@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- tuprofe · v56 -->
+<!-- tuprofe · v58 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
@@ -543,9 +543,25 @@
   .plan-tbl td { padding: 10px 3px; border-top: 1px solid var(--border); font-size: 14px; }
   .plan-tbl th { padding: 4px 3px; }
   .plan-tbl .pl-n { font-family: "Anton", sans-serif; color: var(--accent); }
-  .plan-tbl .plkg, .plan-tbl .plrpe { width: 100%; min-width: 44px; text-align: center; padding: 8px 4px; box-sizing: border-box; }
+  .plan-tbl .plkg { width: 100%; min-width: 48px; text-align: center; padding: 8px 4px; box-sizing: border-box; }
   .plan-tbl .pl-obj { color: var(--accent); font-size: 13px; white-space: nowrap; }
   .plan-tbl .plkg-ro { color: var(--text); }
+  /* Carga percibida (escala 1-10) del alumno */
+  .cp-wrap { margin: 6px 0 14px; }
+  .cp-label { font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 9px; }
+  .cp-scale { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; }
+  .cp-btn { aspect-ratio: 1; min-width: 0; padding: 0; border: 1px solid var(--border); background: var(--surface-2); color: var(--muted); border-radius: 9px; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .cp-btn.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; }
+  .cp-ro { display: flex; align-items: center; justify-content: space-between; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin: 6px 0 12px; font-size: 13px; }
+  .cp-ro b { color: var(--accent); font-size: 16px; }
+  .rpe-obj-chip { font-size: 10px; font-weight: 400; color: var(--muted); text-transform: none; letter-spacing: 0; margin-left: 6px; }
+  /* Nota del día (alumno -> profe) */
+  .notadia { margin-top: 20px; }
+  .notadia-label { font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 9px; }
+  .notadia textarea { width: 100%; min-height: 96px; height: auto; resize: vertical; padding: 12px 14px; line-height: 1.5; }
+  .notadia .btn { margin-top: 10px; }
+  .notadia-ro { margin-top: 20px; }
+  .notadia-ro .detail-notas { white-space: pre-wrap; }
 </style>
 </head>
 <body>
@@ -1598,8 +1614,11 @@
         ${chevron}
       </div>`;
     }).join("");
+    const notaRO = (!esMolde && dia.nota_alumno)
+      ? `<div class="notadia-ro"><div class="notadia-label">Nota del alumno</div><div class="detail-notas">${esc(dia.nota_alumno)}</div></div>`
+      : "";
     cont.innerHTML = diaBar + (dia.bloques && dia.bloques.length ? cards : `<div class="empty"><p>Este dia no tiene bloques.<br>Agrega el primero.</p></div>`) +
-      `<button class="btn sm" id="rut-add" style="margin-top:6px">+ Agregar bloque</button>`;
+      `<button class="btn sm" id="rut-add" style="margin-top:6px">+ Agregar bloque</button>` + notaRO;
     // Handlers de la barra del día
     const be = cont.querySelector("[data-dia-edit]"); if (be) be.onclick = () => abrirDia("editar", dia);
     const bd = cont.querySelector("[data-dia-del]"); if (bd) bd.onclick = () => borrarNodo("dias", dia.id, esMolde ? "¿Borrar esta sesión guardada?" : "Borrar el dia completo?");
@@ -2384,7 +2403,26 @@
     if (dia.fecha && alDiaForzado == null) alFechaSel = diaISO(dia.fecha);
 
     // Orden fijo: encabezado del día + semana + días sin fecha (si los hay) + bloques abajo.
-    cont.innerHTML = hoyGrandeHTML(dia) + tiraHTML(dia) + sinFechaHTML() + bloquesHTML(dia);
+    cont.innerHTML = hoyGrandeHTML(dia) + tiraHTML(dia) + sinFechaHTML() + bloquesHTML(dia) + notaDiaHTML(dia);
+
+    // Nota para el entrenador (una por día). Se habilita el botón solo si cambió el texto.
+    const ta = cont.querySelector("#notadia-txt");
+    const sv = cont.querySelector("#notadia-save");
+    if (ta && sv) {
+      const orig = dia.nota_alumno || "";
+      const refrescar = () => { sv.disabled = (ta.value === orig); };
+      ta.oninput = refrescar; refrescar();
+      sv.onclick = async () => {
+        sv.disabled = true; const t = sv.textContent; sv.textContent = "Guardando...";
+        try {
+          const val = ta.value.trim();
+          await api("/mi-dia/" + dia.id + "/nota", "PUT", { nota: val || null }, true);
+          dia.nota_alumno = val;
+          sv.textContent = "Guardada ✓";
+          setTimeout(() => { const b = cont.querySelector("#notadia-save"); if (b) { b.textContent = "Guardar nota"; b.disabled = true; } }, 1500);
+        } catch (e) { alert("No se pudo guardar la nota: " + e.message); sv.textContent = t; sv.disabled = false; }
+      };
+    }
 
     // Selección por fecha (modo calendario): cualquier día es clickeable. Sale del modo "día forzado".
     cont.querySelectorAll("[data-fecha]").forEach((el) => (el.onclick = () => { alDiaForzado = null; alFechaSel = el.dataset.fecha; alBloqueSel = null; renderSesion(); }));
@@ -2515,6 +2553,16 @@
     return `<div class="sfbox"><div class="sfbox-h">Días sin fecha asignada</div><div class="sfbox-row">${chips}</div></div>`;
   }
 
+  // Nota para el entrenador (una por día de entrenamiento). Solo en días con bloques.
+  function notaDiaHTML(dia) {
+    if (!dia || !(dia.bloques || []).length) return "";  // en descanso no pedimos nota
+    const val = dia.nota_alumno || "";
+    return `<div class="notadia">
+      <div class="notadia-label">Nota para el entrenador</div>
+      <textarea id="notadia-txt" placeholder="¿Cómo te sentiste? ¿Algo para comentar?">${esc(val)}</textarea>
+      <button class="btn" id="notadia-save" disabled>Guardar nota</button>
+    </div>`;
+  }
   function bloquesHTML(dia) {
     const bloques = dia.bloques || [];
     if (!bloques.length) {
@@ -2747,51 +2795,70 @@
     const done = HECHOS[ej.id];
     const pideCarga = Number(ej.registrar_carga) !== 0;   // el profe puede apagar el registro por ejercicio
     const hayObjetivo = plan.some((s) => s.peso !== "" && s.peso != null);
+    // Carga percibida REGISTRADA (una por ejercicio): tomamos el rpe de cualquier serie que lo tenga.
+    const rpeHecho = done && done.sets ? (Object.values(done.sets).find((x) => x && x.rpe != null) || {}).rpe : null;
+    // RPE OBJETIVO del profe (todas las series comparten el mismo).
+    const rpeObjetivo = (plan.find((s) => s.rpe) || {}).rpe || null;
     if (plan.length) {
       const cols = ["#", "Reps"];
       if (hayObjetivo) cols.push("Obj");
-      if (pideCarga) { cols.push("Kg"); cols.push("RPE"); } else { cols.push("Pausa"); }
+      cols.push(pideCarga ? "Kg" : "Pausa");
       const thead = cols.map((c) => `<th>${c}</th>`).join("");
       const filas = plan.map((s) => {
         const set = done && done.sets ? done.sets[s.numero] : null;
         const kgVal = set && set.peso != null ? String(set.peso).replace(".", ",") : "";
-        const rpeVal = set && set.rpe != null ? esc(String(set.rpe)) : "";
         let tds = `<td class="pl-n">${s.numero}</td><td>${s.reps ? esc(s.reps) : "—"}</td>`;
         if (hayObjetivo) tds += `<td class="pl-obj">${(s.peso !== "" && s.peso != null) ? esc(String(s.peso)) + "kg" : "—"}</td>`;
         if (pideCarga) {
-          if (modo === "alumno") {
-            tds += `<td><input type="text" class="plkg" data-serie="${s.numero}" inputmode="decimal" enterkeyhint="done" placeholder="—" value="${kgVal}" oninput="this.value=this.value.replace(/[^0-9.,]/g,'')" /></td>`;
-            tds += `<td><input type="text" class="plrpe" data-serie="${s.numero}" inputmode="decimal" placeholder="—" value="${rpeVal}" oninput="this.value=this.value.replace(/[^0-9.,-]/g,'')" /></td>`;
-          } else {
-            tds += `<td><span class="plkg-ro">${set && set.peso != null ? esc(String(set.peso)) + "kg" : "—"}</span></td>`;
-            tds += `<td><span class="plkg-ro">${set && set.rpe != null ? esc(String(set.rpe)) : "—"}</span></td>`;
-          }
+          tds += (modo === "alumno")
+            ? `<td><input type="text" class="plkg" data-serie="${s.numero}" inputmode="decimal" enterkeyhint="done" placeholder="—" value="${kgVal}" oninput="this.value=this.value.replace(/[^0-9.,]/g,'')" /></td>`
+            : `<td><span class="plkg-ro">${set && set.peso != null ? esc(String(set.peso)) + "kg" : "—"}</span></td>`;
         } else {
           tds += `<td>${s.pausa ? esc(s.pausa) : "—"}</td>`;
         }
         return `<tr>${tds}</tr>`;
       }).join("");
-      $("det-meta").innerHTML = `<div class="plan-card"><div class="plan-h">Planificado</div><table class="plan-tbl"><thead><tr>${thead}</tr></thead><tbody>${filas}</tbody></table></div>`;
+      const objChip = rpeObjetivo ? `<span class="rpe-obj-chip">RPE objetivo: ${esc(String(rpeObjetivo))}</span>` : "";
+      $("det-meta").innerHTML = `<div class="plan-card"><div class="plan-h">Planificado ${objChip}</div><table class="plan-tbl"><thead><tr>${thead}</tr></thead><tbody>${filas}</tbody></table></div>`;
     } else {
       $("det-meta").innerHTML = "";
     }
     $("det-notas-wrap").innerHTML = ej.notas ? `<div class="detail-notas">${esc(ej.notas)}</div>` : "";
     if (modo === "alumno") {
-      $("det-done-wrap").innerHTML = "";
       if (pideCarga) {
+        // Escala 1-10 de carga percibida (una por ejercicio), con el valor ya registrado marcado.
+        renderCargaPercibida("det-done-wrap", rpeHecho);
         $("det-accion").textContent = done ? "Actualizar carga" : "Guardar carga";
         $("det-accion").onclick = () => guardarCargaSeries(ej);
       } else {
-        // Sin registro de carga: el alumno solo marca la sesión como hecha.
+        $("det-done-wrap").innerHTML = "";
+        cpSeleccionado = null;
         $("det-accion").textContent = (done && done.completado) ? "Hecho ✓" : "Marcar como hecho";
         $("det-accion").onclick = () => marcarHechoSinCarga(ej);
       }
     } else {
-      $("det-done-wrap").innerHTML = "";
+      // Modo profe: muestra la carga percibida que registró el alumno (solo lectura).
+      $("det-done-wrap").innerHTML = rpeHecho != null
+        ? `<div class="cp-ro"><span>Carga percibida del alumno</span><b>${esc(String(rpeHecho))}/10</b></div>`
+        : "";
       $("det-accion").textContent = "Editar ejercicio";
       $("det-accion").onclick = () => { cerrarDetalle(); abrirEdej(ej); };
     }
     $("det-overlay").classList.add("on");
+  }
+  // Escala 1-10 de carga percibida (RPE del alumno, por ejercicio). Guarda en cpSeleccionado.
+  let cpSeleccionado = null;
+  function renderCargaPercibida(contId, valor) {
+    cpSeleccionado = (valor != null && valor !== "") ? Math.round(Number(valor)) : null;
+    const cont = $(contId);
+    const btns = [];
+    for (let n = 1; n <= 10; n++) btns.push(`<button type="button" class="cp-btn${cpSeleccionado === n ? " on" : ""}" data-cp="${n}">${n}</button>`);
+    cont.innerHTML = `<div class="cp-wrap"><div class="cp-label">Carga percibida <small style="color:var(--muted);font-weight:400">(opcional)</small></div><div class="cp-scale">${btns.join("")}</div></div>`;
+    cont.querySelectorAll("[data-cp]").forEach((b) => (b.onclick = () => {
+      const v = Number(b.dataset.cp);
+      cpSeleccionado = (cpSeleccionado === v) ? null : v;  // volver a tocar el mismo lo deselecciona
+      cont.querySelectorAll("[data-cp]").forEach((x) => x.classList.toggle("on", Number(x.dataset.cp) === cpSeleccionado));
+    }));
   }
   function cerrarDetalle() { $("det-overlay").classList.remove("on"); $("det-video").innerHTML = ""; }
   $("det-atras").onclick = cerrarDetalle;
@@ -2800,6 +2867,7 @@
   // Guardar la carga por serie desde la tabla PLANIFICADO del detalle (alumno)
   async function guardarCargaSeries(ej) {
     const inputs = document.querySelectorAll("#det-meta .plkg");
+    const rpe = cpSeleccionado != null ? String(cpSeleccionado) : null;  // una carga percibida por ejercicio
     const sets = [];
     inputs.forEach((el) => {
       const serie = Number(el.dataset.serie);
@@ -2807,10 +2875,7 @@
       const raw = (el.value || "").trim().replace(",", ".");
       const num = raw !== "" ? Number(raw) : null;
       const peso = num != null && !isNaN(num) ? num : null;
-      // RPE de la misma fila (input hermano por número de serie).
-      const rpeEl = document.querySelector(`#det-meta .plrpe[data-serie="${serie}"]`);
-      const rpe = rpeEl && rpeEl.value.trim() ? rpeEl.value.trim().replace(",", ".") : null;
-      sets.push({ serie, peso, rpe, completado: true });
+      sets.push({ serie, peso, rpe, completado: true });  // el mismo RPE va en todas las series
     });
     if (!sets.length) return;
     const btn = $("det-accion"); btn.disabled = true;
