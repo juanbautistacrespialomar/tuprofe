@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- tuprofe · v59 -->
+<!-- tuprofe · v60 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
@@ -2362,7 +2362,7 @@
     if (ds.length === 1) return ds[0];
     const principal = ds.find((d) => (d.bloques || []).length) || ds[0];
     const bloques = ds.reduce((acc, d) => acc.concat(d.bloques || []), []);
-    return { id: principal.id, nombre: principal.nombre, fecha: iso, bloques };
+    return { id: principal.id, nombre: principal.nombre, fecha: iso, bloques, nota_alumno: principal.nota_alumno };
   }
   // El día lógico que la Sesión está mostrando ahora mismo. Fuente ÚNICA de verdad:
   // la usan el panel, la tira y el drill de bloques, así nunca discrepan entre sí.
@@ -2419,6 +2419,9 @@
           const val = ta.value.trim();
           await api("/mi-dia/" + dia.id + "/nota", "PUT", { nota: val || null }, true);
           dia.nota_alumno = val;
+          // Persistimos también en el objeto real de MI_RUTINA (dia puede ser un merge efímero).
+          const real = MI_RUTINA.find((d) => d.id === dia.id);
+          if (real) real.nota_alumno = val;
           sv.textContent = "Guardada ✓";
           setTimeout(() => { const b = cont.querySelector("#notadia-save"); if (b) { b.textContent = "Guardar nota"; b.disabled = true; } }, 1500);
         } catch (e) { alert("No se pudo guardar la nota: " + e.message); sv.textContent = t; sv.disabled = false; }
