@@ -1123,8 +1123,16 @@
     $("prog-overlay").classList.add("on");
     try {
       const cargas = await api("/alumnos/" + alumnoActual.id + "/cargas", "GET", null, true);
-      if (!cargas.length) { $("prog-lista").innerHTML = `<div class="empty"><p>${esc(alumnoActual.nombre)} todavía no registró ninguna carga.</p></div>`; return; }
-      $("prog-lista").innerHTML = cargas.map((c) => {
+      // Solo mostramos los ejercicios que TIENEN carga (kg). Los de movilidad / peso corporal (sin
+      // peso) no aportan al progreso y ensucian la lista. Criterio por ejercicio+día: si ninguna
+      // serie de ese ejercicio ese día tiene peso, no aparece. No persistimos nada: se recalcula
+      // solo, así que el día que se le registre un kg reaparece (aunque antes estuviera oculto).
+      const dia = (c) => (c.fecha || "").slice(0, 10);
+      const conPeso = new Set();
+      cargas.forEach((c) => { if (c.peso != null) conPeso.add(c.ejercicio_id + "|" + dia(c)); });
+      const cargasVisibles = cargas.filter((c) => conPeso.has(c.ejercicio_id + "|" + dia(c)));
+      if (!cargasVisibles.length) { $("prog-lista").innerHTML = `<div class="empty"><p>${esc(alumnoActual.nombre)} todavía no registró ninguna carga.</p></div>`; return; }
+      $("prog-lista").innerHTML = cargasVisibles.map((c) => {
         const dato = [c.peso != null ? c.peso + " kg" : "", c.reps_hechas ? c.reps_hechas + " reps" : ""].filter(Boolean).join(" · ");
         const hecho = c.completado ? ` · <span style="color:var(--accent)">✓ hecho</span>` : "";
         const notas = c.notas ? `<div class="m" style="margin-top:3px;font-style:italic">"${esc(c.notas)}"</div>` : "";
@@ -2201,7 +2209,12 @@
   // ===== CARGAS (historial) =====
   function renderCargas() {
     const cont = $("al-cargas");
-    if (!CARGAS.length) {
+    // Esta vista es SOLO cargas (kg). Los ejercicios sin peso registrado (movilidad, peso corporal,
+    // elongación, etc.) no son "cargas" y ensucian la lista, así que no se muestran. Es dinámico:
+    // no guardamos ningún estado de "oculto"; la visibilidad se recalcula sola a partir del peso.
+    // El día que se registre un kg en un ejercicio, vuelve a aparecer solo (y si se borra, se va).
+    const tieneCarga = (c) => c.peso != null;
+    if (!CARGAS.some(tieneCarga)) {
       cont.innerHTML = `<div class="empty" style="padding:50px 20px"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M18 20V10M12 20V4M6 20v-6"/></svg><p>Todavía no registraste cargas.<br>Cuando entrenes van a aparecer acá.</p></div>`;
       return;
     }
@@ -2212,7 +2225,12 @@
       // Dentro del día, agrupo por ejercicio y colapso las series en una fila con resumen de kg.
       const porEj = {};
       groups[k].forEach((c) => { (porEj[c.ejercicio_id] = porEj[c.ejercicio_id] || { nombre: c.ejercicio, sets: [] }).sets.push(c); });
-      const items = Object.keys(porEj).map((id) => {
+      // Un ejercicio se muestra solo si ALGUNA de sus series de ese día tiene peso. Filtro a nivel
+      // ejercicio (no serie) para no romper el conteo "x/y series" ni el resumen de kg de los que sí
+      // tienen carga aunque les falte el kg en alguna serie suelta.
+      const idsConCarga = Object.keys(porEj).filter((id) => porEj[id].sets.some(tieneCarga));
+      if (!idsConCarga.length) return ""; // día entero sin cargas con peso => ni siquiera mostramos el encabezado del día
+      const items = idsConCarga.map((id) => {
         const g = porEj[id];
         const sets = g.sets.slice().sort((a, b) => (a.serie || 0) - (b.serie || 0));
         const pesos = sets.map((s) => s.peso).filter((p) => p != null);
