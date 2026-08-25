@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- tuprofe · v54 -->
+<!-- tuprofe · v55 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
@@ -514,6 +514,20 @@
   .swi::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--muted); transition: transform .15s, background .15s; }
   .swi.on { background: var(--accent); }
   .swi.on::after { background: var(--accent-ink); transform: translateX(18px); }
+  /* Pantalla Armar mes */
+  .am-cta { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--accent); color: var(--accent-ink); border: none; border-radius: 12px; padding: 13px; font-size: 15px; font-weight: 700; cursor: pointer; margin-bottom: 12px; }
+  .am-cta:active { transform: scale(.98); }
+  .am-cta i { font-size: 18px; }
+  .am-diacard { background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 11px 12px; margin-bottom: 9px; }
+  .am-diahead { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
+  .am-dian { font-family: "Anton", sans-serif; color: var(--accent); font-size: 15px; min-width: 14px; }
+  .am-diahead select { flex: 1; }
+  .am-diadel { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; line-height: 1; padding: 2px 4px; }
+  .am-diafecha { display: flex; align-items: center; gap: 8px; }
+  .am-diafecha label { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .am-diafecha input { flex: 1; }
+  .am-add { width: 100%; border: 1px dashed var(--border-strong, #3a3a3a); background: none; color: var(--muted); border-radius: 12px; padding: 12px; font-size: 13px; cursor: pointer; }
+  .am-resumen { text-align: center; font-size: 12px; color: var(--muted); margin: 10px 0; }
 
   /* ===== Chips de series (listas de ejercicios) ===== */
   .serchips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
@@ -780,6 +794,35 @@
     </div>
     <button class="btn" id="um-guardar">Agregar al calendario</button>
     <button class="btn ghost sm" id="um-cancelar" style="margin-top:10px">Cancelar</button>
+  </div>
+</div>
+
+<!-- ============ MODAL armar mes (semana tipo estampable) ============ -->
+<div class="overlay" id="armarmes-overlay">
+  <div class="sheet">
+    <h3>Armar mes</h3>
+    <div class="hint" id="am-sub" style="margin-bottom:12px">Elegí tus días y desde cuándo arranca cada uno.</div>
+    <div id="am-dias"></div>
+    <button type="button" class="am-add" id="am-add"><i class="ti ti-plus"></i> Agregar otro día</button>
+    <div class="cargatoggle" style="margin-top:14px">
+      <div class="ct-txt"><b>Repetir por</b><small>Cuántas semanas dura el mes</small></div>
+      <div class="sctl" style="width:auto"><button type="button" class="sbtn" id="am-sem-dec">−</button><input type="number" id="am-semanas" inputmode="numeric" min="1" max="12" value="4" style="width:52px" /><button type="button" class="sbtn" id="am-sem-inc">+</button></div>
+    </div>
+    <div class="cargatoggle">
+      <div class="ct-txt"><b>Subir el peso cada semana</b><small>Progresión automática del kg objetivo</small></div>
+      <button type="button" class="swi" id="am-prog"></button>
+    </div>
+    <div id="am-prog-detalle" style="display:none">
+      <div class="field">
+        <label>¿Cuánto sube por semana?</label>
+        <div class="sctl"><button type="button" class="sbtn" id="am-inc-dec">−</button><input type="text" id="am-incremento" inputmode="decimal" value="2,5" /><button type="button" class="sbtn" id="am-inc-inc">+</button></div>
+        <div class="hint" style="margin-top:6px">En kg. Se redondea a 0,5.</div>
+      </div>
+      <label class="chk"><input type="checkbox" id="am-deload" /> <span>Última semana más liviana <small>(deload al 90%)</small></span></label>
+    </div>
+    <div class="am-resumen" id="am-resumen"></div>
+    <button class="btn" id="am-guardar">Armar el mes</button>
+    <button class="btn ghost sm" id="am-cancelar" style="margin-top:10px">Cancelar</button>
   </div>
 </div>
 
@@ -1501,8 +1544,10 @@
       sfHTML = `<div class="mcal-sf-label">Días sin fecha</div>${items}`;
     }
 
-    cont.innerHTML = calGridHTML() + sfHTML;
+    const btnArmar = `<button class="am-cta" id="am-abrir"><i class="ti ti-calendar-plus"></i> Armar mes</button>`;
+    cont.innerHTML = btnArmar + calGridHTML() + sfHTML;
 
+    const bAm = cont.querySelector("#am-abrir"); if (bAm) bAm.onclick = abrirArmarMes;
     // Navegación de meses
     cont.querySelectorAll("[data-cal]").forEach((b) => (b.onclick = () => {
       const v = b.dataset.cal;
@@ -1782,6 +1827,95 @@
       $("usarmolde-overlay").classList.remove("on");
       if (r.dias && r.dias.length) { rutNav.diaId = r.dias[0].id; rutNav.bloqueId = null; renderRutina(); }
     } catch (e) { alert("No se pudo agregar: " + e.message); } finally { btn.disabled = false; }
+  };
+
+  // ===== ARMAR MES (semana tipo estampable) =====
+  // El profe define una lista de "días" (Día 1, 2, 3...), cada uno = una sesión
+  // del cajón + su fecha de arranque. Elige cuántas semanas y la progresión, y
+  // con un botón se estampa todo: cada día se repite semanalmente desde su fecha.
+  let armarMesDias = [];  // [{ moldeId, fecha }]
+  function moldesDelCajon() { return RUTINA.filter((d) => d.es_molde); }
+  function abrirArmarMes() {
+    const moldes = moldesDelCajon();
+    if (!moldes.length) {
+      alert("Primero guardá al menos una sesión en el cajón: entrá a un día y tocá el ícono de guardar. Después volvés acá y la usás para armar el mes.");
+      return;
+    }
+    armarMesDias = [{ moldeId: moldes[0].id, fecha: "" }];
+    $("am-prog").classList.remove("on"); $("am-prog-detalle").style.display = "none";
+    $("am-incremento").value = "2,5"; $("am-deload").checked = false; $("am-semanas").value = "4";
+    renderArmarMesDias();
+    $("armarmes-overlay").classList.add("on");
+  }
+  function renderArmarMesDias() {
+    const moldes = moldesDelCajon();
+    const opts = (sel) => moldes.map((m) => `<option value="${m.id}"${m.id === sel ? " selected" : ""}>${esc(m.nombre)}</option>`).join("");
+    const cont = $("am-dias");
+    cont.innerHTML = armarMesDias.map((d, i) => `
+      <div class="am-diacard">
+        <div class="am-diahead">
+          <span class="am-dian">${i + 1}</span>
+          <select data-molde="${i}">${opts(d.moldeId)}</select>
+          ${armarMesDias.length > 1 ? `<button type="button" class="am-diadel" data-del="${i}" title="Quitar">&times;</button>` : ""}
+        </div>
+        <div class="am-diafecha">
+          <label><i class="ti ti-calendar"></i> Arranca:</label>
+          <input type="date" data-fecha="${i}" value="${d.fecha || ""}" />
+        </div>
+      </div>`).join("");
+    cont.querySelectorAll("[data-molde]").forEach((el) => (el.onchange = () => { armarMesDias[Number(el.dataset.molde)].moldeId = Number(el.value); }));
+    cont.querySelectorAll("[data-fecha]").forEach((el) => (el.onchange = () => { armarMesDias[Number(el.dataset.fecha)].fecha = el.value; }));
+    cont.querySelectorAll("[data-del]").forEach((el) => (el.onclick = () => { armarMesDias.splice(Number(el.dataset.del), 1); renderArmarMesDias(); }));
+    actualizarResumenAm();
+  }
+  function actualizarResumenAm() {
+    const n = Math.max(1, Math.min(12, Number($("am-semanas").value) || 1));
+    const nDias = armarMesDias.length;
+    $("am-resumen").textContent = `${nDias} día${nDias !== 1 ? "s" : ""} × ${n} semana${n !== 1 ? "s" : ""} = ${nDias * n} sesiones`;
+  }
+  $("am-add").onclick = () => {
+    const moldes = moldesDelCajon();
+    armarMesDias.push({ moldeId: moldes[0] ? moldes[0].id : null, fecha: "" });
+    renderArmarMesDias();
+  };
+  $("am-sem-dec").onclick = () => { $("am-semanas").value = Math.max(1, (Number($("am-semanas").value) || 1) - 1); actualizarResumenAm(); };
+  $("am-sem-inc").onclick = () => { $("am-semanas").value = Math.min(12, (Number($("am-semanas").value) || 1) + 1); actualizarResumenAm(); };
+  $("am-semanas").oninput = actualizarResumenAm;
+  $("am-prog").onclick = () => {
+    $("am-prog").classList.toggle("on");
+    $("am-prog-detalle").style.display = $("am-prog").classList.contains("on") ? "" : "none";
+  };
+  $("am-inc-dec").onclick = () => { const v = parsePeso($("am-incremento").value) || 2.5; $("am-incremento").value = String(Math.max(0.5, Math.round((v - 0.5) * 2) / 2)).replace(".", ","); };
+  $("am-inc-inc").onclick = () => { const v = parsePeso($("am-incremento").value) || 2.5; $("am-incremento").value = String(Math.round((v + 0.5) * 2) / 2).replace(".", ","); };
+  $("am-cancelar").onclick = () => $("armarmes-overlay").classList.remove("on");
+  $("am-guardar").onclick = async () => {
+    if (armarMesDias.some((d) => !d.moldeId)) { alert("Elegí una sesión para cada día."); return; }
+    if (armarMesDias.some((d) => !d.fecha)) { alert("Ponele fecha de arranque a cada día."); return; }
+    const n = Math.max(1, Math.min(12, Number($("am-semanas").value) || 1));
+    let progresion = null;
+    if (n > 1 && $("am-prog").classList.contains("on")) {
+      const inc = parsePeso($("am-incremento").value);
+      progresion = { peso: { incremento: inc != null && inc > 0 ? inc : 2.5 } };
+      if ($("am-deload").checked) progresion.deload = { factor: 0.9 };
+    }
+    const btn = $("am-guardar"); btn.disabled = true; const txt = btn.textContent; btn.textContent = "Armando...";
+    try {
+      let creados = 0;
+      for (const d of armarMesDias) {
+        const fechas = [];
+        for (let k = 0; k < n; k++) { const dt = new Date(d.fecha + "T00:00:00"); dt.setDate(dt.getDate() + 7 * k); fechas.push(isoLocal(dt.getFullYear(), dt.getMonth(), dt.getDate())); }
+        const body = { fechas, como_molde: 0 };
+        if (progresion) body.progresion = progresion;
+        const r = await api("/dias/" + d.moldeId + "/duplicar", "POST", body, true);
+        if (r.dias && r.dias.length) { for (const nd of r.dias) RUTINA.push(nd); creados += r.dias.length; }
+      }
+      ordenarRutina(RUTINA);
+      $("armarmes-overlay").classList.remove("on");
+      rutNav.diaId = null; rutNav.bloqueId = null; renderRutina();
+      mostrarToast(`✓ Mes armado: ${creados} sesiones creadas`);
+    } catch (e) {
+      alert("No se pudo armar el mes: " + e.message);
+    } finally { btn.disabled = false; btn.textContent = txt; }
   };
 
   // Menú al tocar una fecha: en blanco o traer una sesión guardada.
