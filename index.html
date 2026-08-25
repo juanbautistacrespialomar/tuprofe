@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- tuprofe · v60 -->
+<!-- tuprofe · v61 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
@@ -563,6 +563,19 @@
   .notadia .btn { margin-top: 10px; }
   .notadia-ro { margin-top: 20px; }
   .notadia-ro .detail-notas { white-space: pre-wrap; }
+  /* Feed de seguimiento (profe) */
+  .seg-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+  .seg-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .seg-fecha { font-size: 14px; font-weight: 700; }
+  .seg-dianom { font-size: 12px; color: var(--accent); }
+  .seg-nota { background: var(--surface); border-radius: 10px; padding: 10px 12px; font-size: 13px; line-height: 1.5; margin-bottom: 10px; white-space: pre-wrap; }
+  .seg-nota-lbl { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin-bottom: 4px; }
+  .seg-ejs { display: flex; flex-direction: column; }
+  .seg-ejrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid var(--border); font-size: 13px; }
+  .seg-ejrow:first-child { border-top: none; }
+  .seg-ejn { color: var(--text); }
+  .seg-ejrow b { color: var(--accent); font-size: 14px; }
+  .seg-sinrpe { color: var(--muted); }
 </style>
 </head>
 <body>
@@ -656,6 +669,7 @@
     <div class="app-header">
       <div class="icon-btn" id="rut-volver" title="Volver"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></div>
       <div class="title" id="rut-nombre">Rutina</div>
+      <div class="icon-btn" id="rut-seguim" title="Seguimiento: notas y esfuerzo"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg></div>
       <div class="icon-btn" id="rut-progreso" title="Ver progreso del alumno"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg></div>
     </div>
     <div class="body">
@@ -907,6 +921,15 @@
     <div id="prog-info"></div>
     <div id="prog-lista"></div>
     <button class="btn ghost sm" id="prog-cerrar" style="margin-top:14px">Cerrar</button>
+  </div>
+</div>
+
+<div class="overlay" id="seg-overlay">
+  <div class="sheet" style="max-height:88vh;overflow-y:auto">
+    <h3 id="seg-nombre">Seguimiento</h3>
+    <div class="hint" style="margin-bottom:12px">Notas del día y esfuerzo, lo más reciente arriba.</div>
+    <div id="seg-lista"></div>
+    <button class="btn ghost sm" id="seg-cerrar" style="margin-top:14px">Cerrar</button>
   </div>
 </div>
 
@@ -1382,6 +1405,39 @@
   }
   $("rut-progreso").onclick = abrirProgreso;
   $("prog-cerrar").onclick = () => $("prog-overlay").classList.remove("on");
+
+  // ===== SEGUIMIENTO (feed cronológico: nota del día + esfuerzo por ejercicio) =====
+  async function abrirSeguimiento() {
+    if (!alumnoActual) return;
+    $("seg-nombre").textContent = "Seguimiento de " + alumnoActual.nombre;
+    $("seg-lista").innerHTML = `<div class="empty"><p>Cargando...</p></div>`;
+    $("seg-overlay").classList.add("on");
+    try {
+      const data = await api("/alumnos/" + alumnoActual.id + "/diario", "GET", null, true);
+      const dias = (data && data.dias) || [];
+      if (!dias.length) { $("seg-lista").innerHTML = `<div class="empty"><p>${esc(alumnoActual.nombre)} todavía no registró entrenamientos.</p></div>`; return; }
+      $("seg-lista").innerHTML = dias.map(diaSeguimientoHTML).join("");
+    } catch (e) {
+      $("seg-lista").innerHTML = `<div class="empty"><p>${esc(e.message)}</p></div>`;
+    }
+  }
+  function diaSeguimientoHTML(d) {
+    const fechaTxt = d.fecha ? cap(fmtFecha(d.fecha)) : (d.nombre || "Día");
+    const nombre = d.nombre ? `<span class="seg-dianom">${esc(d.nombre)}</span>` : "";
+    // Chips de esfuerzo por ejercicio (los que tienen carga percibida se resaltan).
+    const ejs = (d.ejercicios || []).map((e) => {
+      const rpe = (e.rpe != null && e.rpe !== "") ? `<b>${esc(String(e.rpe))}/10</b>` : `<span class="seg-sinrpe">—</span>`;
+      return `<div class="seg-ejrow"><span class="seg-ejn">${esc(e.nombre)}</span>${rpe}</div>`;
+    }).join("");
+    const nota = d.nota ? `<div class="seg-nota"><span class="seg-nota-lbl">Nota del alumno</span>${esc(d.nota)}</div>` : "";
+    return `<div class="seg-card">
+      <div class="seg-head"><span class="seg-fecha">${esc(fechaTxt)}</span>${nombre}</div>
+      ${nota}
+      ${ejs ? `<div class="seg-ejs">${ejs}</div>` : ""}
+    </div>`;
+  }
+  $("rut-seguim").onclick = abrirSeguimiento;
+  $("seg-cerrar").onclick = () => $("seg-overlay").classList.remove("on");
 
   let RUTINA = [];
   let RUTINA_RANGO = null; // { desde, hasta } (YYYY-MM-DD): ventana de meses actualmente cargada en RUTINA.

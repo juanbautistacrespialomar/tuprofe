@@ -8,7 +8,7 @@
 //
 // Para publicar: subí el número de CACHE (v23 -> v24 -> ...).
 
-const CACHE = "tuprofe-v60";
+const CACHE = "tuprofe-v61";
 // Caché SEPARADO para las miniaturas de YouTube. Persiste entre versiones (no se
 // borra al actualizar), así lo que el alumno vio con internet lo sigue viendo offline.
 const THUMBS = "tuprofe-thumbs";
