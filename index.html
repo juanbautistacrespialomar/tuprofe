@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- tuprofe · v58 -->
+<!-- tuprofe · v59 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
@@ -543,7 +543,8 @@
   .plan-tbl td { padding: 10px 3px; border-top: 1px solid var(--border); font-size: 14px; }
   .plan-tbl th { padding: 4px 3px; }
   .plan-tbl .pl-n { font-family: "Anton", sans-serif; color: var(--accent); }
-  .plan-tbl .plkg { width: 100%; min-width: 48px; text-align: center; padding: 8px 4px; box-sizing: border-box; }
+  .plan-tbl th:last-child, .plan-tbl td:last-child { text-align: center; }
+  .plan-tbl .plkg { width: 84px; max-width: 84px; text-align: center; padding: 10px 8px; box-sizing: border-box; margin: 0 auto; display: block; }
   .plan-tbl .pl-obj { color: var(--accent); font-size: 13px; white-space: nowrap; }
   .plan-tbl .plkg-ro { color: var(--text); }
   /* Carga percibida (escala 1-10) del alumno */
@@ -2853,7 +2854,7 @@
     const cont = $(contId);
     const btns = [];
     for (let n = 1; n <= 10; n++) btns.push(`<button type="button" class="cp-btn${cpSeleccionado === n ? " on" : ""}" data-cp="${n}">${n}</button>`);
-    cont.innerHTML = `<div class="cp-wrap"><div class="cp-label">Carga percibida <small style="color:var(--muted);font-weight:400">(opcional)</small></div><div class="cp-scale">${btns.join("")}</div></div>`;
+    cont.innerHTML = `<div class="cp-wrap"><div class="cp-label">Carga percibida</div><div class="cp-scale">${btns.join("")}</div></div>`;
     cont.querySelectorAll("[data-cp]").forEach((b) => (b.onclick = () => {
       const v = Number(b.dataset.cp);
       cpSeleccionado = (cpSeleccionado === v) ? null : v;  // volver a tocar el mismo lo deselecciona
