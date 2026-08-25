@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- tuprofe · v61 -->
+<!-- tuprofe · v62 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
@@ -576,6 +576,12 @@
   .seg-ejn { color: var(--text); }
   .seg-ejrow b { color: var(--accent); font-size: 14px; }
   .seg-sinrpe { color: var(--muted); }
+  /* Navegación de a un entrenamiento */
+  .seg-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .seg-arrow { width: 42px; height: 42px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); font-size: 22px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .seg-arrow:active { transform: scale(.94); }
+  .seg-arrow:disabled { opacity: .35; cursor: default; }
+  .seg-pos { font-size: 12px; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -1406,7 +1412,9 @@
   $("rut-progreso").onclick = abrirProgreso;
   $("prog-cerrar").onclick = () => $("prog-overlay").classList.remove("on");
 
-  // ===== SEGUIMIENTO (feed cronológico: nota del día + esfuerzo por ejercicio) =====
+  // ===== SEGUIMIENTO (un entrenamiento por vez, con flechas ‹ ›) =====
+  let SEG_DIAS = [];   // días con actividad, del más reciente al más viejo
+  let segIdx = 0;      // 0 = el último entrenamiento
   async function abrirSeguimiento() {
     if (!alumnoActual) return;
     $("seg-nombre").textContent = "Seguimiento de " + alumnoActual.nombre;
@@ -1414,12 +1422,29 @@
     $("seg-overlay").classList.add("on");
     try {
       const data = await api("/alumnos/" + alumnoActual.id + "/diario", "GET", null, true);
-      const dias = (data && data.dias) || [];
-      if (!dias.length) { $("seg-lista").innerHTML = `<div class="empty"><p>${esc(alumnoActual.nombre)} todavía no registró entrenamientos.</p></div>`; return; }
-      $("seg-lista").innerHTML = dias.map(diaSeguimientoHTML).join("");
+      SEG_DIAS = (data && data.dias) || [];   // ya viene ordenado del más reciente al más viejo
+      segIdx = 0;
+      if (!SEG_DIAS.length) { $("seg-lista").innerHTML = `<div class="empty"><p>${esc(alumnoActual.nombre)} todavía no registró entrenamientos.</p></div>`; return; }
+      renderSeguimientoDia();
     } catch (e) {
       $("seg-lista").innerHTML = `<div class="empty"><p>${esc(e.message)}</p></div>`;
     }
+  }
+  function renderSeguimientoDia() {
+    const d = SEG_DIAS[segIdx];
+    if (!d) return;
+    // Flechas: ‹ va a un entreno MÁS VIEJO (índice mayor), › a uno MÁS RECIENTE (índice menor).
+    const hayMasViejo = segIdx < SEG_DIAS.length - 1;
+    const hayMasNuevo = segIdx > 0;
+    const nav = `<div class="seg-nav">
+      <button class="seg-arrow" id="seg-prev" ${hayMasViejo ? "" : "disabled"} title="Entreno anterior">‹</button>
+      <span class="seg-pos">${SEG_DIAS.length - segIdx} de ${SEG_DIAS.length}</span>
+      <button class="seg-arrow" id="seg-next" ${hayMasNuevo ? "" : "disabled"} title="Entreno siguiente">›</button>
+    </div>`;
+    $("seg-lista").innerHTML = nav + diaSeguimientoHTML(d);
+    const bp = $("seg-prev"), bn = $("seg-next");
+    if (bp) bp.onclick = () => { if (segIdx < SEG_DIAS.length - 1) { segIdx++; renderSeguimientoDia(); } };
+    if (bn) bn.onclick = () => { if (segIdx > 0) { segIdx--; renderSeguimientoDia(); } };
   }
   function diaSeguimientoHTML(d) {
     const fechaTxt = d.fecha ? cap(fmtFecha(d.fecha)) : (d.nombre || "Día");
