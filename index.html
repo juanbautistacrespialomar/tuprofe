@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- tuprofe · v53 -->
+<!-- tuprofe · v54 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
@@ -501,10 +501,10 @@
   .sctl input { text-align: center; width: 64px; }
   .sbtn { flex: 0 0 auto; width: 38px; height: 38px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); font-size: 20px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; }
   .sbtn:active { transform: scale(.92); }
-  .sghead { display: grid; grid-template-columns: 22px repeat(4, 1fr); gap: 5px; margin: 12px 0 6px; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; }
+  .sghead { display: grid; grid-template-columns: 28px repeat(3, 1fr); gap: 8px; margin: 12px 0 6px; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
   .sgrid { display: flex; flex-direction: column; gap: 6px; }
-  .sgrow { display: grid; grid-template-columns: 22px repeat(4, 1fr); gap: 5px; align-items: center; }
-  .sgrow input { padding-left: 8px; padding-right: 6px; }
+  .sgrow { display: grid; grid-template-columns: 28px repeat(3, 1fr); gap: 8px; align-items: center; }
+  .sgrow input { padding-left: 10px; padding-right: 6px; }
   .sgrow .sg-n { font-family: "Anton", sans-serif; font-size: 16px; color: var(--accent); text-align: center; }
   /* Interruptor "pedir carga" en el modal de ejercicio */
   .cargatoggle { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 11px 13px; margin: 14px 0 4px; }
@@ -694,9 +694,10 @@
       <label>Series</label>
       <div class="sctl"><button type="button" class="sbtn" id="edej-dec">−</button><input type="number" id="edej-series" inputmode="numeric" min="1" /><button type="button" class="sbtn" id="edej-inc">+</button></div>
     </div>
-    <div class="sghead"><span>Serie</span><span>Reps</span><span>Kg</span><span>Pausa</span><span>RPE</span></div>
+    <div class="sghead"><span>#</span><span>Reps</span><span>Kg</span><span>Pausa</span></div>
     <div id="edej-grid" class="sgrid"></div>
     <label class="chk"><input type="checkbox" id="edej-porlado" /> <span>Por lado <small>(agrega "/lado")</small></span></label>
+    <div class="field"><label>RPE objetivo <small style="color:var(--muted)">(opcional, para todo el ejercicio)</small></label><input type="text" id="edej-rpe-obj" inputmode="decimal" placeholder="ej: 8  ó  7-8" /></div>
     <div class="cargatoggle">
       <div class="ct-txt"><b>Pedir carga al alumno</b><small>Apagalo en movilidad, core, etc.</small></div>
       <button type="button" class="swi on" id="edej-carga" aria-label="Pedir registro de carga"></button>
@@ -817,9 +818,10 @@
       <label>Series</label>
       <div class="sctl"><button type="button" class="sbtn" id="rej-dec">−</button><input type="number" id="rej-series" inputmode="numeric" min="1" /><button type="button" class="sbtn" id="rej-inc">+</button></div>
     </div>
-    <div class="sghead"><span>Serie</span><span>Reps</span><span>Kg</span><span>Pausa</span><span>RPE</span></div>
+    <div class="sghead"><span>#</span><span>Reps</span><span>Kg</span><span>Pausa</span></div>
     <div id="rej-grid" class="sgrid"></div>
     <label class="chk"><input type="checkbox" id="rej-porlado" /> <span>Por lado <small>(cada pierna/brazo)</small></span></label>
+    <div class="field"><label>RPE objetivo <small style="color:var(--muted)">(opcional, para todo el ejercicio)</small></label><input type="text" id="rej-rpe-obj" inputmode="decimal" placeholder="ej: 8  ó  7-8" /></div>
     <div class="cargatoggle">
       <div class="ct-txt"><b>Pedir carga al alumno</b><small>Apagalo en movilidad, core, etc.</small></div>
       <button type="button" class="swi on" id="rej-carga" aria-label="Pedir registro de carga"></button>
@@ -1154,13 +1156,11 @@
       `<div class="sgrow"><div class="sg-n">${i + 1}</div>` +
       `<input type="text" class="sg-reps" data-i="${i}" placeholder="8-12" value="${esc(s.reps || "")}" />` +
       `<input type="text" class="sg-peso" data-i="${i}" inputmode="decimal" placeholder="kg" value="${esc(s.peso != null ? String(s.peso) : "")}" />` +
-      `<input type="text" class="sg-pausa" data-i="${i}" placeholder="90s" value="${esc(s.pausa || "")}" />` +
-      `<input type="text" class="sg-rpe" data-i="${i}" inputmode="decimal" placeholder="RPE" value="${esc(s.rpe || "")}" /></div>`
+      `<input type="text" class="sg-pausa" data-i="${i}" placeholder="90s" value="${esc(s.pausa || "")}" /></div>`
     ).join("");
     cont.querySelectorAll(".sg-reps").forEach((el) => (el.oninput = () => { arr[Number(el.dataset.i)].reps = el.value; }));
     cont.querySelectorAll(".sg-peso").forEach((el) => (el.oninput = () => { arr[Number(el.dataset.i)].peso = el.value.replace(",", "."); }));
     cont.querySelectorAll(".sg-pausa").forEach((el) => (el.oninput = () => { arr[Number(el.dataset.i)].pausa = el.value; }));
-    cont.querySelectorAll(".sg-rpe").forEach((el) => (el.oninput = () => { arr[Number(el.dataset.i)].rpe = el.value; }));
     if (countId) $(countId).value = arr.length;
   }
   // Ajusta la cantidad de series; las filas nuevas copian la última (entrada rápida)
@@ -1896,6 +1896,7 @@
     $("rej-buscar").value = "";
     rejSeries = [{ reps: "", pausa: "", peso: "", rpe: "" }, { reps: "", pausa: "", peso: "", rpe: "" }, { reps: "", pausa: "", peso: "", rpe: "" }]; // arranca en 3
     $("rej-porlado").checked = false;
+    $("rej-rpe-obj").value = "";
     $("rej-carga").classList.add("on");  // por defecto se pide carga
     renderSeriesGrid("rej-grid", rejSeries, "rej-series");
     $("rej-sel").classList.remove("on"); $("rej-list").classList.remove("on"); $("rej-buscar").style.display = "";
@@ -1932,7 +1933,8 @@
     if (!catSeleccionado) return msg($("rej-msg"), "Elegi un ejercicio del catalogo", "error");
     const lado = $("rej-porlado").checked;
     const registrar_carga = $("rej-carga").classList.contains("on") ? 1 : 0;
-    const series_plan = rejSeries.map((s, i) => ({ numero: i + 1, reps: aplicarLado(s.reps, lado), pausa: (s.pausa || "").trim() || null, peso: parsePeso(s.peso), rpe: (s.rpe || "").trim() || null }));
+    const rpeObj = $("rej-rpe-obj").value.trim() || null;  // un RPE para todo el ejercicio
+    const series_plan = rejSeries.map((s, i) => ({ numero: i + 1, reps: aplicarLado(s.reps, lado), pausa: (s.pausa || "").trim() || null, peso: parsePeso(s.peso), rpe: rpeObj }));
     $("rej-guardar").disabled = true;
     try {
       const dia = findDia(RUTINA, rutNav.diaId);
@@ -1968,6 +1970,8 @@
       rpe: s.rpe || ""
     }));
     $("edej-porlado").checked = conLado;
+    // El RPE objetivo es del ejercicio: lo tomamos de la primera serie (todas comparten el mismo).
+    $("edej-rpe-obj").value = (p.find((s) => s.rpe) || {}).rpe || "";
     $("edej-carga").classList.toggle("on", Number(ej.registrar_carga) !== 0);  // respeta lo guardado
     renderSeriesGrid("edej-grid", edejSeries, "edej-series");
     $("edej-notas").value = ej.notas || "";
@@ -2001,7 +2005,8 @@
     if (!edejEj) return;
     const lado = $("edej-porlado").checked;
     const registrar_carga = $("edej-carga").classList.contains("on") ? 1 : 0;
-    const series_plan = edejSeries.map((s, i) => ({ numero: i + 1, reps: aplicarLado(s.reps, lado), pausa: (s.pausa || "").trim() || null, peso: parsePeso(s.peso), rpe: (s.rpe || "").trim() || null }));
+    const rpeObj = $("edej-rpe-obj").value.trim() || null;  // un RPE para todo el ejercicio
+    const series_plan = edejSeries.map((s, i) => ({ numero: i + 1, reps: aplicarLado(s.reps, lado), pausa: (s.pausa || "").trim() || null, peso: parsePeso(s.peso), rpe: rpeObj }));
     const notas = $("edej-notas").value.trim() || null;
     const cambioCat = edejCat && edejCat.id !== edejEj.catalogo_id;
     const body = { series_plan, notas, orden: edejEj.orden || 0, registrar_carga };
