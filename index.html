@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- tuprofe · v50 -->
+<!-- tuprofe · v53 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
@@ -501,10 +501,19 @@
   .sctl input { text-align: center; width: 64px; }
   .sbtn { flex: 0 0 auto; width: 38px; height: 38px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); font-size: 20px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; }
   .sbtn:active { transform: scale(.92); }
-  .sghead { display: grid; grid-template-columns: 40px 1fr 1fr; gap: 8px; margin: 12px 0 6px; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  .sghead { display: grid; grid-template-columns: 22px repeat(4, 1fr); gap: 5px; margin: 12px 0 6px; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; }
   .sgrid { display: flex; flex-direction: column; gap: 6px; }
-  .sgrow { display: grid; grid-template-columns: 40px 1fr 1fr; gap: 8px; align-items: center; }
+  .sgrow { display: grid; grid-template-columns: 22px repeat(4, 1fr); gap: 5px; align-items: center; }
+  .sgrow input { padding-left: 8px; padding-right: 6px; }
   .sgrow .sg-n { font-family: "Anton", sans-serif; font-size: 16px; color: var(--accent); text-align: center; }
+  /* Interruptor "pedir carga" en el modal de ejercicio */
+  .cargatoggle { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 11px 13px; margin: 14px 0 4px; }
+  .cargatoggle .ct-txt b { display: block; font-size: 13px; font-weight: 600; }
+  .cargatoggle .ct-txt small { color: var(--muted); font-size: 11px; }
+  .swi { position: relative; width: 44px; height: 26px; border-radius: 20px; background: var(--border); border: none; cursor: pointer; flex-shrink: 0; transition: background .15s; }
+  .swi::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--muted); transition: transform .15s, background .15s; }
+  .swi.on { background: var(--accent); }
+  .swi.on::after { background: var(--accent-ink); transform: translateX(18px); }
 
   /* ===== Chips de series (listas de ejercicios) ===== */
   .serchips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
@@ -517,9 +526,11 @@
   .plan-tbl { width: 100%; border-collapse: collapse; }
   .plan-tbl th { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; font-weight: 600; text-align: left; padding: 4px 4px; }
   .plan-tbl th:last-child, .plan-tbl td:last-child { text-align: right; }
-  .plan-tbl td { padding: 10px 4px; border-top: 1px solid var(--border); font-size: 14px; }
+  .plan-tbl td { padding: 10px 3px; border-top: 1px solid var(--border); font-size: 14px; }
+  .plan-tbl th { padding: 4px 3px; }
   .plan-tbl .pl-n { font-family: "Anton", sans-serif; color: var(--accent); }
-  .plan-tbl .plkg { width: 74px; text-align: center; padding: 8px; }
+  .plan-tbl .plkg, .plan-tbl .plrpe { width: 100%; min-width: 44px; text-align: center; padding: 8px 4px; box-sizing: border-box; }
+  .plan-tbl .pl-obj { color: var(--accent); font-size: 13px; white-space: nowrap; }
   .plan-tbl .plkg-ro { color: var(--text); }
 </style>
 </head>
@@ -683,9 +694,13 @@
       <label>Series</label>
       <div class="sctl"><button type="button" class="sbtn" id="edej-dec">−</button><input type="number" id="edej-series" inputmode="numeric" min="1" /><button type="button" class="sbtn" id="edej-inc">+</button></div>
     </div>
-    <div class="sghead"><span>Serie</span><span>Reps</span><span>Pausa</span></div>
+    <div class="sghead"><span>Serie</span><span>Reps</span><span>Kg</span><span>Pausa</span><span>RPE</span></div>
     <div id="edej-grid" class="sgrid"></div>
     <label class="chk"><input type="checkbox" id="edej-porlado" /> <span>Por lado <small>(agrega "/lado")</small></span></label>
+    <div class="cargatoggle">
+      <div class="ct-txt"><b>Pedir carga al alumno</b><small>Apagalo en movilidad, core, etc.</small></div>
+      <button type="button" class="swi on" id="edej-carga" aria-label="Pedir registro de carga"></button>
+    </div>
     <div class="field"><label>Nota para el alumno (opcional)</label><input type="text" id="edej-notas" placeholder="Cuidá la espalda, bajá lento..." /></div>
     <button class="btn" id="edej-guardar">Guardar cambios</button>
     <button class="btn ghost sm" id="edej-cancelar" style="margin-top:10px">Cancelar</button>
@@ -750,6 +765,18 @@
       <div class="sctl"><button type="button" class="sbtn" id="um-dec">−</button><input type="number" id="um-semanas" inputmode="numeric" min="1" max="12" value="1" /><button type="button" class="sbtn" id="um-inc">+</button></div>
       <div class="hint" id="um-hint" style="margin-top:6px"></div>
     </div>
+    <div class="cargatoggle" id="um-prog-wrap" style="display:none">
+      <div class="ct-txt"><b>Subir el peso cada semana</b><small>Progresión automática del kg objetivo</small></div>
+      <button type="button" class="swi" id="um-prog"></button>
+    </div>
+    <div id="um-prog-detalle" style="display:none">
+      <div class="field">
+        <label>¿Cuánto sube por semana?</label>
+        <div class="sctl"><button type="button" class="sbtn" id="um-inc-dec">−</button><input type="text" id="um-incremento" inputmode="decimal" value="2,5" /><button type="button" class="sbtn" id="um-inc-inc">+</button></div>
+        <div class="hint" style="margin-top:6px">En kg. Se redondea a 0,5.</div>
+      </div>
+      <label class="chk"><input type="checkbox" id="um-deload" /> <span>Última semana más liviana <small>(deload al 90%)</small></span></label>
+    </div>
     <button class="btn" id="um-guardar">Agregar al calendario</button>
     <button class="btn ghost sm" id="um-cancelar" style="margin-top:10px">Cancelar</button>
   </div>
@@ -790,9 +817,13 @@
       <label>Series</label>
       <div class="sctl"><button type="button" class="sbtn" id="rej-dec">−</button><input type="number" id="rej-series" inputmode="numeric" min="1" /><button type="button" class="sbtn" id="rej-inc">+</button></div>
     </div>
-    <div class="sghead"><span>Serie</span><span>Reps</span><span>Pausa</span></div>
+    <div class="sghead"><span>Serie</span><span>Reps</span><span>Kg</span><span>Pausa</span><span>RPE</span></div>
     <div id="rej-grid" class="sgrid"></div>
     <label class="chk"><input type="checkbox" id="rej-porlado" /> <span>Por lado <small>(cada pierna/brazo)</small></span></label>
+    <div class="cargatoggle">
+      <div class="ct-txt"><b>Pedir carga al alumno</b><small>Apagalo en movilidad, core, etc.</small></div>
+      <button type="button" class="swi on" id="rej-carga" aria-label="Pedir registro de carga"></button>
+    </div>
     <button class="btn" id="rej-guardar">Agregar a la rutina</button>
     <button class="btn ghost sm" id="rej-cancelar" style="margin-top:10px">Cancelar</button>
   </div>
@@ -1097,17 +1128,17 @@
   // campos legacy (series + reps + pausa) para que la UI se vea igual.
   function planDe(ej) {
     if (ej && Array.isArray(ej.series_plan) && ej.series_plan.length)
-      return ej.series_plan.map((s, i) => ({ numero: s.numero != null ? s.numero : i + 1, reps: s.reps || "", pausa: s.pausa || "" }));
+      return ej.series_plan.map((s, i) => ({ numero: s.numero != null ? s.numero : i + 1, reps: s.reps || "", pausa: s.pausa || "", peso: s.peso != null ? s.peso : "", rpe: s.rpe || "" }));
     const n = ej && ej.series > 0 ? ej.series : (ej && ej.reps ? 1 : 0);
     const out = [];
-    for (let i = 1; i <= n; i++) out.push({ numero: i, reps: (ej && ej.reps) || "", pausa: (ej && ej.pausa) || "" });
+    for (let i = 1; i <= n; i++) out.push({ numero: i, reps: (ej && ej.reps) || "", pausa: (ej && ej.pausa) || "", peso: "", rpe: "" });
     return out;
   }
   // Chips "1·8  2·8  3·6  4·6" para las listas de ejercicios
   function chipsPlanHTML(ej) {
     const p = planDe(ej);
     if (!p.length) return "";
-    return `<div class="serchips">` + p.map((s) => `<span class="serchip"><b>${s.numero}</b>${s.reps ? "·" + esc(s.reps) : ""}${s.pausa ? " " + esc(s.pausa) : ""}</span>`).join("") + `</div>`;
+    return `<div class="serchips">` + p.map((s) => `<span class="serchip"><b>${s.numero}</b>${s.reps ? "·" + esc(s.reps) : ""}${(s.peso !== "" && s.peso != null) ? " " + esc(String(s.peso)) + "kg" : ""}${s.pausa ? " " + esc(s.pausa) : ""}</span>`).join("") + `</div>`;
   }
   // Aplica "/lado" a las reps de una serie según el checkbox del editor
   function aplicarLado(reps, lado) {
@@ -1122,16 +1153,20 @@
     cont.innerHTML = arr.map((s, i) =>
       `<div class="sgrow"><div class="sg-n">${i + 1}</div>` +
       `<input type="text" class="sg-reps" data-i="${i}" placeholder="8-12" value="${esc(s.reps || "")}" />` +
-      `<input type="text" class="sg-pausa" data-i="${i}" placeholder="90s" value="${esc(s.pausa || "")}" /></div>`
+      `<input type="text" class="sg-peso" data-i="${i}" inputmode="decimal" placeholder="kg" value="${esc(s.peso != null ? String(s.peso) : "")}" />` +
+      `<input type="text" class="sg-pausa" data-i="${i}" placeholder="90s" value="${esc(s.pausa || "")}" />` +
+      `<input type="text" class="sg-rpe" data-i="${i}" inputmode="decimal" placeholder="RPE" value="${esc(s.rpe || "")}" /></div>`
     ).join("");
     cont.querySelectorAll(".sg-reps").forEach((el) => (el.oninput = () => { arr[Number(el.dataset.i)].reps = el.value; }));
+    cont.querySelectorAll(".sg-peso").forEach((el) => (el.oninput = () => { arr[Number(el.dataset.i)].peso = el.value.replace(",", "."); }));
     cont.querySelectorAll(".sg-pausa").forEach((el) => (el.oninput = () => { arr[Number(el.dataset.i)].pausa = el.value; }));
+    cont.querySelectorAll(".sg-rpe").forEach((el) => (el.oninput = () => { arr[Number(el.dataset.i)].rpe = el.value; }));
     if (countId) $(countId).value = arr.length;
   }
   // Ajusta la cantidad de series; las filas nuevas copian la última (entrada rápida)
   function setSeriesCount(arr, n, contId, countId) {
     n = Math.max(1, Math.min(20, Math.round(n) || 1));
-    while (arr.length < n) arr.push({ ...(arr[arr.length - 1] || { reps: "", pausa: "" }) });
+    while (arr.length < n) arr.push({ ...(arr[arr.length - 1] || { reps: "", pausa: "", peso: "", rpe: "" }) });
     while (arr.length > n) arr.pop();
     renderSeriesGrid(contId, arr, countId);
   }
@@ -1695,6 +1730,9 @@
     const iso = $("um-fecha").value;
     const n = Math.max(1, Math.min(12, Number($("um-semanas").value) || 1));
     const h = $("um-hint");
+    // La progresión solo tiene sentido con 2+ semanas.
+    $("um-prog-wrap").style.display = n > 1 ? "" : "none";
+    if (n <= 1) { $("um-prog").classList.remove("on"); $("um-prog-detalle").style.display = "none"; }
     if (!iso) { h.textContent = "Elegí la primera fecha."; return; }
     if (n === 1) { h.textContent = nombreDiaPorFecha(iso); return; }
     const fin = new Date(iso + "T00:00:00"); fin.setDate(fin.getDate() + 7 * (n - 1));
@@ -1705,6 +1743,7 @@
     $("um-h3").textContent = "Usar: " + molde.nombre;
     $("um-sub").textContent = "Se copia entera a la fecha que elijas. Después ajustás solo lo que cambie.";
     $("um-fecha").value = ""; $("um-semanas").value = "1";
+    $("um-prog").classList.remove("on"); $("um-prog-detalle").style.display = "none"; $("um-incremento").value = "2,5"; $("um-deload").checked = false;
     actualizarHintUsar();
     $("usarmolde-overlay").classList.add("on");
   }
@@ -1713,15 +1752,32 @@
   $("um-dec").onclick = () => { $("um-semanas").value = Math.max(1, (Number($("um-semanas").value) || 1) - 1); actualizarHintUsar(); };
   $("um-inc").onclick = () => { $("um-semanas").value = Math.min(12, (Number($("um-semanas").value) || 1) + 1); actualizarHintUsar(); };
   $("um-cancelar").onclick = () => $("usarmolde-overlay").classList.remove("on");
+  $("um-prog").onclick = () => {
+    $("um-prog").classList.toggle("on");
+    $("um-prog-detalle").style.display = $("um-prog").classList.contains("on") ? "" : "none";
+  };
+  // Ajuste del incremento con los botones ± (paso de 0,5 kg)
+  function leerIncremento() { const n = parsePeso($("um-incremento").value); return n != null && n > 0 ? n : 2.5; }
+  function pintarIncremento(v) { $("um-incremento").value = String(Math.round(v * 2) / 2).replace(".", ","); }
+  $("um-inc-dec").onclick = () => pintarIncremento(Math.max(0.5, leerIncremento() - 0.5));
+  $("um-inc-inc").onclick = () => pintarIncremento(leerIncremento() + 0.5);
   $("um-guardar").onclick = async () => {
     const iso = $("um-fecha").value;
     if (!iso) { alert("Elegí una fecha."); return; }
     const n = Math.max(1, Math.min(12, Number($("um-semanas").value) || 1));
     const fechas = [];
     for (let k = 0; k < n; k++) { const d = new Date(iso + "T00:00:00"); d.setDate(d.getDate() + 7 * k); fechas.push(isoLocal(d.getFullYear(), d.getMonth(), d.getDate())); }
+    // Regla de progresión: solo si hay 2+ semanas y el toggle está prendido.
+    let progresion = null;
+    if (n > 1 && $("um-prog").classList.contains("on")) {
+      progresion = { peso: { incremento: leerIncremento() } };
+      if ($("um-deload").checked) progresion.deload = { factor: 0.9 };
+    }
     const btn = $("um-guardar"); btn.disabled = true;
     try {
-      const r = await api("/dias/" + moldeEnUso.id + "/duplicar", "POST", { fechas, como_molde: 0 }, true);
+      const body = { fechas, como_molde: 0 };
+      if (progresion) body.progresion = progresion;
+      const r = await api("/dias/" + moldeEnUso.id + "/duplicar", "POST", body, true);
       if (r.dias && r.dias.length) { for (const d of r.dias) RUTINA.push(d); ordenarRutina(RUTINA); }
       $("usarmolde-overlay").classList.remove("on");
       if (r.dias && r.dias.length) { rutNav.diaId = r.dias[0].id; rutNav.bloqueId = null; renderRutina(); }
@@ -1838,12 +1894,22 @@
   function abrirRej(bloqueId) {
     rejBloqueId = bloqueId; catSeleccionado = null;
     $("rej-buscar").value = "";
-    rejSeries = [{ reps: "", pausa: "" }, { reps: "", pausa: "" }, { reps: "", pausa: "" }]; // arranca en 3
+    rejSeries = [{ reps: "", pausa: "", peso: "", rpe: "" }, { reps: "", pausa: "", peso: "", rpe: "" }, { reps: "", pausa: "", peso: "", rpe: "" }]; // arranca en 3
     $("rej-porlado").checked = false;
+    $("rej-carga").classList.add("on");  // por defecto se pide carga
     renderSeriesGrid("rej-grid", rejSeries, "rej-series");
     $("rej-sel").classList.remove("on"); $("rej-list").classList.remove("on"); $("rej-buscar").style.display = "";
     msg($("rej-msg"), "", ""); $("rej-overlay").classList.add("on"); $("rej-buscar").focus();
   }
+  // Convierte el texto de un input de peso (admite coma es-AR) a número o null.
+  function parsePeso(v) {
+    if (v == null) return null;
+    const raw = String(v).trim().replace(",", ".");
+    if (raw === "") return null;
+    const n = Number(raw);
+    return isNaN(n) ? null : n;
+  }
+  $("rej-carga").onclick = () => $("rej-carga").classList.toggle("on");
   $("rej-dec").onclick = () => setSeriesCount(rejSeries, rejSeries.length - 1, "rej-grid", "rej-series");
   $("rej-inc").onclick = () => setSeriesCount(rejSeries, rejSeries.length + 1, "rej-grid", "rej-series");
   $("rej-series").onchange = () => setSeriesCount(rejSeries, Number($("rej-series").value), "rej-grid", "rej-series");
@@ -1865,19 +1931,20 @@
   $("rej-guardar").onclick = async () => {
     if (!catSeleccionado) return msg($("rej-msg"), "Elegi un ejercicio del catalogo", "error");
     const lado = $("rej-porlado").checked;
-    const series_plan = rejSeries.map((s, i) => ({ numero: i + 1, reps: aplicarLado(s.reps, lado), pausa: s.pausa.trim() || null }));
+    const registrar_carga = $("rej-carga").classList.contains("on") ? 1 : 0;
+    const series_plan = rejSeries.map((s, i) => ({ numero: i + 1, reps: aplicarLado(s.reps, lado), pausa: (s.pausa || "").trim() || null, peso: parsePeso(s.peso), rpe: (s.rpe || "").trim() || null }));
     $("rej-guardar").disabled = true;
     try {
       const dia = findDia(RUTINA, rutNav.diaId);
       const bloque = findBloque(dia, rejBloqueId);
       const orden = bloque && bloque.ejercicios ? bloque.ejercicios.length : 0;
-      const r = await api("/ejercicios", "POST", { bloque_id: rejBloqueId, catalogo_id: catSeleccionado.id, series_plan, orden }, true);
+      const r = await api("/ejercicios", "POST", { bloque_id: rejBloqueId, catalogo_id: catSeleccionado.id, series_plan, orden, registrar_carga }, true);
       $("rej-overlay").classList.remove("on");
       if (bloque) {
         (bloque.ejercicios = bloque.ejercicios || []).push({
-          id: r.id, bloque_id: rejBloqueId, orden,
+          id: r.id, bloque_id: rejBloqueId, orden, registrar_carga,
           series: series_plan.length, reps: series_plan[0] ? series_plan[0].reps : null, pausa: series_plan[0] ? series_plan[0].pausa : null,
-          series_plan: series_plan.map((s) => ({ numero: s.numero, reps: s.reps, pausa: s.pausa })),
+          series_plan: series_plan.map((s) => ({ numero: s.numero, reps: s.reps, pausa: s.pausa, peso: s.peso, rpe: s.rpe })),
           notas: null, catalogo_id: catSeleccionado.id, nombre: catSeleccionado.nombre, material: catSeleccionado.material, video_id: catSeleccionado.video_id
         });
         renderRutina();
@@ -1894,11 +1961,14 @@
     edejCat = { id: ej.catalogo_id, nombre: ej.nombre, video_id: ej.video_id, material: ej.material };
     const p = planDe(ej);
     const conLado = p.some((s) => /\/lado$/.test(s.reps || "") || /^por lado$/.test(s.reps || ""));
-    edejSeries = (p.length ? p : [{ reps: "", pausa: "" }]).map((s) => ({
+    edejSeries = (p.length ? p : [{ reps: "", pausa: "", peso: "", rpe: "" }]).map((s) => ({
       reps: (s.reps || "").replace(/\/lado$/, "").replace(/^por lado$/, ""),
-      pausa: s.pausa || ""
+      pausa: s.pausa || "",
+      peso: (s.peso != null ? String(s.peso) : ""),
+      rpe: s.rpe || ""
     }));
     $("edej-porlado").checked = conLado;
+    $("edej-carga").classList.toggle("on", Number(ej.registrar_carga) !== 0);  // respeta lo guardado
     renderSeriesGrid("edej-grid", edejSeries, "edej-series");
     $("edej-notas").value = ej.notas || "";
     $("edej-title").textContent = "Editar ejercicio";
@@ -1907,6 +1977,7 @@
     msg($("edej-msg"), "", "");
     $("edej-overlay").classList.add("on");
   }
+  $("edej-carga").onclick = () => $("edej-carga").classList.toggle("on");
   $("edej-dec").onclick = () => setSeriesCount(edejSeries, edejSeries.length - 1, "edej-grid", "edej-series");
   $("edej-inc").onclick = () => setSeriesCount(edejSeries, edejSeries.length + 1, "edej-grid", "edej-series");
   $("edej-series").onchange = () => setSeriesCount(edejSeries, Number($("edej-series").value), "edej-grid", "edej-series");
@@ -1929,18 +2000,20 @@
   $("edej-guardar").onclick = async () => {
     if (!edejEj) return;
     const lado = $("edej-porlado").checked;
-    const series_plan = edejSeries.map((s, i) => ({ numero: i + 1, reps: aplicarLado(s.reps, lado), pausa: s.pausa.trim() || null }));
+    const registrar_carga = $("edej-carga").classList.contains("on") ? 1 : 0;
+    const series_plan = edejSeries.map((s, i) => ({ numero: i + 1, reps: aplicarLado(s.reps, lado), pausa: (s.pausa || "").trim() || null, peso: parsePeso(s.peso), rpe: (s.rpe || "").trim() || null }));
     const notas = $("edej-notas").value.trim() || null;
     const cambioCat = edejCat && edejCat.id !== edejEj.catalogo_id;
-    const body = { series_plan, notas, orden: edejEj.orden || 0 };
+    const body = { series_plan, notas, orden: edejEj.orden || 0, registrar_carga };
     if (cambioCat) body.catalogo_id = edejCat.id;
     const btn = $("edej-guardar"); btn.disabled = true;
     try {
       await api("/ejercicios/" + edejEj.id, "PUT", body, true);
-      edejEj.series_plan = series_plan.map((s) => ({ numero: s.numero, reps: s.reps, pausa: s.pausa }));
+      edejEj.series_plan = series_plan.map((s) => ({ numero: s.numero, reps: s.reps, pausa: s.pausa, peso: s.peso, rpe: s.rpe }));
       edejEj.series = series_plan.length;
       edejEj.reps = series_plan[0] ? series_plan[0].reps : null;
       edejEj.pausa = series_plan[0] ? series_plan[0].pausa : null;
+      edejEj.registrar_carga = registrar_carga;
       edejEj.notas = notas;
       if (cambioCat) { edejEj.catalogo_id = edejCat.id; edejEj.nombre = edejCat.nombre; edejEj.video_id = edejCat.video_id; edejEj.material = edejCat.material; }
       $("edej-overlay").classList.remove("on");
@@ -2058,7 +2131,7 @@
         const h = HECHOS[id];
         if (c.fecha !== h.fecha) continue; // sólo la tanda más reciente
         const serie = c.serie != null ? c.serie : 1; // cargas viejas (sin serie) => serie 1
-        h.sets[serie] = { peso: c.peso, reps_hechas: c.reps_hechas, completado: c.completado };
+        h.sets[serie] = { peso: c.peso, reps_hechas: c.reps_hechas, rpe: c.rpe != null ? c.rpe : null, completado: c.completado };
         if (h.peso == null && c.peso != null) h.peso = c.peso;       // resumen para la lista
         if (!h.reps_hechas && c.reps_hechas) h.reps_hechas = c.reps_hechas;
         if (c.completado) h.completado = 1;
@@ -2530,27 +2603,50 @@
       $("det-overlay").classList.add("on");
       return;
     }
-    // Tabla PLANIFICADO (una fila por serie). KG editable para el alumno, solo lectura para el profe.
+    // Tabla PLANIFICADO (una fila por serie). Columnas según el modo y el toggle de carga.
     const plan = planDe(ej);
     const done = HECHOS[ej.id];
+    const pideCarga = Number(ej.registrar_carga) !== 0;   // el profe puede apagar el registro por ejercicio
+    const hayObjetivo = plan.some((s) => s.peso !== "" && s.peso != null);
     if (plan.length) {
+      const cols = ["#", "Reps"];
+      if (hayObjetivo) cols.push("Obj");
+      if (pideCarga) { cols.push("Kg"); cols.push("RPE"); } else { cols.push("Pausa"); }
+      const thead = cols.map((c) => `<th>${c}</th>`).join("");
       const filas = plan.map((s) => {
         const set = done && done.sets ? done.sets[s.numero] : null;
         const kgVal = set && set.peso != null ? String(set.peso).replace(".", ",") : "";
-        const kgCell = modo === "alumno"
-          ? `<input type="text" class="plkg" data-serie="${s.numero}" inputmode="decimal" enterkeyhint="done" placeholder="—" value="${kgVal}" oninput="this.value=this.value.replace(/[^0-9.,]/g,'')" />`
-          : `<span class="plkg-ro">${set && set.peso != null ? esc(String(set.peso)) + "kg" : "—"}</span>`;
-        return `<tr><td class="pl-n">${s.numero}</td><td>${s.reps ? esc(s.reps) : "—"}</td><td>${s.pausa ? esc(s.pausa) : "—"}</td><td>${kgCell}</td></tr>`;
+        const rpeVal = set && set.rpe != null ? esc(String(set.rpe)) : "";
+        let tds = `<td class="pl-n">${s.numero}</td><td>${s.reps ? esc(s.reps) : "—"}</td>`;
+        if (hayObjetivo) tds += `<td class="pl-obj">${(s.peso !== "" && s.peso != null) ? esc(String(s.peso)) + "kg" : "—"}</td>`;
+        if (pideCarga) {
+          if (modo === "alumno") {
+            tds += `<td><input type="text" class="plkg" data-serie="${s.numero}" inputmode="decimal" enterkeyhint="done" placeholder="—" value="${kgVal}" oninput="this.value=this.value.replace(/[^0-9.,]/g,'')" /></td>`;
+            tds += `<td><input type="text" class="plrpe" data-serie="${s.numero}" inputmode="decimal" placeholder="—" value="${rpeVal}" oninput="this.value=this.value.replace(/[^0-9.,-]/g,'')" /></td>`;
+          } else {
+            tds += `<td><span class="plkg-ro">${set && set.peso != null ? esc(String(set.peso)) + "kg" : "—"}</span></td>`;
+            tds += `<td><span class="plkg-ro">${set && set.rpe != null ? esc(String(set.rpe)) : "—"}</span></td>`;
+          }
+        } else {
+          tds += `<td>${s.pausa ? esc(s.pausa) : "—"}</td>`;
+        }
+        return `<tr>${tds}</tr>`;
       }).join("");
-      $("det-meta").innerHTML = `<div class="plan-card"><div class="plan-h">Planificado</div><table class="plan-tbl"><thead><tr><th>#</th><th>Reps</th><th>Pausa</th><th>Kg</th></tr></thead><tbody>${filas}</tbody></table></div>`;
+      $("det-meta").innerHTML = `<div class="plan-card"><div class="plan-h">Planificado</div><table class="plan-tbl"><thead><tr>${thead}</tr></thead><tbody>${filas}</tbody></table></div>`;
     } else {
       $("det-meta").innerHTML = "";
     }
     $("det-notas-wrap").innerHTML = ej.notas ? `<div class="detail-notas">${esc(ej.notas)}</div>` : "";
     if (modo === "alumno") {
       $("det-done-wrap").innerHTML = "";
-      $("det-accion").textContent = done ? "Actualizar carga" : "Guardar carga";
-      $("det-accion").onclick = () => guardarCargaSeries(ej);
+      if (pideCarga) {
+        $("det-accion").textContent = done ? "Actualizar carga" : "Guardar carga";
+        $("det-accion").onclick = () => guardarCargaSeries(ej);
+      } else {
+        // Sin registro de carga: el alumno solo marca la sesión como hecha.
+        $("det-accion").textContent = (done && done.completado) ? "Hecho ✓" : "Marcar como hecho";
+        $("det-accion").onclick = () => marcarHechoSinCarga(ej);
+      }
     } else {
       $("det-done-wrap").innerHTML = "";
       $("det-accion").textContent = "Editar ejercicio";
@@ -2567,11 +2663,15 @@
     const inputs = document.querySelectorAll("#det-meta .plkg");
     const sets = [];
     inputs.forEach((el) => {
+      const serie = Number(el.dataset.serie);
       // Aceptamos coma (teclado es-AR) o punto: normalizamos antes de Number().
       const raw = (el.value || "").trim().replace(",", ".");
       const num = raw !== "" ? Number(raw) : null;
       const peso = num != null && !isNaN(num) ? num : null;
-      sets.push({ serie: Number(el.dataset.serie), peso, completado: true });
+      // RPE de la misma fila (input hermano por número de serie).
+      const rpeEl = document.querySelector(`#det-meta .plrpe[data-serie="${serie}"]`);
+      const rpe = rpeEl && rpeEl.value.trim() ? rpeEl.value.trim().replace(",", ".") : null;
+      sets.push({ serie, peso, rpe, completado: true });
     });
     if (!sets.length) return;
     const btn = $("det-accion"); btn.disabled = true;
@@ -2594,6 +2694,20 @@
         }
         MEJORES_MARCAS[ej.catalogo_id] = mejorAnterior != null ? Math.max(mejorAnterior, pesoMax) : pesoMax;
       }
+    } catch (e) { alert(e.message); } finally { btn.disabled = false; }
+  }
+
+  // Marcar como hecho un ejercicio SIN registro de carga (toggle apagado):
+  // registra cada serie como completada, sin peso ni RPE.
+  async function marcarHechoSinCarga(ej) {
+    const plan = planDe(ej);
+    const sets = (plan.length ? plan : [{ numero: 1 }]).map((s) => ({ serie: s.numero, peso: null, completado: true }));
+    const btn = $("det-accion"); btn.disabled = true;
+    try {
+      await api("/cargas", "POST", { ejercicio_id: ej.id, sets }, true);
+      await recargarCargas();
+      cerrarDetalle();
+      renderMiRutina();
     } catch (e) { alert(e.message); } finally { btn.disabled = false; }
   }
 
