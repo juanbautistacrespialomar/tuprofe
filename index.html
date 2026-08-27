@@ -480,11 +480,17 @@
   .pf-avatar-wrap .pf-avatar { margin: 0; }
   .pf-cam { position: absolute; right: -4px; bottom: -2px; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); border: 3px solid var(--bg); color: var(--accent-ink); display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
   .pf-cam svg { width: 15px; height: 15px; }
-  .login-sugeridos { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
-  .login-sug { display: inline-flex; align-items: center; gap: 6px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); border-radius: 999px; padding: 6px 10px 6px 12px; font-size: 12.5px; cursor: pointer; max-width: 100%; }
-  .login-sug span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .login-sug .x { display: inline-flex; opacity: .5; padding: 2px; border-radius: 50%; }
-  .login-sug .x:hover { opacity: 1; }
+  .login-sugeridos { margin-bottom: 14px; }
+  .login-lista { background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .login-cta-otra { text-align: center; color: var(--muted); font-size: 13px; margin-top: 12px; cursor: pointer; }
+  .login-acc { display: flex; align-items: center; gap: 11px; padding: 12px 14px; cursor: pointer; border-bottom: 1px solid var(--border); }
+  .login-acc:last-child { border-bottom: none; }
+  .login-acc:active { background: var(--surface); }
+  .login-acc .ini { width: 34px; height: 34px; flex: 0 0 auto; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px; background: var(--surface); color: var(--text); }
+  .login-acc:first-child .ini { background: var(--accent); color: #0a0a0a; }
+  .login-acc .mail { flex: 1; min-width: 0; font-size: 14px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .login-acc .quitar { flex: 0 0 auto; color: var(--muted); opacity: .55; padding: 4px; display: flex; }
+  .login-acc .quitar:active { opacity: 1; }
   .pf-edit { position: absolute; top: 14px; right: 14px; width: 38px; height: 38px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 2; }
   .pf-edit svg { width: 18px; height: 18px; }
   .pf-name { font-size: 20px; font-weight: 600; }
@@ -1129,17 +1135,27 @@
     if (!cont) return;
     const mails = leerMails();
     if (!mails.length) { cont.innerHTML = ""; return; }
-    cont.innerHTML = mails.map((m) =>
-      `<button type="button" class="login-sug" data-mail="${esc(m)}"><span>${esc(m)}</span><span class="x" data-olvidar="${esc(m)}" title="Quitar"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span></button>`
-    ).join("");
-    cont.querySelectorAll(".login-sug").forEach((b) => {
-      b.onclick = (e) => {
+    // Lista de cuentas (estilo iOS): inicial + mail, tocar la fila para elegir.
+    const filas = mails.map((m) => {
+      const ini = (m.trim().charAt(0) || "?").toUpperCase();
+      return `<div class="login-acc" data-mail="${esc(m)}">
+        <div class="ini">${esc(ini)}</div>
+        <div class="mail">${esc(m)}</div>
+        <div class="quitar" data-olvidar="${esc(m)}" title="Quitar"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
+      </div>`;
+    }).join("");
+    cont.innerHTML = `<div class="login-lista">${filas}</div><div class="login-cta-otra" id="login-otra">Entrar con otra cuenta</div>`;
+    cont.querySelectorAll(".login-acc").forEach((fila) => {
+      fila.onclick = (e) => {
         const olv = e.target.closest("[data-olvidar]");
         if (olv) { olvidarMail(olv.dataset.olvidar); pintarSugeridos(); return; }
-        $("login-email").value = b.dataset.mail;
+        $("login-email").value = fila.dataset.mail;
         $("login-pass").focus();
       };
     });
+    // "Entrar con otra cuenta": limpia el campo y enfoca para escribir uno nuevo.
+    const otra = $("login-otra");
+    if (otra) otra.onclick = () => { $("login-email").value = ""; $("login-email").focus(); };
   }
 
   async function api(path, method, body, auth) {
