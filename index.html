@@ -1183,6 +1183,12 @@
     } else {
       alYo = yo;
       $("alumno-nombre").textContent = yo.nombre || "Alumno";
+      // Profe en pausa: mostramos bloqueo y no cargamos la rutina.
+      if (yo.profe_en_pausa === 1) {
+        mostrarBloqueo("Tu profe está en pausa", "Tu profe pausó la cuenta por el momento. Cuando la reactive vas a poder volver a entrenar. Cualquier cosa, escribile.");
+        return;
+      }
+      $("bloqueo").classList.remove("on");
       alSwitchView("sesion");
       await cargarMiRutina();
     }
@@ -2474,7 +2480,12 @@
   $("profe-admin").onclick = abrirAdmin;
   $("admin-cerrar").onclick = () => $("admin-overlay").classList.remove("on");
   $("bloqueo-salir").onclick = () => { $("bloqueo").classList.remove("on"); salir(); };
-  function mostrarBloqueo() { $("bloqueo").classList.add("on"); }
+  function mostrarBloqueo(titulo, texto) {
+    const card = $("bloqueo").querySelector(".bloqueo-card");
+    if (titulo) card.querySelector("h3").textContent = titulo;
+    if (texto) card.querySelector("p").textContent = texto;
+    $("bloqueo").classList.add("on");
+  }
 
 
   // ---------- VISTA ALUMNO (Sesión / Cargas / Perfil) ----------
