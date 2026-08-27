@@ -630,8 +630,8 @@
       <div class="msg" id="login-msg"></div>
       <form id="login-form" autocomplete="on">
       <div id="login-sugeridos" class="login-sugeridos"></div>
-      <div class="field"><label>Email</label><div class="input-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 7l9 6 9-6"/><rect x="3" y="5" width="18" height="14" rx="2"/></svg><input type="email" id="login-email" name="email" placeholder="nombre@mail.com" autocomplete="username" readonly /></div></div>
-      <div class="field"><label>Contraseña</label><div class="input-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><input type="password" id="login-pass" name="password" class="haseye" placeholder="••••••••" autocomplete="current-password" readonly /><button type="button" class="eye" data-eye="login-pass" aria-label="Mostrar contraseña"></button></div></div>
+      <div class="field"><label>Email</label><div class="input-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 7l9 6 9-6"/><rect x="3" y="5" width="18" height="14" rx="2"/></svg><input type="email" id="login-email" name="email" placeholder="nombre@mail.com" autocomplete="username" /></div></div>
+      <div class="field"><label>Contraseña</label><div class="input-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><input type="password" id="login-pass" name="password" class="haseye" placeholder="••••••••" autocomplete="current-password" /><button type="button" class="eye" data-eye="login-pass" aria-label="Mostrar contraseña"></button></div></div>
       <button class="btn" id="login-btn" type="submit">Entrar</button>
       </form>
       <div class="g-divisor"><span>o</span></div>
@@ -1079,22 +1079,18 @@
 
   const screens = ["s-login", "s-reg-profe", "s-reg-alumno"];
   function showAuth(id) {
+    _authVisible = true;
     $("auth-wrap").style.display = "flex";
     $("auth-wrap").classList.toggle("scrollable", id !== "s-login"); // login sin scroll; registros sí
     $("app-profe").classList.remove("active"); $("app-alumno").classList.remove("active");
     screens.forEach((s) => $(s).classList.toggle("active", s === id));
     const subs = { "s-login": "Entrá a tu cuenta", "s-reg-profe": "Creá tu cuenta de profe", "s-reg-alumno": "Creá tu cuenta" };
     $("brand-sub").textContent = subs[id] || "";
-    if (id === "s-login") {
-      pintarSugeridos();
-      // Reponemos readonly para que iOS no autofoque al reaparecer el login.
-      ["login-email", "login-pass"].forEach((x) => { const el = $(x); if (el) el.setAttribute("readonly", ""); });
-    }
-    // iOS tiende a autofocar el primer campo del <form> al mostrarlo, abriendo el
-    // teclado de golpe. Lo evitamos sacando el foco apenas se pinta la pantalla.
-    requestAnimationFrame(() => { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); });
+    if (id === "s-login") pintarSugeridos();
+    renderBotonesGoogle();   // ahora sí: hay una pantalla de auth visible
   }
   function showApp(rol) {
+    _authVisible = false;
     $("auth-wrap").style.display = "none";
     $("app-profe").classList.toggle("active", rol === "profe");
     $("app-alumno").classList.toggle("active", rol === "alumno");
@@ -1140,8 +1136,6 @@
       b.onclick = (e) => {
         const olv = e.target.closest("[data-olvidar]");
         if (olv) { olvidarMail(olv.dataset.olvidar); pintarSugeridos(); return; }
-        $("login-email").removeAttribute("readonly");
-        $("login-pass").removeAttribute("readonly");
         $("login-email").value = b.dataset.mail;
         $("login-pass").focus();
       };
@@ -3170,27 +3164,41 @@
 
   // ---------- AUTH ----------
   // ---- Login / registro con Google ----
+  let _googleListo = false;   // la librería cargó e inicializó
+  let _googleBotones = false; // los botones ya se renderizaron una vez
+  let _authVisible = false;   // hay una pantalla de login a la vista
+
   window.onGoogleLibraryLoad = () => {
     if (!window.google || !google.accounts) return;
     google.accounts.id.initialize({
       client_id: GOOGLE_CLIENT_ID,
       callback: onGoogleCredential,
-      auto_select: false,            // no intentar loguear solo al cargar (evita el flash de teclado en iOS)
+      auto_select: false,
       cancel_on_tap_outside: true,
       itp_support: true,
     });
-    // Renderizamos en el siguiente frame y con el foco fuera de cualquier campo,
-    // para que el iframe de Google no dispare el teclado al aparecer (bug de iOS).
-    requestAnimationFrame(() => {
-      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
-      [["g-btn-login", 300], ["g-btn-rp", 300], ["g-btn-ra", 300]].forEach(([id, w]) => {
-        const el = $(id);
-        if (el) google.accounts.id.renderButton(el, {
-          theme: "filled_black", shape: "pill", size: "large", text: "continue_with", locale: "es", width: w,
-        });
+    _googleListo = true;
+    // NO renderizamos acá a propósito. El iframe de Google abre el teclado en iOS
+    // apenas se crea, y en el arranque (con sesión válida) ni siquiera hace falta.
+    // El render ocurre EXCLUSIVAMENTE desde showAuth, que solo corre cuando de
+    // verdad hay que mostrar una pantalla de login. Si ya había una visible cuando
+    // Google terminó de cargar, la renderizamos ahora.
+    if (_authVisible) renderBotonesGoogle();
+  };
+
+  // Renderiza los botones de Google UNA sola vez, y solo cuando hay una pantalla
+  // de auth visible. Idempotente: si ya se renderizaron, no hace nada.
+  function renderBotonesGoogle() {
+    if (_googleBotones || !_googleListo) return;
+    if (!window.google || !google.accounts) return;
+    _googleBotones = true;
+    [["g-btn-login", 300], ["g-btn-rp", 300], ["g-btn-ra", 300]].forEach(([id, w]) => {
+      const el = $(id);
+      if (el) google.accounts.id.renderButton(el, {
+        theme: "filled_black", shape: "pill", size: "large", text: "continue_with", locale: "es", width: w,
       });
     });
-  };
+  }
   // Fallback: si la libreria de Google ya cargo antes de definir el callback,
   // lo disparamos a mano cuando el DOM esta listo.
   if (window.google && google.accounts) window.onGoogleLibraryLoad();
@@ -3211,17 +3219,6 @@
       msg($(contId), e.message, "error");
     }
   }
-
-  // Los inputs del login arrancan readonly para que iOS no abra el teclado solo
-  // al mostrar la pantalla. Al primer toque/foco real del usuario, los liberamos.
-  ["login-email", "login-pass"].forEach((id) => {
-    const el = $(id);
-    if (!el) return;
-    const liberar = () => { el.removeAttribute("readonly"); };
-    el.addEventListener("focus", liberar);
-    el.addEventListener("touchstart", liberar, { passive: true });
-    el.addEventListener("click", liberar);
-  });
 
   $("login-form").addEventListener("submit", async (ev) => {
     ev.preventDefault();
