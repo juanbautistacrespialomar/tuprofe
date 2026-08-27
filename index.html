@@ -2835,6 +2835,8 @@
         <div class="pf-stat"><div class="ps-v">${nCargas}</div><div class="ps-l">Cargas</div></div>
       </div>
       <div class="pf-card" style="text-align:left;margin-top:14px">
+        <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:7px">Tu nombre</label>
+        <input type="text" id="pf-nombre" placeholder="Tu nombre" autocomplete="name" style="margin-bottom:14px" />
         <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:7px">Tu objetivo</label>
         <select id="pf-objetivo" style="margin-bottom:14px">
           <option value="">Sin definir</option>
@@ -2846,15 +2848,19 @@
       </div>
       <div class="msg" id="pf-msg"></div>
       <button class="btn ghost" id="pf-salir">Cerrar sesión</button>`;
+    $("pf-nombre").value = (alYo && alYo.nombre) || "";
     $("pf-objetivo").value = (alYo && alYo.objetivo) || "";
     $("pf-obs").value = (alYo && alYo.observaciones) || "";
     $("pf-guardar").onclick = async () => {
       $("pf-guardar").disabled = true;
       try {
+        const nombre = $("pf-nombre").value.trim();
+        if (!nombre) { msg($("pf-msg"), "El nombre no puede quedar vacío", "error"); $("pf-guardar").disabled = false; return; }
         const objetivo = $("pf-objetivo").value || null;
         const observaciones = $("pf-obs").value.trim();
-        await api("/mi-perfil", "PUT", { objetivo, observaciones }, true);
-        if (alYo) { alYo.objetivo = objetivo; alYo.observaciones = observaciones; }
+        await api("/mi-perfil", "PUT", { nombre, objetivo, observaciones }, true);
+        if (alYo) { alYo.nombre = nombre; alYo.objetivo = objetivo; alYo.observaciones = observaciones; }
+        renderPerfil();
         msg($("pf-msg"), "¡Guardado!", "ok");
       } catch (e) { msg($("pf-msg"), e.message, "error"); }
       finally { $("pf-guardar").disabled = false; }
@@ -3086,7 +3092,7 @@
     [["g-btn-login", 300], ["g-btn-rp", 300], ["g-btn-ra", 300]].forEach(([id, w]) => {
       const el = $(id);
       if (el) google.accounts.id.renderButton(el, {
-        theme: "outline", size: "large", text: "continue_with", locale: "es", width: w,
+        theme: "filled_black", shape: "pill", size: "large", text: "continue_with", locale: "es", width: w,
       });
     });
   };
