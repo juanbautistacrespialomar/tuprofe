@@ -476,6 +476,11 @@
   .pf-avatar-wrap .pf-avatar { margin: 0; }
   .pf-cam { position: absolute; right: -4px; bottom: -2px; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); border: 3px solid var(--bg); color: var(--accent-ink); display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
   .pf-cam svg { width: 15px; height: 15px; }
+  .login-sugeridos { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
+  .login-sug { display: inline-flex; align-items: center; gap: 6px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); border-radius: 999px; padding: 6px 10px 6px 12px; font-size: 12.5px; cursor: pointer; max-width: 100%; }
+  .login-sug span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .login-sug .x { display: inline-flex; opacity: .5; padding: 2px; border-radius: 50%; }
+  .login-sug .x:hover { opacity: 1; }
   .pf-edit { position: absolute; top: 14px; right: 14px; width: 38px; height: 38px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 2; }
   .pf-edit svg { width: 18px; height: 18px; }
   .pf-name { font-size: 20px; font-weight: 600; }
@@ -619,9 +624,12 @@
   <div class="screen active" id="s-login">
     <div class="card">
       <div class="msg" id="login-msg"></div>
-      <div class="field"><label>Email</label><div class="input-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 7l9 6 9-6"/><rect x="3" y="5" width="18" height="14" rx="2"/></svg><input type="email" id="login-email" placeholder="nombre@mail.com" autocomplete="email" /></div></div>
-      <div class="field"><label>Contraseña</label><div class="input-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><input type="password" id="login-pass" class="haseye" placeholder="••••••••" autocomplete="current-password" /><button type="button" class="eye" data-eye="login-pass" aria-label="Mostrar contraseña"></button></div></div>
-      <button class="btn" id="login-btn">Entrar</button>
+      <form id="login-form" autocomplete="on">
+      <div id="login-sugeridos" class="login-sugeridos"></div>
+      <div class="field"><label>Email</label><div class="input-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 7l9 6 9-6"/><rect x="3" y="5" width="18" height="14" rx="2"/></svg><input type="email" id="login-email" name="email" placeholder="nombre@mail.com" autocomplete="username" /></div></div>
+      <div class="field"><label>Contraseña</label><div class="input-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><input type="password" id="login-pass" name="password" class="haseye" placeholder="••••••••" autocomplete="current-password" /><button type="button" class="eye" data-eye="login-pass" aria-label="Mostrar contraseña"></button></div></div>
+      <button class="btn" id="login-btn" type="submit">Entrar</button>
+      </form>
       <div class="g-divisor"><span>o</span></div>
       <div id="g-btn-login" class="g-btn"></div>
     </div>
@@ -1073,6 +1081,7 @@
     screens.forEach((s) => $(s).classList.toggle("active", s === id));
     const subs = { "s-login": "Entrá a tu cuenta", "s-reg-profe": "Creá tu cuenta de profe", "s-reg-alumno": "Creá tu cuenta" };
     $("brand-sub").textContent = subs[id] || "";
+    if (id === "s-login") pintarSugeridos();
   }
   function showApp(rol) {
     $("auth-wrap").style.display = "none";
@@ -1093,6 +1102,38 @@
   const token = () => localStorage.getItem(TOKEN_KEY);
   const guardarToken = (t) => localStorage.setItem(TOKEN_KEY, t);
   const borrarToken = () => localStorage.removeItem(TOKEN_KEY);
+
+  // --- Mails recordados EN ESTE CELULAR (solo el email, nunca la contraseña) ---
+  const MAILS_KEY = "tuprofe_mails";
+  function leerMails() { try { return JSON.parse(localStorage.getItem(MAILS_KEY) || "[]"); } catch { return []; } }
+  function recordarMail(email) {
+    if (!email) return;
+    email = email.trim().toLowerCase();
+    let l = leerMails().filter((m) => m !== email);
+    l.unshift(email);
+    l = l.slice(0, 6);
+    localStorage.setItem(MAILS_KEY, JSON.stringify(l));
+  }
+  function olvidarMail(email) {
+    localStorage.setItem(MAILS_KEY, JSON.stringify(leerMails().filter((m) => m !== email)));
+  }
+  function pintarSugeridos() {
+    const cont = $("login-sugeridos");
+    if (!cont) return;
+    const mails = leerMails();
+    if (!mails.length) { cont.innerHTML = ""; return; }
+    cont.innerHTML = mails.map((m) =>
+      `<button type="button" class="login-sug" data-mail="${esc(m)}"><span>${esc(m)}</span><span class="x" data-olvidar="${esc(m)}" title="Quitar"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span></button>`
+    ).join("");
+    cont.querySelectorAll(".login-sug").forEach((b) => {
+      b.onclick = (e) => {
+        const olv = e.target.closest("[data-olvidar]");
+        if (olv) { olvidarMail(olv.dataset.olvidar); pintarSugeridos(); return; }
+        $("login-email").value = b.dataset.mail;
+        $("login-pass").focus();
+      };
+    });
+  }
 
   async function api(path, method, body, auth) {
     const headers = { "Content-Type": "application/json" };
@@ -3158,7 +3199,19 @@
     }
   }
 
-  $("login-btn").onclick = async () => { const email = $("login-email").value.trim(), pass = $("login-pass").value; if (!email || !pass) return msg($("login-msg"), "Completá email y contraseña", "error"); $("login-btn").disabled = true; try { const r = await api("/login", "POST", { email, password: pass }); guardarToken(r.token); await entrar(r.rol); } catch (e) { msg($("login-msg"), e.message, "error"); } finally { $("login-btn").disabled = false; } };
+  $("login-form").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const email = $("login-email").value.trim(), pass = $("login-pass").value;
+    if (!email || !pass) return msg($("login-msg"), "Completá email y contraseña", "error");
+    $("login-btn").disabled = true;
+    try {
+      const r = await api("/login", "POST", { email, password: pass });
+      recordarMail(email);
+      guardarToken(r.token);
+      await entrar(r.rol);
+    } catch (e) { msg($("login-msg"), e.message, "error"); }
+    finally { $("login-btn").disabled = false; }
+  });
   $("rp-btn").onclick = async () => { const nombre = $("rp-nombre").value.trim(), email = $("rp-email").value.trim(), pass = $("rp-pass").value; if (!nombre || !email || !pass) return msg($("rp-msg"), "Completá todos los campos", "error"); if (pass.length < 8) return msg($("rp-msg"), "La contraseña necesita 8 caracteres o más", "error"); if (pass !== $("rp-pass2").value) return msg($("rp-msg"), "Las contraseñas no coinciden", "error"); $("rp-btn").disabled = true; try { const r = await api("/registro/profe", "POST", { nombre, email, password: pass }); guardarToken(r.token); await entrar("profe"); } catch (e) { msg($("rp-msg"), e.message, "error"); } finally { $("rp-btn").disabled = false; } };
   let codigoInvitacion = null;
   $("ra-btn").onclick = async () => { const nombre = $("ra-nombre").value.trim(), email = $("ra-email").value.trim(), pass = $("ra-pass").value, fecha_nac = $("ra-fecha-nac").value || null; if (!nombre || !email || !pass) return msg($("ra-msg"), "Completá nombre, email y contraseña", "error"); if (pass.length < 8) return msg($("ra-msg"), "La contraseña necesita 8 caracteres o más", "error"); if (pass !== $("ra-pass2").value) return msg($("ra-msg"), "Las contraseñas no coinciden", "error"); $("ra-btn").disabled = true; try { const r = await api("/registro/alumno", "POST", { nombre, email, password: pass, codigo_invitacion: codigoInvitacion, fecha_nac }, false); guardarToken(r.token); await entrar("alumno"); } catch (e) { msg($("ra-msg"), e.message, "error"); } finally { $("ra-btn").disabled = false; } };
