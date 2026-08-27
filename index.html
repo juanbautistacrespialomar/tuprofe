@@ -1118,7 +1118,7 @@
     const lista = q ? CATALOGO.filter((e) => e.nombre.toLowerCase().includes(q)) : CATALOGO;
     const cont = $("cat-lista");
     if (CATALOGO.length === 0) {
-      cont.innerHTML = `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M4 7h16M4 12h16M4 17h10"/></svg><p>Todavía no tenés ejercicios.<br>Cargá tu biblioteca para armar rutinas.</p><button class="btn" id="cat-importar">Cargar 28 ejercicios base</button></div>`;
+      cont.innerHTML = `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M4 7h16M4 12h16M4 17h10"/></svg><p>Todavía no tenés ejercicios.<br>Cargá tu biblioteca para armar rutinas.</p><button class="btn" id="cat-importar">Cargar ejercicios base</button></div>`;
       $("cat-importar").onclick = (e) => importarBase(e.currentTarget); return;
     }
     if (lista.length === 0) { cont.innerHTML = `<div class="empty"><p>Ningún ejercicio coincide con "${esc(q)}".</p></div>`; return; }
@@ -2837,6 +2837,8 @@
       <div class="pf-card" style="text-align:left;margin-top:14px">
         <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:7px">Tu nombre</label>
         <input type="text" id="pf-nombre" placeholder="Tu nombre" autocomplete="name" style="margin-bottom:14px" />
+        <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:7px">Fecha de nacimiento</label>
+        <input type="date" id="pf-fecha-nac" style="margin-bottom:14px" />
         <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:7px">Tu objetivo</label>
         <select id="pf-objetivo" style="margin-bottom:14px">
           <option value="">Sin definir</option>
@@ -2849,6 +2851,7 @@
       <div class="msg" id="pf-msg"></div>
       <button class="btn ghost" id="pf-salir">Cerrar sesión</button>`;
     $("pf-nombre").value = (alYo && alYo.nombre) || "";
+    $("pf-fecha-nac").value = (alYo && alYo.fecha_nac) || "";
     $("pf-objetivo").value = (alYo && alYo.objetivo) || "";
     $("pf-obs").value = (alYo && alYo.observaciones) || "";
     $("pf-guardar").onclick = async () => {
@@ -2858,8 +2861,9 @@
         if (!nombre) { msg($("pf-msg"), "El nombre no puede quedar vacío", "error"); $("pf-guardar").disabled = false; return; }
         const objetivo = $("pf-objetivo").value || null;
         const observaciones = $("pf-obs").value.trim();
-        await api("/mi-perfil", "PUT", { nombre, objetivo, observaciones }, true);
-        if (alYo) { alYo.nombre = nombre; alYo.objetivo = objetivo; alYo.observaciones = observaciones; }
+        const fecha_nac = $("pf-fecha-nac").value || null;
+        await api("/mi-perfil", "PUT", { nombre, fecha_nac, objetivo, observaciones }, true);
+        if (alYo) { alYo.nombre = nombre; alYo.fecha_nac = fecha_nac; alYo.objetivo = objetivo; alYo.observaciones = observaciones; }
         renderPerfil();
         msg($("pf-msg"), "¡Guardado!", "ok");
       } catch (e) { msg($("pf-msg"), e.message, "error"); }
