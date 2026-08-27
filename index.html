@@ -63,6 +63,10 @@
   input, select, textarea { width: 100%; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-size: 16px; outline: none; transition: border-color .15s; }
   textarea { min-height: 88px; line-height: 1.4; padding: 12px 14px; resize: vertical; }
   input, select { height: 50px; padding: 0 14px; }
+  /* iOS centra y desalinea el valor de los date: lo forzamos a la izquierda como el resto. */
+  input[type="date"] { -webkit-appearance: none; appearance: none; text-align: left; display: flex; align-items: center; }
+  input[type="date"]::-webkit-date-and-time-value { text-align: left; margin: 0; }
+  input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; opacity: .6; filter: invert(1); }
   .input-wrap input { padding-left: 42px; }
   select { appearance: none; }
   input::placeholder, textarea::placeholder { color: #5c5c5c; }
