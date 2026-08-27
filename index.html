@@ -14,6 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   :root {
     --bg: #0a0a0a; --surface: #161616; --surface-2: #1e1e1e; --border: #262626;
@@ -589,6 +590,10 @@
   .ovl-back { width: 38px; height: 38px; border-radius: 11px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); font-size: 22px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
   .ovl-back:active { transform: scale(.94); }
   .ovl-scroll { scrollbar-gutter: stable; }
+.g-divisor { display:flex; align-items:center; gap:10px; margin:16px 0; color:#9aa; font-size:13px; }
+.g-divisor::before, .g-divisor::after { content:""; flex:1; height:1px; background:currentColor; opacity:.3; }
+.g-divisor span { white-space:nowrap; }
+.g-btn { display:flex; justify-content:center; min-height:44px; }
 </style>
 </head>
 <body>
@@ -615,6 +620,8 @@
       <div class="field"><label>Email</label><div class="input-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 7l9 6 9-6"/><rect x="3" y="5" width="18" height="14" rx="2"/></svg><input type="email" id="login-email" placeholder="nombre@mail.com" autocomplete="email" /></div></div>
       <div class="field"><label>Contraseña</label><div class="input-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><input type="password" id="login-pass" class="haseye" placeholder="••••••••" autocomplete="current-password" /><button type="button" class="eye" data-eye="login-pass" aria-label="Mostrar contraseña"></button></div></div>
       <button class="btn" id="login-btn">Entrar</button>
+      <div class="g-divisor"><span>o</span></div>
+      <div id="g-btn-login" class="g-btn"></div>
     </div>
     <div class="switch">¿Sos profe y no tenés cuenta? <a id="to-registro-profe">Crear cuenta</a></div>
   </div>
@@ -627,6 +634,8 @@
       <div class="field"><label>Contraseña</label><div class="input-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><input type="password" id="rp-pass" class="haseye" placeholder="mínimo 8 caracteres" autocomplete="new-password" /><button type="button" class="eye" data-eye="rp-pass" aria-label="Mostrar contraseña"></button></div></div>
       <div class="field"><label>Repetir contraseña</label><div class="input-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><input type="password" id="rp-pass2" class="haseye" placeholder="repetí la contraseña" autocomplete="new-password" /><button type="button" class="eye" data-eye="rp-pass2" aria-label="Mostrar contraseña"></button></div></div>
       <button class="btn" id="rp-btn">Crear cuenta</button>
+      <div class="g-divisor"><span>o</span></div>
+      <div id="g-btn-rp" class="g-btn"></div>
     </div>
     <div class="switch">¿Ya tenés cuenta? <a id="to-login-1">Entrar</a></div>
   </div>
@@ -641,6 +650,8 @@
       <div class="field"><label>Repetir contraseña</label><div class="input-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><input type="password" id="ra-pass2" class="haseye" placeholder="repetí la contraseña" autocomplete="new-password" /><button type="button" class="eye" data-eye="ra-pass2" aria-label="Mostrar contraseña"></button></div></div>
       <div class="field"><label>Fecha de nacimiento</label><input type="date" id="ra-fecha-nac" /></div>
       <button class="btn" id="ra-btn">Crear cuenta</button>
+      <div class="g-divisor"><span>o</span></div>
+      <div id="g-btn-ra" class="g-btn"></div>
     </div>
   </div>
 </div>
@@ -954,6 +965,7 @@
 
 <script>
   const API = "https://tuprofe-api.juanbautistacrespialomar.workers.dev";
+  const GOOGLE_CLIENT_ID = "470393235359-fmaqhamksf7o30b3kgv7rcq2d7bjclqf.apps.googleusercontent.com";
   const TOKEN_KEY = "tuprofe_token";
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -3067,6 +3079,38 @@
   document.querySelectorAll("#profe-main .navtab").forEach((t) => (t.onclick = () => profeSwitchTab(t.dataset.ptab)));
 
   // ---------- AUTH ----------
+  // ---- Login / registro con Google ----
+  window.onGoogleLibraryLoad = () => {
+    if (!window.google || !google.accounts) return;
+    google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: onGoogleCredential });
+    [["g-btn-login", 300], ["g-btn-rp", 300], ["g-btn-ra", 300]].forEach(([id, w]) => {
+      const el = $(id);
+      if (el) google.accounts.id.renderButton(el, {
+        theme: "outline", size: "large", text: "continue_with", locale: "es", width: w,
+      });
+    });
+  };
+  // Fallback: si la libreria de Google ya cargo antes de definir el callback,
+  // lo disparamos a mano cuando el DOM esta listo.
+  if (window.google && google.accounts) window.onGoogleLibraryLoad();
+
+  async function onGoogleCredential(resp) {
+    // El MISMO callback sirve a las 3 pantallas. Detectamos el contexto por
+    // cual esta activa: si es la de alumno, mandamos el codigo de invitacion.
+    const enAlumno = $("s-reg-alumno").classList.contains("active");
+    const enProfe  = $("s-reg-profe").classList.contains("active");
+    const contId = enAlumno ? "ra-msg" : (enProfe ? "rp-msg" : "login-msg");
+    const body = { credential: resp.credential };
+    if (enAlumno && codigoInvitacion) body.codigo_invitacion = codigoInvitacion;
+    try {
+      const r = await api("/auth/google", "POST", body, false);
+      guardarToken(r.token);
+      await entrar(r.rol);
+    } catch (e) {
+      msg($(contId), e.message, "error");
+    }
+  }
+
   $("login-btn").onclick = async () => { const email = $("login-email").value.trim(), pass = $("login-pass").value; if (!email || !pass) return msg($("login-msg"), "Completá email y contraseña", "error"); $("login-btn").disabled = true; try { const r = await api("/login", "POST", { email, password: pass }); guardarToken(r.token); await entrar(r.rol); } catch (e) { msg($("login-msg"), e.message, "error"); } finally { $("login-btn").disabled = false; } };
   $("rp-btn").onclick = async () => { const nombre = $("rp-nombre").value.trim(), email = $("rp-email").value.trim(), pass = $("rp-pass").value; if (!nombre || !email || !pass) return msg($("rp-msg"), "Completá todos los campos", "error"); if (pass.length < 8) return msg($("rp-msg"), "La contraseña necesita 8 caracteres o más", "error"); if (pass !== $("rp-pass2").value) return msg($("rp-msg"), "Las contraseñas no coinciden", "error"); $("rp-btn").disabled = true; try { const r = await api("/registro/profe", "POST", { nombre, email, password: pass }); guardarToken(r.token); await entrar("profe"); } catch (e) { msg($("rp-msg"), e.message, "error"); } finally { $("rp-btn").disabled = false; } };
   let codigoInvitacion = null;
