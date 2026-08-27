@@ -476,6 +476,8 @@
   .pf-avatar-wrap .pf-avatar { margin: 0; }
   .pf-cam { position: absolute; right: -4px; bottom: -2px; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); border: 3px solid var(--bg); color: var(--accent-ink); display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
   .pf-cam svg { width: 15px; height: 15px; }
+  .pf-edit { position: absolute; top: 14px; right: 14px; width: 38px; height: 38px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 2; }
+  .pf-edit svg { width: 18px; height: 18px; }
   .pf-name { font-size: 20px; font-weight: 600; }
   .pf-mail { font-size: 13px; color: var(--muted); margin-top: 3px; }
   .pf-stats { display: flex; gap: 10px; margin-bottom: 18px; }
@@ -894,6 +896,18 @@
     <div class="mcal-sf-label" id="nd-moldes-label" style="margin-top:14px">O traer una sesión guardada</div>
     <div id="nd-moldes"></div>
     <button class="btn ghost sm" id="nd-cancelar" style="margin-top:12px">Cancelar</button>
+  </div>
+</div>
+
+<!-- ============ MODAL editar perfil (alumno) ============ -->
+<div class="overlay" id="perfil-overlay">
+  <div class="sheet">
+    <h3>Editar perfil</h3>
+    <div class="field"><label>Tu nombre</label><input type="text" id="pfm-nombre" placeholder="Tu nombre" autocomplete="name" /></div>
+    <div class="field"><label>Fecha de nacimiento</label><input type="date" id="pfm-fecha-nac" /></div>
+    <div class="msg" id="pfm-msg"></div>
+    <button class="btn" id="pfm-guardar">Guardar</button>
+    <button class="btn ghost sm" id="pfm-cancelar" style="margin-top:10px">Cancelar</button>
   </div>
 </div>
 
@@ -2819,7 +2833,8 @@
       ? `<img src="${alYo.foto}" alt="Foto de perfil" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
       : esc(inicial);
     cont.innerHTML = `
-      <div class="pf-card">
+      <div class="pf-card" style="position:relative">
+        <button class="pf-edit" id="pf-editar" title="Editar perfil"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
         <div class="pf-avatar-wrap">
           <div class="pf-avatar">${avatar}</div>
           <button class="pf-cam" id="pf-cam" title="Cambiar foto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></button>
@@ -2835,10 +2850,6 @@
         <div class="pf-stat"><div class="ps-v">${nCargas}</div><div class="ps-l">Cargas</div></div>
       </div>
       <div class="pf-card" style="text-align:left;margin-top:14px">
-        <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:7px">Tu nombre</label>
-        <input type="text" id="pf-nombre" placeholder="Tu nombre" autocomplete="name" style="margin-bottom:14px" />
-        <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:7px">Fecha de nacimiento</label>
-        <input type="date" id="pf-fecha-nac" style="margin-bottom:14px" />
         <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:7px">Tu objetivo</label>
         <select id="pf-objetivo" style="margin-bottom:14px">
           <option value="">Sin definir</option>
@@ -2850,21 +2861,15 @@
       </div>
       <div class="msg" id="pf-msg"></div>
       <button class="btn ghost" id="pf-salir">Cerrar sesión</button>`;
-    $("pf-nombre").value = (alYo && alYo.nombre) || "";
-    $("pf-fecha-nac").value = (alYo && alYo.fecha_nac) || "";
     $("pf-objetivo").value = (alYo && alYo.objetivo) || "";
     $("pf-obs").value = (alYo && alYo.observaciones) || "";
     $("pf-guardar").onclick = async () => {
       $("pf-guardar").disabled = true;
       try {
-        const nombre = $("pf-nombre").value.trim();
-        if (!nombre) { msg($("pf-msg"), "El nombre no puede quedar vacío", "error"); $("pf-guardar").disabled = false; return; }
         const objetivo = $("pf-objetivo").value || null;
         const observaciones = $("pf-obs").value.trim();
-        const fecha_nac = $("pf-fecha-nac").value || null;
-        await api("/mi-perfil", "PUT", { nombre, fecha_nac, objetivo, observaciones }, true);
-        if (alYo) { alYo.nombre = nombre; alYo.fecha_nac = fecha_nac; alYo.objetivo = objetivo; alYo.observaciones = observaciones; }
-        renderPerfil();
+        await api("/mi-perfil", "PUT", { objetivo, observaciones }, true);
+        if (alYo) { alYo.objetivo = objetivo; alYo.observaciones = observaciones; }
         msg($("pf-msg"), "¡Guardado!", "ok");
       } catch (e) { msg($("pf-msg"), e.message, "error"); }
       finally { $("pf-guardar").disabled = false; }
@@ -2872,6 +2877,27 @@
     $("pf-salir").onclick = salir;
     $("pf-cam").onclick = () => $("pf-file").click();
     $("pf-file").onchange = onFotoElegida;
+    // Lápiz -> abre el modal de editar nombre + fecha
+    $("pf-editar").onclick = () => {
+      $("pfm-nombre").value = (alYo && alYo.nombre) || "";
+      $("pfm-fecha-nac").value = (alYo && alYo.fecha_nac) || "";
+      msg($("pfm-msg"), "", "");
+      $("perfil-overlay").classList.add("on");
+    };
+    $("pfm-cancelar").onclick = () => $("perfil-overlay").classList.remove("on");
+    $("pfm-guardar").onclick = async () => {
+      const nombre = $("pfm-nombre").value.trim();
+      if (!nombre) { msg($("pfm-msg"), "El nombre no puede quedar vacío", "error"); return; }
+      const fecha_nac = $("pfm-fecha-nac").value || null;
+      $("pfm-guardar").disabled = true;
+      try {
+        await api("/mi-perfil", "PUT", { nombre, fecha_nac }, true);
+        if (alYo) { alYo.nombre = nombre; alYo.fecha_nac = fecha_nac; }
+        $("perfil-overlay").classList.remove("on");
+        renderPerfil();
+      } catch (e) { msg($("pfm-msg"), e.message, "error"); }
+      finally { $("pfm-guardar").disabled = false; }
+    };
   }
 
   // Comprime la imagen en el celu (cuadrada ~256px, JPEG) para que pese poco
@@ -3092,11 +3118,22 @@
   // ---- Login / registro con Google ----
   window.onGoogleLibraryLoad = () => {
     if (!window.google || !google.accounts) return;
-    google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: onGoogleCredential });
-    [["g-btn-login", 300], ["g-btn-rp", 300], ["g-btn-ra", 300]].forEach(([id, w]) => {
-      const el = $(id);
-      if (el) google.accounts.id.renderButton(el, {
-        theme: "filled_black", shape: "pill", size: "large", text: "continue_with", locale: "es", width: w,
+    google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: onGoogleCredential,
+      auto_select: false,            // no intentar loguear solo al cargar (evita el flash de teclado en iOS)
+      cancel_on_tap_outside: true,
+      itp_support: true,
+    });
+    // Renderizamos en el siguiente frame y con el foco fuera de cualquier campo,
+    // para que el iframe de Google no dispare el teclado al aparecer (bug de iOS).
+    requestAnimationFrame(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+      [["g-btn-login", 300], ["g-btn-rp", 300], ["g-btn-ra", 300]].forEach(([id, w]) => {
+        const el = $(id);
+        if (el) google.accounts.id.renderButton(el, {
+          theme: "filled_black", shape: "pill", size: "large", text: "continue_with", locale: "es", width: w,
+        });
       });
     });
   };
