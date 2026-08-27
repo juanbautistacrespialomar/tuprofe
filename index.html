@@ -1086,6 +1086,9 @@
     const subs = { "s-login": "Entrá a tu cuenta", "s-reg-profe": "Creá tu cuenta de profe", "s-reg-alumno": "Creá tu cuenta" };
     $("brand-sub").textContent = subs[id] || "";
     if (id === "s-login") pintarSugeridos();
+    // iOS tiende a autofocar el primer campo del <form> al mostrarlo, abriendo el
+    // teclado de golpe. Lo evitamos sacando el foco apenas se pinta la pantalla.
+    requestAnimationFrame(() => { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); });
   }
   function showApp(rol) {
     $("auth-wrap").style.display = "none";
