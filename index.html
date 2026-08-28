@@ -301,7 +301,7 @@
   .detail-done { font-size: 13px; color: var(--accent); text-align: center; margin-bottom: 12px; }
   .marca-box { display: flex; align-items: center; justify-content: space-between; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: 13px; color: var(--muted); margin-bottom: 14px; }
   .marca-box b { color: var(--accent); font-size: 14px; }
-  .pr-toast { position: fixed; left: 50%; bottom: calc(90px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(12px); background: var(--accent); color: var(--accent-ink); font-weight: 700; font-size: 14px; padding: 12px 18px; border-radius: 999px; box-shadow: 0 8px 24px rgba(0,0,0,.35); z-index: 999; opacity: 0; transition: opacity .22s, transform .22s; pointer-events: none; text-align: center; white-space: nowrap; }
+  .pr-toast { position: fixed; left: 50%; bottom: calc(90px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(12px); width: max-content; max-width: min(560px, calc(100vw - 28px)); box-sizing: border-box; background: var(--accent); color: var(--accent-ink); font-weight: 700; font-size: 14px; line-height: 1.3; padding: 12px 18px; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,.35); z-index: 999; opacity: 0; transition: opacity .22s, transform .22s; pointer-events: none; text-align: center; white-space: normal; overflow-wrap: anywhere; }
   .pr-toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
   .detail-back { position: absolute; top: 12px; left: 12px; z-index: 3; width: 36px; height: 36px; border-radius: 50%; background: rgba(0,0,0,.55); backdrop-filter: blur(4px); border: none; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; }
   .detail-back svg { width: 22px; height: 22px; }
@@ -1111,7 +1111,10 @@
     clearTimeout(prToastTimer);
     el.textContent = texto;
     el.classList.add("on");
-    prToastTimer = setTimeout(() => el.classList.remove("on"), 2800);
+    // Duración proporcional al largo: ~55ms por caracter, entre 2.8s y 6s. Un aviso
+    // de récord ("¡Superaste tu marca...!") ahora ocupa 2 líneas y necesita más tiempo.
+    const ms = Math.min(6000, Math.max(2800, texto.length * 55));
+    prToastTimer = setTimeout(() => el.classList.remove("on"), ms);
   }
   const token = () => localStorage.getItem(TOKEN_KEY);
   const guardarToken = (t) => localStorage.setItem(TOKEN_KEY, t);
@@ -2937,6 +2940,12 @@
         <textarea id="pf-obs" placeholder="Ej: molestia en hombro derecho, evitar impacto..." style="margin-bottom:14px"></textarea>
         <button class="btn sm" id="pf-guardar">Guardar cambios</button>
       </div>
+      <div class="pf-card" style="text-align:left;margin-top:14px">
+        <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:4px">Descargar mis datos</label>
+        <p style="font-size:12px;color:var(--muted);margin:0 0 12px">Todo tu historial: días, ejercicios, series, kilos, carga percibida, notas y récords.</p>
+        <button class="btn sm" id="pf-export-json" style="margin-bottom:8px">Descargar JSON (completo)</button>
+        <button class="btn sm ghost" id="pf-export-csv">Descargar CSV (historial)</button>
+      </div>
       <div class="msg" id="pf-msg"></div>
       <button class="btn ghost" id="pf-salir">Cerrar sesión</button>`;
     $("pf-objetivo").value = (alYo && alYo.objetivo) || "";
@@ -2953,6 +2962,8 @@
       finally { $("pf-guardar").disabled = false; }
     };
     $("pf-salir").onclick = salir;
+    $("pf-export-json").onclick = () => exportarDatos("json");
+    $("pf-export-csv").onclick = () => exportarDatos("csv");
     $("pf-cam").onclick = () => $("pf-file").click();
     $("pf-file").onchange = onFotoElegida;
     // Lápiz -> abre el modal de editar nombre + fecha
@@ -2976,6 +2987,135 @@
       } catch (e) { msg($("pfm-msg"), e.message, "error"); }
       finally { $("pfm-guardar").disabled = false; }
     };
+  }
+
+  // ============================================================
+  //  EXPORTAR MIS DATOS  (todo el historial del alumno, client-side)
+  //  ------------------------------------------------------------
+  //  Arma dos formatos desde lo que ya está en memoria:
+  //    - JSON: estructura completa y auto-descripta (rutina anidada +
+  //      historial plano + mejores marcas). Ideal para análisis/Power Query.
+  //    - CSV : una fila por serie cargada, con ; y decimales con coma
+  //      (así se abre derecho en Excel es-AR con doble clic).
+  //  Refresca cargas y marcas antes de generar, para exportar lo último.
+  // ============================================================
+  function descargarArchivo(nombre, contenido, mime) {
+    const blob = new Blob([contenido], { type: mime + ";charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = nombre;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+  }
+  function slugNombre(s) {
+    return (s || "alumno").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "alumno";
+  }
+  // ejercicio_id -> contexto (día/bloque/catálogo) tomado de la rutina actual.
+  function mapaContextoEjercicios() {
+    const m = {};
+    for (const d of MI_RUTINA) for (const b of (d.bloques || [])) for (const e of (b.ejercicios || [])) {
+      m[e.id] = { dia_id: d.id, dia_nombre: d.nombre, dia_fecha: d.fecha || null, bloque_nombre: b.nombre, catalogo_id: e.catalogo_id, ejercicio_nombre: e.nombre };
+    }
+    return m;
+  }
+  // Catálogo (nombre/material/video) deducido de la rutina, para resolver marcas.
+  function mapaCatalogo() {
+    const m = {};
+    for (const d of MI_RUTINA) for (const b of (d.bloques || [])) for (const e of (b.ejercicios || [])) {
+      if (e.catalogo_id != null && !m[e.catalogo_id]) m[e.catalogo_id] = { nombre: e.nombre, material: e.material || null, video_id: e.video_id || null };
+    }
+    return m;
+  }
+  function construirExport() {
+    const ctx = mapaContextoEjercicios();
+    const cat = mapaCatalogo();
+    // Rutina anidada: día -> bloque -> ejercicio (con su plan por serie)
+    const rutina = MI_RUTINA.map((d) => ({
+      dia_id: d.id, nombre: d.nombre, fecha: d.fecha || null, orden: d.orden,
+      nota_alumno: d.nota_alumno || null,
+      bloques: (d.bloques || []).map((b) => ({
+        bloque_id: b.id, nombre: b.nombre, orden: b.orden, pausa: b.pausa || null,
+        ejercicios: (b.ejercicios || []).map((e) => ({
+          ejercicio_id: e.id, catalogo_id: e.catalogo_id, nombre: e.nombre,
+          material: e.material || null, video_id: e.video_id || null,
+          series: e.series, reps: e.reps || null, pausa: e.pausa || null, notas: e.notas || null,
+          plan_por_serie: (e.series_plan || []).map((s) => ({ numero: s.numero, reps: s.reps || null, pausa: s.pausa || null, peso_planificado: s.peso != null ? s.peso : null, rpe_objetivo: s.rpe != null ? s.rpe : null })),
+        })),
+      })),
+    }));
+    // Historial plano: una entrada por serie registrada, enriquecida con su contexto.
+    const historial = CARGAS.map((c) => {
+      const info = ctx[c.ejercicio_id] || {};
+      return {
+        fecha: c.fecha || null,
+        fecha_dia: (c.fecha || "").slice(0, 10) || null,
+        ejercicio_id: c.ejercicio_id,
+        ejercicio: c.ejercicio || info.ejercicio_nombre || null,
+        catalogo_id: info.catalogo_id != null ? info.catalogo_id : null,
+        dia: info.dia_nombre || null,
+        bloque: info.bloque_nombre || null,
+        serie: c.serie != null ? c.serie : null,
+        peso_kg: c.peso != null ? c.peso : null,
+        reps_hechas: c.reps_hechas || null,
+        rpe: c.rpe != null ? c.rpe : null,
+        completado: c.completado ? 1 : 0,
+        notas: c.notas || null,
+      };
+    });
+    const mejores_marcas = Object.entries(MEJORES_MARCAS).map(([cid, peso]) => ({
+      catalogo_id: Number(cid), ejercicio: (cat[cid] || {}).nombre || null, peso_kg: peso,
+    }));
+    return {
+      _meta: {
+        app: "tuprofe", version_export: 1, exportado: new Date().toISOString(),
+        descripcion: "Export completo del alumno. 'rutina' es lo planificado por el profe (anidado día>bloque>ejercicio>serie). 'historial' es una fila por serie efectivamente cargada, cruzable por 'fecha_dia'. 'mejores_marcas' es el MAX(peso) por ejercicio.",
+      },
+      alumno: {
+        id: (alYo && alYo.id) != null ? alYo.id : null,
+        nombre: (alYo && alYo.nombre) || null,
+        email: (alYo && alYo.email) || null,
+        fecha_nac: (alYo && alYo.fecha_nac) || null,
+        objetivo: (alYo && alYo.objetivo) || null,
+        observaciones: (alYo && alYo.observaciones) || null,
+        profe: (alYo && alYo.profe_nombre) || null,
+      },
+      rutina, historial, mejores_marcas,
+    };
+  }
+  // CSV para Excel es-AR: separador ';' y decimales con coma. BOM para acentos.
+  function historialACSV(data) {
+    const sep = ";";
+    const cols = ["fecha", "fecha_dia", "dia", "bloque", "ejercicio", "serie", "peso_kg", "reps_hechas", "rpe", "completado", "notas"];
+    const val = (v) => {
+      if (v == null) return "";
+      let s = typeof v === "number" ? String(v).replace(".", ",") : String(v);
+      if (/[";\r\n]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
+      return s;
+    };
+    const filas = data.historial
+      .slice().sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)))  // ascendente para leer cronológico
+      .map((h) => cols.map((c) => val(h[c])).join(sep));
+    return "\uFEFF" + [cols.join(sep), ...filas].join("\r\n");
+  }
+  async function exportarDatos(formato) {
+    const jb = $("pf-export-json"), cb = $("pf-export-csv");
+    const btn = formato === "csv" ? cb : jb;
+    const orig = btn.textContent; btn.disabled = true; btn.textContent = "Generando...";
+    try {
+      // Aseguramos que el historial y las marcas estén al día antes de exportar.
+      await Promise.all([recargarCargas(), cargarMejoresMarcas()]);
+      const data = construirExport();
+      const base = "tuprofe_" + slugNombre(alYo && alYo.nombre) + "_" + hoyISO();
+      if (formato === "csv") {
+        descargarArchivo(base + "_historial.csv", historialACSV(data), "text/csv");
+      } else {
+        descargarArchivo(base + ".json", JSON.stringify(data, null, 2), "application/json");
+      }
+      msg($("pf-msg"), "¡Listo! Revisá tus descargas.", "ok");
+    } catch (e) {
+      msg($("pf-msg"), "No se pudo generar: " + e.message, "error");
+    } finally { btn.disabled = false; btn.textContent = orig; }
   }
 
   // Comprime la imagen en el celu (cuadrada ~256px, JPEG) para que pese poco
