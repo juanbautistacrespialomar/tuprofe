@@ -795,7 +795,7 @@
       <div class="ct-txt"><b>Pedir carga al alumno</b><small>Apagalo en movilidad, core, etc.</small></div>
       <button type="button" class="swi on" id="edej-carga" aria-label="Pedir registro de carga"></button>
     </div>
-    <div class="field"><label>Nota para el alumno (opcional)</label><input type="text" id="edej-notas" placeholder="Cuidá la espalda, bajá lento..." /></div>
+    <div class="field"><label>Nota para el alumno (opcional)</label><textarea id="edej-notas" placeholder="Ej: arrancá sin mancuernas y probá; de última metele 2kg en la segunda serie" style="min-height:60px"></textarea></div>
     <button class="btn" id="edej-guardar">Guardar cambios</button>
     <button class="btn ghost sm" id="edej-cancelar" style="margin-top:10px">Cancelar</button>
   </div>
@@ -960,6 +960,7 @@
       <div class="ct-txt"><b>Pedir carga al alumno</b><small>Apagalo en movilidad, core, etc.</small></div>
       <button type="button" class="swi on" id="rej-carga" aria-label="Pedir registro de carga"></button>
     </div>
+    <div class="field"><label>Nota para el alumno <small style="color:var(--muted)">(opcional)</small></label><textarea id="rej-notas" placeholder="Ej: arrancá sin mancuernas y probá; de última metele 2kg en la segunda serie" style="min-height:60px"></textarea></div>
     <button class="btn" id="rej-guardar">Agregar a la rutina</button>
     <button class="btn ghost sm" id="rej-cancelar" style="margin-top:10px">Cancelar</button>
   </div>
@@ -2286,6 +2287,7 @@
     rejSeries = [{ reps: "", pausa: "", peso: "", rpe: "" }, { reps: "", pausa: "", peso: "", rpe: "" }, { reps: "", pausa: "", peso: "", rpe: "" }]; // arranca en 3
     $("rej-porlado").checked = false;
     $("rej-rpe-obj").value = "";
+    $("rej-notas").value = "";
     $("rej-carga").classList.add("on");  // por defecto se pide carga
     renderSeriesGrid("rej-grid", rejSeries, "rej-series");
     $("rej-sel").classList.remove("on"); $("rej-list").classList.remove("on"); $("rej-buscar").style.display = "";
@@ -2324,19 +2326,20 @@
     const registrar_carga = $("rej-carga").classList.contains("on") ? 1 : 0;
     const rpeObj = $("rej-rpe-obj").value.trim() || null;  // un RPE para todo el ejercicio
     const series_plan = rejSeries.map((s, i) => ({ numero: i + 1, reps: aplicarLado(s.reps, lado), pausa: (s.pausa || "").trim() || null, peso: parsePeso(s.peso), rpe: rpeObj }));
+    const notas = $("rej-notas").value.trim() || null;
     $("rej-guardar").disabled = true;
     try {
       const dia = findDia(RUTINA, rutNav.diaId);
       const bloque = findBloque(dia, rejBloqueId);
       const orden = bloque && bloque.ejercicios ? bloque.ejercicios.length : 0;
-      const r = await api("/ejercicios", "POST", { bloque_id: rejBloqueId, catalogo_id: catSeleccionado.id, series_plan, orden, registrar_carga }, true);
+      const r = await api("/ejercicios", "POST", { bloque_id: rejBloqueId, catalogo_id: catSeleccionado.id, series_plan, orden, registrar_carga, notas }, true);
       $("rej-overlay").classList.remove("on");
       if (bloque) {
         (bloque.ejercicios = bloque.ejercicios || []).push({
           id: r.id, bloque_id: rejBloqueId, orden, registrar_carga,
           series: series_plan.length, reps: series_plan[0] ? series_plan[0].reps : null, pausa: series_plan[0] ? series_plan[0].pausa : null,
           series_plan: series_plan.map((s) => ({ numero: s.numero, reps: s.reps, pausa: s.pausa, peso: s.peso, rpe: s.rpe })),
-          notas: null, catalogo_id: catSeleccionado.id, nombre: catSeleccionado.nombre, material: catSeleccionado.material, video_id: catSeleccionado.video_id
+          notas, catalogo_id: catSeleccionado.id, nombre: catSeleccionado.nombre, material: catSeleccionado.material, video_id: catSeleccionado.video_id
         });
         renderRutina();
       } else await cargarRutina();
@@ -3146,23 +3149,22 @@
     if (!sets.length) return;
     const btn = $("det-accion"); btn.disabled = true;
     try {
-      // Mejor marca ANTES de guardar (para comparar contra lo recién cargado).
+      // Mejor marca ANTES de guardar (para el aviso de récord superado).
       const mejorAnterior = MEJORES_MARCAS[ej.catalogo_id];
-      const pesos = sets.map((s) => s.peso).filter((p) => p != null && !isNaN(p));
-      const pesoMax = pesos.length ? Math.max(...pesos) : null;
 
       await api("/cargas", "POST", { ejercicio_id: ej.id, sets }, true);
-      await recargarCargas();
+      // Refrescamos cargas Y mejores marcas desde el servidor. La marca es el
+      // MAX(peso > 0) real del historial, así que si corregís un peso cargado
+      // de más (o lo ponés en cero), la marca BAJA sola. Antes hacíamos Math.max
+      // acá mismo y por eso nunca podía bajar: ese era el bug.
+      await Promise.all([recargarCargas(), cargarMejoresMarcas()]);
       cerrarDetalle();
       renderMiRutina();
 
-      // ¿Superó su marca anterior? Avisamos con un toast y actualizamos el mapa local
-      // (así, si carga otra serie más pesada en la misma sesión, compara contra el nuevo récord).
-      if (pesoMax != null) {
-        if (mejorAnterior != null && pesoMax > mejorAnterior) {
-          mostrarToast(`💪 ¡Superaste tu marca anterior en ${ej.nombre || "este ejercicio"}! ${mejorAnterior}kg → ${pesoMax}kg`);
-        }
-        MEJORES_MARCAS[ej.catalogo_id] = mejorAnterior != null ? Math.max(mejorAnterior, pesoMax) : pesoMax;
+      // ¿Superó su marca anterior? Comparamos el récord ya recalculado contra el previo.
+      const mejorNueva = MEJORES_MARCAS[ej.catalogo_id];
+      if (mejorNueva != null && mejorAnterior != null && mejorNueva > mejorAnterior) {
+        mostrarToast(`💪 ¡Superaste tu marca anterior en ${ej.nombre || "este ejercicio"}! ${mejorAnterior}kg → ${mejorNueva}kg`);
       }
     } catch (e) { alert(e.message); } finally { btn.disabled = false; }
   }
