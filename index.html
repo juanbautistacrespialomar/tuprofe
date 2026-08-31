@@ -299,8 +299,7 @@
   .detail-meta { display: block; margin-bottom: 8px; }
   .detail-notas { background: var(--surface-2); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 10px; padding: 12px; font-size: 13.5px; color: var(--text); margin-bottom: 16px; line-height: 1.45; }
   .detail-done { font-size: 13px; color: var(--accent); text-align: center; margin-bottom: 12px; }
-  .marca-box { display: flex; align-items: center; justify-content: space-between; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: 13px; color: var(--muted); margin-bottom: 14px; }
-  .marca-box b { color: var(--accent); font-size: 14px; }
+  .marca-box { display: none; }  /* (obsoleto: la referencia de peso ahora es la columna "Últ." del Planificado) */
   .pr-toast { position: fixed; left: 50%; bottom: calc(90px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(12px); width: max-content; max-width: min(560px, calc(100vw - 28px)); box-sizing: border-box; background: var(--accent); color: var(--accent-ink); font-weight: 700; font-size: 14px; line-height: 1.3; padding: 12px 18px; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,.35); z-index: 999; opacity: 0; transition: opacity .22s, transform .22s; pointer-events: none; text-align: center; white-space: normal; overflow-wrap: anywhere; }
   .pr-toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
   .detail-back { position: absolute; top: 12px; left: 12px; z-index: 3; width: 36px; height: 36px; border-radius: 50%; background: rgba(0,0,0,.55); backdrop-filter: blur(4px); border: none; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; }
@@ -565,6 +564,10 @@
   .plan-tbl .plkg { width: 84px; max-width: 84px; text-align: center; padding: 10px 8px; box-sizing: border-box; margin: 0 auto; display: block; }
   .plan-tbl .pl-obj { color: var(--accent); font-size: 13px; white-space: nowrap; }
   .plan-tbl .plkg-ro { color: var(--text); }
+  /* Columna "Últ." (kg de la última vez, por serie). Tono apagado: es referencia,
+     no compite con el input de Kg de hoy. Centrada como la de Kg para que alineen. */
+  .plan-tbl th.col-ult { text-align: center; }
+  .plan-tbl .pl-ult { text-align: center; color: var(--muted); font-size: 13px; white-space: nowrap; }
   /* Carga percibida (escala 1-10) del alumno */
   .cp-wrap { margin: 6px 0 14px; }
   .cp-label { font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 9px; }
@@ -2498,7 +2501,8 @@
   let MI_RUTINA = [];
   let HECHOS = {};      // ejercicio_id -> última carga (para el ✓)
   let CARGAS = [];      // historial completo de cargas
-  let MEJORES_MARCAS = {}; // catalogo_id -> mejor peso histórico (para "Tu mejor marca anterior" y el aviso de PR)
+  let MEJORES_MARCAS = {}; // catalogo_id -> mejor peso histórico (para el aviso de PR al guardar)
+  let ULTIMAS = {};        // catalogo_id -> { fecha, ejercicio_id, sets: {serie: peso} } — "Última vez" por serie
   let alYo = null;      // datos del alumno (perfil)
   let alDiaSel = null;  // día seleccionado en Sesión (modo sin fechas / id de rutina)
   let alFechaSel = null; // fecha seleccionada en Sesión (modo calendario, YYYY-MM-DD)
@@ -2525,7 +2529,7 @@
     }
   }
   async function recargarCargas() {
-    HECHOS = {}; CARGAS = [];
+    HECHOS = {}; CARGAS = []; ULTIMAS = {};
     try {
       CARGAS = (await api("/mis-cargas", "GET", null, true)) || [];
       // CARGAS viene DESC por fecha. Para cada ejercicio me quedo con la ÚLTIMA tanda
@@ -2540,6 +2544,30 @@
         if (h.peso == null && c.peso != null) h.peso = c.peso;       // resumen para la lista
         if (!h.reps_hechas && c.reps_hechas) h.reps_hechas = c.reps_hechas;
         if (c.completado) h.completado = 1;
+      }
+
+      // "ÚLTIMA VEZ" por serie, agrupada por catalogo_id (NO por ejercicio_id).
+      // Motivo: cada vez que el profe rearma la rutina, el ejercicio_id (la asignación)
+      // cambia; el catalogo_id es el que identifica al EJERCICIO en sí. Colgándonos del
+      // catálogo, la referencia sobrevive a los rearmados de rutina.
+      //
+      // Nos quedamos con la tanda con PESO más reciente de cada catálogo. Solo miramos
+      // cargas con peso > 0: así un "marcar como hecho" sin kg no pisa la referencia real.
+      // Fijamos la primera terna (catalogo_id, fecha, ejercicio_id) que aparece —como
+      // CARGAS viene DESC, es la más nueva— y solo sumamos series de ESA misma tanda,
+      // para no mezclar dos asignaciones distintas que caigan en la misma fecha.
+      for (const c of CARGAS) {
+        if (c.catalogo_id == null) continue;                 // backend viejo sin catalogo_id
+        if (c.peso == null || Number(c.peso) <= 0) continue; // sin kg, no es referencia
+        const cat = c.catalogo_id;
+        let u = ULTIMAS[cat];
+        if (!u) {
+          u = ULTIMAS[cat] = { fecha: c.fecha, ejercicio_id: c.ejercicio_id, sets: {} };
+        }
+        // Solo la tanda fijada (misma fecha y misma asignación).
+        if (c.fecha !== u.fecha || c.ejercicio_id !== u.ejercicio_id) continue;
+        const serie = c.serie != null ? c.serie : 1;
+        if (u.sets[serie] == null) u.sets[serie] = Number(c.peso);
       }
     } catch {}
   }
@@ -3171,14 +3199,9 @@
     detEj = ej;
     $("det-nombre").textContent = ej.nombre || "Ejercicio";
     $("det-material").textContent = ej.material ? ("Material: " + ej.material) : "";
-    // "Tu mejor marca anterior": solo tiene sentido en la vista del alumno (es su propio historial;
-    // MEJORES_MARCAS no se carga en la sesión del profe). Va antes de la tabla PLANIFICADO,
-    // así el alumno ve el objetivo a superar ANTES de cargar el peso de hoy.
-    const marcaWrap = $("det-marca-wrap");
-    const mejorMarca = MEJORES_MARCAS[ej.catalogo_id];
-    marcaWrap.innerHTML = (modo === "alumno" && mejorMarca != null)
-      ? `<div class="marca-box"><span>Tu mejor marca anterior</span><b>${esc(String(mejorMarca))} kg</b></div>`
-      : "";
+    // La referencia "última vez" ya no va en una caja aparte (alargaba el scroll):
+    // ahora es una columna dentro de la tabla PLANIFICADO. Ver más abajo.
+    $("det-marca-wrap").innerHTML = "";
     const vid = $("det-video");
     if (ej.video_id) {
       vid.className = "video-embed";
@@ -3209,15 +3232,26 @@
     // RPE OBJETIVO del profe (todas las series comparten el mismo).
     const rpeObjetivo = (plan.find((s) => s.rpe) || {}).rpe || null;
     if (plan.length) {
+      // Mapa "última vez" por serie (kg), solo alumno y solo si hay historial que mostrar.
+      // Se cuelga del catálogo (ULTIMAS), así sobrevive a rearmados de rutina. La columna
+      // solo aparece si al menos una serie del plan tiene un dato: nada de columnas de "—".
+      const ultSets = (modo === "alumno" && ULTIMAS[ej.catalogo_id]) ? ULTIMAS[ej.catalogo_id].sets : null;
+      const mostrarUlt = pideCarga && ultSets && plan.some((s) => ultSets[s.numero] != null);
+
       const cols = ["#", "Reps"];
       if (hayObjetivo) cols.push("Obj");
+      if (mostrarUlt) cols.push("Últ.");            // referencia, pegada a la izquierda del Kg
       cols.push(pideCarga ? "Kg" : "Pausa");
-      const thead = cols.map((c) => `<th>${c}</th>`).join("");
+      const thead = cols.map((c) => `<th${c === "Últ." ? ' class="col-ult"' : ""}>${c}</th>`).join("");
       const filas = plan.map((s) => {
         const set = done && done.sets ? done.sets[s.numero] : null;
         const kgVal = set && set.peso != null ? String(set.peso).replace(".", ",") : "";
         let tds = `<td class="pl-n">${s.numero}</td><td>${s.reps ? esc(s.reps) : "—"}</td>`;
         if (hayObjetivo) tds += `<td class="pl-obj">${(s.peso !== "" && s.peso != null) ? esc(String(s.peso)) + "kg" : "—"}</td>`;
+        if (mostrarUlt) {
+          const uk = ultSets[s.numero];
+          tds += `<td class="pl-ult">${uk != null ? esc(String(uk).replace(".", ",")) + "kg" : "—"}</td>`;
+        }
         if (pideCarga) {
           tds += (modo === "alumno")
             ? `<td><input type="text" class="plkg" data-serie="${s.numero}" inputmode="decimal" enterkeyhint="done" placeholder="—" value="${kgVal}" oninput="this.value=this.value.replace(/[^0-9.,]/g,'')" /></td>`
