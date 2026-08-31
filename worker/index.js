@@ -460,7 +460,7 @@ export default {
         let results;
         try {
           results = (await env.DB.prepare(
-            `SELECT c.id, c.ejercicio_id, ce.nombre AS ejercicio, c.fecha, c.serie, c.peso, c.reps_hechas, c.rpe, c.completado, c.notas
+            `SELECT c.id, c.ejercicio_id, e.catalogo_id, ce.nombre AS ejercicio, c.fecha, c.serie, c.peso, c.reps_hechas, c.rpe, c.completado, c.notas
              FROM cargas c
              JOIN ejercicios e ON e.id = c.ejercicio_id
              JOIN catalogo_ejercicios ce ON ce.id = e.catalogo_id
@@ -468,7 +468,7 @@ export default {
           ).bind(alumnoId).all()).results;
         } catch (e) {
           results = (await env.DB.prepare(
-            `SELECT c.id, c.ejercicio_id, ce.nombre AS ejercicio, c.fecha, c.peso, c.reps_hechas, c.completado, c.notas
+            `SELECT c.id, c.ejercicio_id, e.catalogo_id, ce.nombre AS ejercicio, c.fecha, c.peso, c.reps_hechas, c.completado, c.notas
              FROM cargas c
              JOIN ejercicios e ON e.id = c.ejercicio_id
              JOIN catalogo_ejercicios ce ON ce.id = e.catalogo_id
@@ -750,7 +750,7 @@ export default {
         let results;
         try {
           results = (await env.DB.prepare(
-            `SELECT c.id, c.ejercicio_id, ce.nombre AS ejercicio, c.fecha, c.serie, c.peso, c.reps_hechas, c.rpe, c.completado, c.notas
+            `SELECT c.id, c.ejercicio_id, e.catalogo_id, ce.nombre AS ejercicio, c.fecha, c.serie, c.peso, c.reps_hechas, c.rpe, c.completado, c.notas
              FROM cargas c
              JOIN ejercicios e ON e.id = c.ejercicio_id
              JOIN catalogo_ejercicios ce ON ce.id = e.catalogo_id
@@ -758,7 +758,7 @@ export default {
           ).bind(sesion.id).all()).results;
         } catch (e) {
           results = (await env.DB.prepare(
-            `SELECT c.id, c.ejercicio_id, ce.nombre AS ejercicio, c.fecha, c.peso, c.reps_hechas, c.completado, c.notas
+            `SELECT c.id, c.ejercicio_id, e.catalogo_id, ce.nombre AS ejercicio, c.fecha, c.peso, c.reps_hechas, c.completado, c.notas
              FROM cargas c
              JOIN ejercicios e ON e.id = c.ejercicio_id
              JOIN catalogo_ejercicios ce ON ce.id = e.catalogo_id
