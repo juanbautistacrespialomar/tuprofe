@@ -479,7 +479,69 @@ export default {
         return json(results);
       }
 
-      // Resetear la contraseña de un alumno: genera una nueva y la devuelve al profe
+      // SEGUIMIENTO ("diario"): agrupa las cargas del alumno por día calendario, con el
+      // esfuerzo (rpe) por ejercicio y la nota del día. Lo consume el modal "Seguimiento"
+      // del profe (botón de la planilla). Devuelve { dias: [...] } del día MÁS RECIENTE al
+      // más viejo — el front asume ese orden y no reordena.
+      if (seg[0] === "alumnos" && seg.length === 3 && seg[2] === "diario" && method === "GET" && esProfe) {
+        const alumnoId = Number(seg[1]);
+        if (!(await alumnoEsDelProfe(alumnoId, sesion.id, env))) return json({ error: "No es tu alumno" }, 403);
+        let rows;
+        try {
+          rows = (await env.DB.prepare(
+            `SELECT c.ejercicio_id, c.fecha, c.rpe, c.notas,
+                    ce.nombre AS ejercicio, d.nombre AS dia_nombre,
+                    b.orden AS bl_orden, e.orden AS ej_orden
+             FROM cargas c
+             JOIN ejercicios e ON e.id = c.ejercicio_id
+             JOIN catalogo_ejercicios ce ON ce.id = e.catalogo_id
+             JOIN bloques b ON b.id = e.bloque_id
+             JOIN dias d ON d.id = b.dia_id
+             WHERE c.alumno_id = ? ORDER BY c.fecha DESC`
+          ).bind(alumnoId).all()).results;
+        } catch (e) {
+          // Base sin columna `rpe` (migración no corrida): la misma consulta pero sin rpe.
+          rows = (await env.DB.prepare(
+            `SELECT c.ejercicio_id, c.fecha, c.notas,
+                    ce.nombre AS ejercicio, d.nombre AS dia_nombre,
+                    b.orden AS bl_orden, e.orden AS ej_orden
+             FROM cargas c
+             JOIN ejercicios e ON e.id = c.ejercicio_id
+             JOIN catalogo_ejercicios ce ON ce.id = e.catalogo_id
+             JOIN bloques b ON b.id = e.bloque_id
+             JOIN dias d ON d.id = b.dia_id
+             WHERE c.alumno_id = ? ORDER BY c.fecha DESC`
+          ).bind(alumnoId).all()).results;
+          rows.forEach((r) => { r.rpe = null; });
+        }
+        // Agrupo por día. rows viene DESC por fecha, así que el orden de inserción del Map
+        // ya deja los días del más reciente al más viejo (y la 1ra nota vista es la más nueva).
+        const porDia = new Map();
+        for (const r of rows) {
+          const dia = String(r.fecha).slice(0, 10);
+          let g = porDia.get(dia);
+          if (!g) { g = { fecha: r.fecha, nombre: r.dia_nombre || "", nota: "", ej: new Map() }; porDia.set(dia, g); }
+          if (!g.nombre && r.dia_nombre) g.nombre = r.dia_nombre;
+          if (!g.nota && r.notas && String(r.notas).trim()) g.nota = String(r.notas).trim();
+          let x = g.ej.get(r.ejercicio_id);
+          if (!x) {
+            // Dedup por asignación; el esfuerzo es "uno por ejercicio": tomo el primer rpe no nulo.
+            x = { nombre: r.ejercicio || "Ejercicio", rpe: (r.rpe != null ? r.rpe : null),
+                  _ord: (Number(r.bl_orden) || 0) * 1000 + (Number(r.ej_orden) || 0) };
+            g.ej.set(r.ejercicio_id, x);
+          } else if (x.rpe == null && r.rpe != null) {
+            x.rpe = r.rpe;
+          }
+        }
+        const dias = [...porDia.values()].map((g) => ({
+          fecha: g.fecha,
+          nombre: g.nombre,
+          nota: g.nota,
+          // Ejercicios en el orden de la rutina (bloque, luego ejercicio), no en el que se cargaron.
+          ejercicios: [...g.ej.values()].sort((a, b) => a._ord - b._ord).map((x) => ({ nombre: x.nombre, rpe: x.rpe })),
+        }));
+        return json({ dias });
+      }
       if (seg[0] === "alumnos" && seg.length === 3 && seg[2] === "reset-password" && method === "POST" && esProfe) {
         const alumnoId = Number(seg[1]);
         if (!(await alumnoEsDelProfe(alumnoId, sesion.id, env))) return json({ error: "No es tu alumno" }, 403);
