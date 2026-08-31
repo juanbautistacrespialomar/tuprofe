@@ -123,12 +123,16 @@ async function ejercicioEsDelAlumno(id, alumnoId, env) {
     `SELECT 1 FROM ejercicios e JOIN bloques b ON b.id = e.bloque_id JOIN dias d ON d.id = b.dia_id
      WHERE e.id = ? AND d.alumno_id = ?`).bind(id, alumnoId).first());
 }
+async function diaEsDelAlumno(id, alumnoId, env) {
+  return !!(await env.DB.prepare("SELECT 1 FROM dias WHERE id = ? AND alumno_id = ?")
+    .bind(id, alumnoId).first());
+}
 
 // Rutina anidada: días -> bloques -> ejercicios (con datos del catálogo)
 //   incluirMoldes = true  -> trae TODO (para el profe: rutina real + cajón de sesiones)
 //   incluirMoldes = false -> excluye los moldes (para el alumno: nunca ve la biblioteca del profe)
 async function armarRutina(alumnoId, env, incluirMoldes = true) {
-  const qDias = "SELECT id, nombre, orden, fecha, es_molde FROM dias WHERE alumno_id = ? ORDER BY (fecha IS NULL), fecha, orden";
+  const qDias = "SELECT id, nombre, orden, fecha, es_molde, nota_alumno FROM dias WHERE alumno_id = ? ORDER BY (fecha IS NULL), fecha, orden";
   const qBloques = `SELECT b.id, b.dia_id, b.nombre, b.orden, b.pausa
      FROM bloques b JOIN dias d ON d.id = b.dia_id
      WHERE d.alumno_id = ? ORDER BY b.orden`;
@@ -171,6 +175,7 @@ async function armarRutina(alumnoId, env, incluirMoldes = true) {
       }
       for (const d of dias) d.es_molde = 0;
     }
+    for (const d of dias) if (d.nota_alumno === undefined) d.nota_alumno = null;
     bloques = (await env.DB.prepare(qBloques).bind(alumnoId).all()).results;
     ejercicios = (await env.DB.prepare(qEjercicios).bind(alumnoId).all()).results;
     try { spRows = (await env.DB.prepare(qSeries).bind(alumnoId).all()).results; }
@@ -306,6 +311,25 @@ export default {
         return json({ error: "Tu cuenta está deshabilitada. Escribile al administrador para activarla." }, 403);
       }
 
+      // Estado del profe del alumno: si su profe está en pausa (deshabilitado),
+      // el alumno también queda en pausa. Borrar un profe ya deja habilitado = 0,
+      // así que con chequear `habilitado` alcanza para cubrir ambos casos.
+      // Ante un error de lectura degradamos sin bloquear (fail-open), igual que arriba.
+      let profeDelAlumnoHabilitado = true;
+      if (esAlumno) {
+        try {
+          const pa = await env.DB.prepare(
+            "SELECT p.habilitado FROM alumnos a JOIN profesores p ON p.id = a.profe_id WHERE a.id = ?"
+          ).bind(sesion.id).first();
+          if (pa) profeDelAlumnoHabilitado = pa.habilitado !== 0;
+        } catch { profeDelAlumnoHabilitado = true; }
+      }
+
+      // Alumno cuyo profe está en pausa: solo puede consultar /yo y salir.
+      if (esAlumno && !profeDelAlumnoHabilitado && path !== "/yo" && path !== "/logout") {
+        return json({ error: "Tu profe está en pausa por el momento. Volvé a intentar más tarde." }, 403);
+      }
+
       if (path === "/yo" && method === "GET") {
         if (esProfe) {
           const p = await env.DB.prepare(
@@ -317,7 +341,7 @@ export default {
                     p.nombre AS profe_nombre
              FROM alumnos a LEFT JOIN profesores p ON p.id = a.profe_id
              WHERE a.id = ?`).bind(sesion.id).first();
-          return json({ rol: "alumno", ...a });
+          return json({ rol: "alumno", ...a, profe_en_pausa: profeDelAlumnoHabilitado ? 0 : 1 });
         }
       }
 
@@ -436,7 +460,7 @@ export default {
         let results;
         try {
           results = (await env.DB.prepare(
-            `SELECT c.id, c.ejercicio_id, ce.nombre AS ejercicio, c.fecha, c.serie, c.peso, c.reps_hechas, c.completado, c.notas
+            `SELECT c.id, c.ejercicio_id, ce.nombre AS ejercicio, c.fecha, c.serie, c.peso, c.reps_hechas, c.rpe, c.completado, c.notas
              FROM cargas c
              JOIN ejercicios e ON e.id = c.ejercicio_id
              JOIN catalogo_ejercicios ce ON ce.id = e.catalogo_id
@@ -450,7 +474,7 @@ export default {
              JOIN catalogo_ejercicios ce ON ce.id = e.catalogo_id
              WHERE c.alumno_id = ? ORDER BY c.fecha DESC`
           ).bind(alumnoId).all()).results;
-          results.forEach((r) => (r.serie = null));
+          results.forEach((r) => { r.serie = null; r.rpe = null; });
         }
         return json(results);
       }
@@ -706,9 +730,9 @@ export default {
               "DELETE FROM cargas WHERE ejercicio_id = ? AND alumno_id = ? AND substr(fecha,1,10) = ?"
             ).bind(ejercicio_id, sesion.id, hoy).run();
             const stmts = sets.map((s) => env.DB.prepare(
-              `INSERT INTO cargas (ejercicio_id, alumno_id, fecha, serie, peso, reps_hechas, completado, notas)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-            ).bind(ejercicio_id, sesion.id, fecha, s.serie ?? null, s.peso ?? null, s.reps_hechas || null, s.completado ? 1 : 0, s.notas || null));
+              `INSERT INTO cargas (ejercicio_id, alumno_id, fecha, serie, peso, reps_hechas, rpe, completado, notas)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            ).bind(ejercicio_id, sesion.id, fecha, s.serie ?? null, s.peso ?? null, s.reps_hechas || null, s.rpe ?? null, s.completado ? 1 : 0, s.notas || null));
             if (stmts.length) await env.DB.batch(stmts);
             return json({ ok: true, n: stmts.length }, 201);
           } catch (e) {
@@ -726,7 +750,7 @@ export default {
         let results;
         try {
           results = (await env.DB.prepare(
-            `SELECT c.id, c.ejercicio_id, ce.nombre AS ejercicio, c.fecha, c.serie, c.peso, c.reps_hechas, c.completado, c.notas
+            `SELECT c.id, c.ejercicio_id, ce.nombre AS ejercicio, c.fecha, c.serie, c.peso, c.reps_hechas, c.rpe, c.completado, c.notas
              FROM cargas c
              JOIN ejercicios e ON e.id = c.ejercicio_id
              JOIN catalogo_ejercicios ce ON ce.id = e.catalogo_id
@@ -740,9 +764,43 @@ export default {
              JOIN catalogo_ejercicios ce ON ce.id = e.catalogo_id
              WHERE c.alumno_id = ? ORDER BY c.fecha DESC`
           ).bind(sesion.id).all()).results;
-          results.forEach((r) => (r.serie = null));
+          results.forEach((r) => { r.serie = null; r.rpe = null; });
         }
         return json(results);
+      }
+
+      // ------------------------------------------------------------
+      //  MEJORES MARCAS del alumno (peso máx por ejercicio del catálogo)
+      // ------------------------------------------------------------
+      //  Fuente de verdad de "Tu mejor marca anterior". Es el MAX(peso) REAL
+      //  del historial, no un valor que solo sabe subir: por eso, si el alumno
+      //  corrige un peso cargado de más (o lo pone en cero), la marca BAJA sola.
+      //  El filtro `peso > 0` evita que un ejercicio sin peso (o un cero cargado
+      //  sin querer) genere una marca fantasma. Agrupa por catalogo_id para que
+      //  la marca sea del EJERCICIO, no de la asignación puntual en una rutina.
+      if (path === "/mis-mejores-marcas" && method === "GET" && esAlumno) {
+        const { results } = await env.DB.prepare(
+          `SELECT e.catalogo_id, MAX(c.peso) AS peso
+             FROM cargas c
+             JOIN ejercicios e ON e.id = c.ejercicio_id
+            WHERE c.alumno_id = ? AND c.peso IS NOT NULL AND c.peso > 0
+            GROUP BY e.catalogo_id`
+        ).bind(sesion.id).all();
+        return json(results);
+      }
+
+      // Nota del alumno para el entrenador (una por día de entrenamiento).
+      if (seg[0] === "mi-dia" && seg.length === 3 && seg[2] === "nota" && method === "PUT" && esAlumno) {
+        const diaId = Number(seg[1]);
+        if (!(await diaEsDelAlumno(diaId, sesion.id, env))) return json({ error: "Ese día no es de tu rutina" }, 403);
+        const body = await request.json().catch(() => ({}));
+        const nota = body.nota ? String(body.nota).slice(0, 2000) : null;
+        try {
+          await env.DB.prepare("UPDATE dias SET nota_alumno = ? WHERE id = ?").bind(nota, diaId).run();
+        } catch (e) {
+          return json({ error: "No se pudo guardar la nota (¿falta correr la migración de nota_alumno?)", detalle: String(e) }, 500);
+        }
+        return json({ ok: true });
       }
 
       // Foto de perfil del alumno (data URL base64, ya comprimida en el cliente)
