@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- tuprofe · v65 -->
+<!-- tuprofe · v78 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
@@ -447,6 +447,17 @@
   .cg-item .cg-n { flex: 1; min-width: 0; font-size: 14px; font-weight: 500; }
   .cg-item .cg-v { font-family: "Anton", sans-serif; font-size: 18px; color: var(--accent); }
   .cg-item .cg-r { font-size: 12px; color: var(--muted); margin-top: 1px; }
+  /* Buscador de la vista Cargas: franja fija arriba (no scrollea con la lista) */
+  .cg-search-wrap { flex-shrink: 0; padding: 12px 18px 4px; background: var(--bg); }
+  /* Historial por ejercicio (resultado de la búsqueda): una tarjeta por ejercicio */
+  .cgh-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 12px; }
+  .cgh-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .cgh-nombre { font-size: 15px; font-weight: 600; min-width: 0; }
+  .cgh-pr { font-size: 12px; color: var(--accent); font-weight: 600; white-space: nowrap; }
+  .cgh-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0 0; border-top: 1px solid var(--border); margin-top: 9px; }
+  .cgh-f { font-size: 12.5px; color: var(--muted); }
+  .cgh-kg { font-family: "Anton", sans-serif; font-size: 18px; color: var(--accent); white-space: nowrap; }
+  .cgh-mas { font-size: 12px; color: var(--muted); text-align: center; margin-top: 10px; }
   /* ===== Progreso del profe: tarjetas por ejercicio (acordeón) ===== */
   .ej-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 8px; overflow: hidden; cursor: pointer; }
   .ej-head { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
@@ -739,6 +750,12 @@
   <!-- VISTA: CARGAS (historial) -->
   <div class="alview" id="al-view-cargas">
     <div class="app-header"><div class="hi"><b style="font-size:20px">Mis cargas</b></div></div>
+    <div class="cg-search-wrap">
+      <div class="search" style="margin:0">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+        <input type="text" id="al-cargas-buscar" placeholder="Buscá un ejercicio..." autocomplete="off" />
+      </div>
+    </div>
     <div class="body" id="al-cargas"></div>
   </div>
   <!-- VISTA: PERFIL -->
@@ -2888,7 +2905,29 @@
   }
 
   // ===== CARGAS (historial) =====
+  // Resume las series de un ejercicio (de un mismo día) en un texto de kg:
+  //   - todas iguales -> "40kg ×5"   ·   distintas -> "17.5·22.5·22.5kg"   ·   sin peso -> "—"
+  // Lo usan las dos vistas de Cargas (por fecha y por ejercicio), así el criterio es uno solo.
+  function resumenKg(sets) {
+    const pesos = sets.map((s) => s.peso).filter((p) => p != null);
+    if (!pesos.length) return "—";
+    const iguales = pesos.every((p) => p === pesos[0]);
+    return iguales
+      ? `${pesos[0]}kg${pesos.length > 1 ? " ×" + pesos.length : ""}`
+      : pesos.join("·") + "kg";
+  }
+
+  // Punto de entrada de la vista Cargas: si el buscador tiene texto, muestra el historial
+  // POR EJERCICIO (las últimas veces que lo hiciste); si está vacío, el historial POR FECHA de siempre.
   function renderCargas() {
+    const inp = $("al-cargas-buscar");
+    const q = (inp && inp.value || "").trim();
+    if (q) return renderCargasBusqueda(q);
+    renderCargasHistorial();
+  }
+
+  // --- Modo por FECHA (el de siempre) -------------------------------------------------
+  function renderCargasHistorial() {
     const cont = $("al-cargas");
     // Esta vista es SOLO cargas (kg). Los ejercicios sin peso registrado (movilidad, peso corporal,
     // elongación, etc.) no son "cargas" y ensucian la lista, así que no se muestran. Es dinámico:
@@ -2914,17 +2953,59 @@
       const items = idsConCarga.map((id) => {
         const g = porEj[id];
         const sets = g.sets.slice().sort((a, b) => (a.serie || 0) - (b.serie || 0));
-        const pesos = sets.map((s) => s.peso).filter((p) => p != null);
-        let kg = "—";
-        if (pesos.length) {
-          const same = pesos.every((p) => p === pesos[0]);
-          kg = same ? `${pesos[0]}kg${pesos.length > 1 ? " ×" + pesos.length : ""}` : pesos.join("·") + "kg";
-        }
+        const kg = resumenKg(sets);
         const hechas = sets.filter((s) => s.completado).length;
         const sub = sets.length > 1 ? `${hechas}/${sets.length} series` : (sets[0] && sets[0].completado ? "✓ hecho" : "");
         return `<div class="cg-item"><div class="cg-n">${esc(g.nombre || "Ejercicio")}<div class="cg-r">${sub}</div></div><div class="cg-v">${kg}</div></div>`;
       }).join("");
       return `<div class="cg-day">${esc(fmtFechaLarga(k))}</div>${items}`;
+    }).join("");
+  }
+
+  // --- Modo por EJERCICIO (resultado del buscador) ------------------------------------
+  // Una tarjeta por ejercicio que matchea el texto, con sus últimas sesiones (fecha + kg).
+  function renderCargasBusqueda(q) {
+    const cont = $("al-cargas");
+    const qn = normaliza(q);        // sin tildes ni mayúsculas: "biceps" matchea "Bíceps"
+    const TOPE = 10;                // últimas N sesiones que listamos por ejercicio
+
+    // 1) Índice por EJERCICIO. La identidad estable es catalogo_id: sobrevive a que el profe
+    //    rearme la rutina (que cambia el ejercicio_id de la asignación). Si un backend viejo no
+    //    lo trae, caemos al nombre normalizado. Sólo miramos cargas con peso: esta vista es de kg.
+    const idx = {};
+    CARGAS.forEach((c) => {
+      if (c.peso == null) return;
+      const clave = c.catalogo_id != null ? "c" + c.catalogo_id : "n" + normaliza(c.ejercicio || "");
+      const e = idx[clave] || (idx[clave] = { nombre: c.ejercicio || "Ejercicio", cat: c.catalogo_id, dias: {} });
+      const f = (c.fecha || "").slice(0, 10);
+      (e.dias[f] = e.dias[f] || []).push(c);
+    });
+
+    // 2) Filtro por nombre y ordeno por el que hiciste más recientemente (fecha más nueva primero).
+    const matches = Object.values(idx)
+      .filter((e) => normaliza(e.nombre).includes(qn))
+      .map((e) => Object.assign(e, { fechas: Object.keys(e.dias).sort((a, b) => (a < b ? 1 : -1)) }))
+      .sort((a, b) => (a.fechas[0] < b.fechas[0] ? 1 : a.fechas[0] > b.fechas[0] ? -1 : a.nombre.localeCompare(b.nombre)));
+
+    if (!matches.length) {
+      cont.innerHTML = `<div class="empty" style="padding:50px 20px"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><p>No encontramos cargas de un ejercicio<br>que se llame así.</p></div>`;
+      return;
+    }
+
+    // 3) Por cada ejercicio: su mejor marca (PR) si la tenemos, y sus últimas sesiones con kg.
+    cont.innerHTML = matches.map((e) => {
+      const pr = (e.cat != null && MEJORES_MARCAS[e.cat] != null)
+        ? `<div class="cgh-pr">PR ${MEJORES_MARCAS[e.cat]}kg</div>` : "";
+      const filas = e.fechas.slice(0, TOPE).map((f) => {
+        const sets = e.dias[f].slice().sort((a, b) => (a.serie || 0) - (b.serie || 0));
+        const kg = resumenKg(sets);
+        const hechas = sets.filter((s) => s.completado).length;
+        const sub = sets.length > 1 ? ` · ${hechas}/${sets.length} series` : "";
+        return `<div class="cgh-row"><div class="cgh-f">${esc(cap(fmtFechaLarga(f)))}${sub}</div><div class="cgh-kg">${kg}</div></div>`;
+      }).join("");
+      const resto = e.fechas.length - TOPE;
+      const mas = resto > 0 ? `<div class="cgh-mas">+${resto} ${resto === 1 ? "sesión más" : "sesiones más"}</div>` : "";
+      return `<div class="cgh-card"><div class="cgh-head"><div class="cgh-nombre">${esc(e.nombre)}</div>${pr}</div>${filas}${mas}</div>`;
     }).join("");
   }
 
@@ -3191,6 +3272,9 @@
     if (v === "perfil") renderPerfil();
   }
   document.querySelectorAll("#app-alumno .navtab").forEach((t) => (t.onclick = () => alSwitchView(t.dataset.view)));
+  // Buscador de la vista Cargas: re-renderiza a medida que se escribe (vive fuera de #al-cargas,
+  // así no se re-crea en cada render y no pierde el foco mientras tipeás).
+  if ($("al-cargas-buscar")) $("al-cargas-buscar").oninput = renderCargas;
 
   // ---------- Detalle de ejercicio (compartido profe + alumno, con video embebido) ----------
   let detEj = null;
