@@ -288,6 +288,27 @@ export default {
         return json({ token, rol, id: user.id });
       }
 
+      // Olvidé mi contraseña (público). No manda mails: deja un PEDIDO que ve el admin
+      // (si es un profe) o su profe (si es un alumno), que le resetea la clave con un toque.
+      // Responde SIEMPRE lo mismo, exista o no el mail, para no revelar quién está registrado.
+      // INSERT OR IGNORE + PK (rol, usuario_id): un solo pedido pendiente por persona, no se puede spamear.
+      if (path === "/olvide-password" && method === "POST") {
+        const { email } = await request.json().catch(() => ({}));
+        if (!emailOk(email)) return json({ error: "Poné un email válido" }, 400);
+        let rol = "profe";
+        let u = await env.DB.prepare("SELECT id FROM profesores WHERE lower(email) = lower(?) AND borrado = 0")
+          .bind(email).first();
+        if (!u) {
+          rol = "alumno";
+          u = await env.DB.prepare("SELECT id FROM alumnos WHERE lower(email) = lower(?)").bind(email).first();
+        }
+        if (u) {
+          await env.DB.prepare("INSERT OR IGNORE INTO pedidos_reset (rol, usuario_id) VALUES (?, ?)")
+            .bind(rol, u.id).run();
+        }
+        return json({ ok: true });
+      }
+
       // ================= REQUIERE TOKEN =================
       const sesion = await resolverSesion(request, env);
       if (!sesion) return json({ error: "No autorizado" }, 401);
@@ -307,7 +328,7 @@ export default {
       const profeHabilitado = !perfilProfe || perfilProfe.habilitado !== 0;
 
       // Profe deshabilitado (y no admin): solo puede consultar /yo y salir.
-      if (esProfe && !esAdmin && !profeHabilitado && path !== "/yo" && path !== "/logout") {
+      if (esProfe && !esAdmin && !profeHabilitado && path !== "/yo" && path !== "/logout" && path !== "/mi-password") {
         return json({ error: "Tu cuenta está deshabilitada. Escribile al administrador para activarla." }, 403);
       }
 
@@ -326,18 +347,31 @@ export default {
       }
 
       // Alumno cuyo profe está en pausa: solo puede consultar /yo y salir.
-      if (esAlumno && !profeDelAlumnoHabilitado && path !== "/yo" && path !== "/logout") {
+      if (esAlumno && !profeDelAlumnoHabilitado && path !== "/yo" && path !== "/logout" && path !== "/mi-password") {
         return json({ error: "Tu profe está en pausa por el momento. Volvé a intentar más tarde." }, 403);
       }
 
       if (path === "/yo" && method === "GET") {
         if (esProfe) {
           const p = await env.DB.prepare(
-            "SELECT id, nombre, email, codigo_invitacion FROM profesores WHERE id = ?").bind(sesion.id).first();
-          return json({ rol: "profe", ...p, habilitado: profeHabilitado ? 1 : 0, es_admin: esAdmin ? 1 : 0 });
+            "SELECT id, nombre, email, codigo_invitacion, debe_cambiar FROM profesores WHERE id = ?").bind(sesion.id).first();
+          // Pedidos de "olvidé mi contraseña" que le tocan atender: los de sus alumnos
+          // y, si es admin, también los de los profes.
+          const pa = await env.DB.prepare(
+            `SELECT COUNT(*) AS n FROM pedidos_reset pr JOIN alumnos a ON a.id = pr.usuario_id
+             WHERE pr.rol = 'alumno' AND a.profe_id = ?`).bind(sesion.id).first();
+          let profesPend = 0;
+          if (esAdmin) {
+            const pp = await env.DB.prepare(
+              `SELECT COUNT(*) AS n FROM pedidos_reset pr JOIN profesores x ON x.id = pr.usuario_id
+               WHERE pr.rol = 'profe' AND x.borrado = 0`).first();
+            profesPend = pp ? pp.n : 0;
+          }
+          return json({ rol: "profe", ...p, habilitado: profeHabilitado ? 1 : 0, es_admin: esAdmin ? 1 : 0,
+                        pedidos_reset: { alumnos: pa ? pa.n : 0, profes: profesPend } });
         } else {
           const a = await env.DB.prepare(
-            `SELECT a.id, a.nombre, a.email, a.objetivo, a.observaciones, a.profe_id, a.fecha_nac, a.foto,
+            `SELECT a.id, a.nombre, a.email, a.objetivo, a.observaciones, a.profe_id, a.fecha_nac, a.foto, a.debe_cambiar,
                     p.nombre AS profe_nombre
              FROM alumnos a LEFT JOIN profesores p ON p.id = a.profe_id
              WHERE a.id = ?`).bind(sesion.id).first();
@@ -348,6 +382,34 @@ export default {
       if (path === "/logout" && method === "POST") {
         const token = (request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
         await env.DB.prepare("DELETE FROM sesiones WHERE token = ?").bind(token).run();
+        return json({ ok: true });
+      }
+
+      // Cambiar mi propia contraseña (profe o alumno).
+      // Si viene de un reseteo (debe_cambiar = 1) no pedimos la actual: el token ya prueba
+      // que entró con la clave temporal, y si cierra y reabre la app no la tenemos en memoria.
+      if (path === "/mi-password" && method === "PUT") {
+        const { actual, nueva } = await request.json().catch(() => ({}));
+        if (!nueva || String(nueva).length < 8)
+          return json({ error: "La contraseña nueva necesita 8 caracteres o más" }, 400);
+        const tabla = esProfe ? "profesores" : "alumnos";   // nombre fijo, nunca viene del cliente
+        const u = await env.DB.prepare(
+          `SELECT password_hash, password_salt, debe_cambiar FROM ${tabla} WHERE id = ?`).bind(sesion.id).first();
+        if (!u) return json({ error: "Usuario no encontrado" }, 404);
+        if (!u.debe_cambiar) {
+          if (!actual || !(await verifyPassword(actual, u.password_salt, u.password_hash)))
+            return json({ error: "La contraseña actual no es correcta" }, 400);
+        }
+        const { hash, salt } = await hashPassword(nueva);
+        await env.DB.prepare(
+          `UPDATE ${tabla} SET password_hash = ?, password_salt = ?, debe_cambiar = 0 WHERE id = ?`)
+          .bind(hash, salt, sesion.id).run();
+        // Cerramos las OTRAS sesiones (otros celulares); la de este queda viva.
+        const tokenActual = (request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
+        await env.DB.prepare("DELETE FROM sesiones WHERE rol = ? AND usuario_id = ? AND token <> ?")
+          .bind(sesion.rol, sesion.id, tokenActual).run();
+        await env.DB.prepare("DELETE FROM pedidos_reset WHERE rol = ? AND usuario_id = ?")
+          .bind(sesion.rol, sesion.id).run();
         return json({ ok: true });
       }
 
@@ -426,7 +488,9 @@ export default {
       // --- ALUMNOS ---
       if (path === "/alumnos" && method === "GET" && esProfe) {
         const { results } = await env.DB.prepare(
-          "SELECT id, nombre, email, fecha_nac, objetivo, creado FROM alumnos WHERE profe_id = ? ORDER BY nombre"
+          `SELECT id, nombre, email, fecha_nac, objetivo, creado,
+                  EXISTS (SELECT 1 FROM pedidos_reset pr WHERE pr.rol = 'alumno' AND pr.usuario_id = alumnos.id) AS pide_reset
+           FROM alumnos WHERE profe_id = ? ORDER BY nombre`
         ).bind(sesion.id).all();
         return json(results);
       }
@@ -547,8 +611,9 @@ export default {
         if (!(await alumnoEsDelProfe(alumnoId, sesion.id, env))) return json({ error: "No es tu alumno" }, 403);
         const nueva = genClaveTemp();
         const { hash, salt } = await hashPassword(nueva);
-        await env.DB.prepare("UPDATE alumnos SET password_hash = ?, password_salt = ? WHERE id = ?")
+        await env.DB.prepare("UPDATE alumnos SET password_hash = ?, password_salt = ?, debe_cambiar = 1 WHERE id = ?")
           .bind(hash, salt, alumnoId).run();
+        await env.DB.prepare("DELETE FROM pedidos_reset WHERE rol = 'alumno' AND usuario_id = ?").bind(alumnoId).run();
         // Cerrar sus sesiones: la clave vieja deja de servir en todos lados
         await env.DB.prepare("DELETE FROM sesiones WHERE rol = 'alumno' AND usuario_id = ?").bind(alumnoId).run();
         return json({ password: nueva });
@@ -901,10 +966,14 @@ export default {
       // Resetear la contraseña de un profe (solo admin)
       if (seg[0] === "admin" && seg[1] === "profesores" && seg.length === 4 && seg[3] === "reset-password" && method === "POST" && esAdmin) {
         const pid = Number(seg[2]);
+        const target = await env.DB.prepare("SELECT es_admin FROM profesores WHERE id = ? AND borrado = 0").bind(pid).first();
+        if (!target) return json({ error: "Profe no encontrado" }, 404);
+        if (target.es_admin) return json({ error: "A un admin no se le resetea: cambiala desde \"Cambiar contraseña\"." }, 400);
         const nueva = genClaveTemp();
         const { hash, salt } = await hashPassword(nueva);
-        await env.DB.prepare("UPDATE profesores SET password_hash = ?, password_salt = ? WHERE id = ?")
+        await env.DB.prepare("UPDATE profesores SET password_hash = ?, password_salt = ?, debe_cambiar = 1 WHERE id = ?")
           .bind(hash, salt, pid).run();
+        await env.DB.prepare("DELETE FROM pedidos_reset WHERE rol = 'profe' AND usuario_id = ?").bind(pid).run();
         await env.DB.prepare("DELETE FROM sesiones WHERE rol = 'profe' AND usuario_id = ?").bind(pid).run();
         return json({ password: nueva });
       }
@@ -912,7 +981,8 @@ export default {
       if (path === "/admin/profesores" && method === "GET" && esAdmin) {
         const { results } = await env.DB.prepare(
           `SELECT p.id, p.nombre, p.email, p.habilitado, p.es_admin, p.creado,
-                  (SELECT COUNT(*) FROM alumnos a WHERE a.profe_id = p.id) AS alumnos
+                  (SELECT COUNT(*) FROM alumnos a WHERE a.profe_id = p.id) AS alumnos,
+                  EXISTS (SELECT 1 FROM pedidos_reset pr WHERE pr.rol = 'profe' AND pr.usuario_id = p.id) AS pide_reset
            FROM profesores p
            WHERE p.borrado = 0
            ORDER BY p.es_admin DESC, p.creado DESC`
