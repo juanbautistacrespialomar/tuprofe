@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- tuprofe · v78 -->
+<!-- tuprofe · v79 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
@@ -321,6 +321,16 @@
   .adm-ctrls { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
   .adm-del { width: 34px; height: 34px; border-radius: 9px; background: var(--surface-2); border: 1px solid var(--border); color: var(--danger); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; flex: 0 0 auto; }
   .adm-del svg { width: 16px; height: 16px; }
+  /* La llave no tenía estilos: sin tamaño, el SVG colapsaba y quedaba una rayita blanca. */
+  .adm-reset { width: 34px; height: 34px; border-radius: 9px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; flex: 0 0 auto; }
+  .adm-reset svg { width: 16px; height: 16px; }
+  /* Pedido de "olvidé mi contraseña" pendiente: llave resaltada + etiqueta */
+  .pide-reset { border-color: var(--accent) !important; color: var(--accent) !important; background: rgba(196,240,0,.1) !important; }
+  .tag-reset { display: inline-block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--accent-ink); background: var(--accent); padding: 2px 7px; border-radius: 999px; margin-left: 6px; vertical-align: 1px; }
+  /* Puntito de aviso en íconos / pestañas */
+  .dot-aviso { position: relative; }
+  .dot-aviso::after { content: ""; position: absolute; top: 6px; right: 6px; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--surface); z-index: 2; }
+  .link-olvide { display: block; text-align: right; font-size: 13px; color: var(--muted); margin: -6px 0 14px; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
   .acts .del-al { color: var(--danger); }
 
   /* ===== Bloqueo de cuenta ===== */
@@ -652,6 +662,7 @@
       <div id="login-sugeridos" class="login-sugeridos"></div>
       <div class="field"><label>Email</label><div class="input-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 7l9 6 9-6"/><rect x="3" y="5" width="18" height="14" rx="2"/></svg><input type="email" id="login-email" name="email" placeholder="nombre@mail.com" autocomplete="username" /></div></div>
       <div class="field"><label>Contraseña</label><div class="input-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><input type="password" id="login-pass" name="password" class="haseye" placeholder="••••••••" autocomplete="current-password" /><button type="button" class="eye" data-eye="login-pass" aria-label="Mostrar contraseña"></button></div></div>
+      <a class="link-olvide" id="to-olvide">¿Te olvidaste la contraseña?</a>
       <button class="btn" id="login-btn" type="submit">Entrar</button>
       </form>
       <div class="g-divisor"><span>o</span></div>
@@ -688,6 +699,16 @@
       <div id="g-btn-ra" class="g-btn"></div>
     </div>
   </div>
+
+  <div class="screen" id="s-olvide">
+    <div class="card">
+      <div class="msg" id="ol-msg"></div>
+      <p class="hint">Poné el mail con el que entrás. Le avisamos a tu profe (o al administrador, si sos profe) para que te genere una clave nueva y te la pase.</p>
+      <div class="field"><label>Email</label><div class="input-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 7l9 6 9-6"/><rect x="3" y="5" width="18" height="14" rx="2"/></svg><input type="email" id="ol-email" placeholder="nombre@mail.com" autocomplete="email" /></div></div>
+      <button class="btn" id="ol-btn">Pedir clave nueva</button>
+    </div>
+    <div class="switch">¿Te acordaste? <a id="to-login-2">Entrar</a></div>
+  </div>
 </div>
 
 <!-- ============ PANEL PROFE ============ -->
@@ -698,6 +719,7 @@
       <div class="hi">Hola<b id="profe-nombre">Profe</b></div>
       <div style="display:flex;gap:8px;align-items:center">
         <div class="icon-btn" id="profe-admin" title="Panel de administrador" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/></svg></div>
+        <div class="icon-btn" id="profe-clave" title="Cambiar contraseña"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M17 6l2 2M15 8l2 2"/></svg></div>
         <div class="icon-btn" id="profe-salir" title="Salir"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></div>
       </div>
     </div>
@@ -828,6 +850,20 @@
     <p class="hint">Habilitá o pausá el acceso de cada profe. Un profe en pausa no puede entrar a la app.</p>
     <div id="admin-lista"></div>
     <button class="btn ghost sm" id="admin-cerrar" style="margin-top:14px">Cerrar</button>
+  </div>
+</div>
+
+<!-- ============ CAMBIAR CONTRASEÑA (voluntario u obligatorio tras un reseteo) ============ -->
+<div class="overlay" id="pass-overlay">
+  <div class="sheet">
+    <h3 id="pass-title">Cambiar contraseña</h3>
+    <p class="hint" id="pass-hint"></p>
+    <div class="field" id="pass-actual-wrap"><label>Contraseña actual</label><div class="input-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><input type="password" id="pass-actual" class="haseye" placeholder="tu contraseña actual" autocomplete="current-password" /><button type="button" class="eye" data-eye="pass-actual" aria-label="Mostrar contraseña"></button></div></div>
+    <div class="field" id="pass-nueva-wrap"><label>Contraseña nueva</label><div class="input-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><input type="password" id="pass-nueva" class="haseye" placeholder="mínimo 8 caracteres" autocomplete="new-password" /><button type="button" class="eye" data-eye="pass-nueva" aria-label="Mostrar contraseña"></button></div></div>
+    <div class="field" id="pass-nueva2-wrap"><label>Repetir contraseña nueva</label><div class="input-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><input type="password" id="pass-nueva2" class="haseye" placeholder="repetí la contraseña" autocomplete="new-password" /><button type="button" class="eye" data-eye="pass-nueva2" aria-label="Mostrar contraseña"></button></div></div>
+    <div class="msg" id="pass-msg"></div>
+    <button class="btn" id="pass-guardar">Guardar</button>
+    <button class="btn ghost sm" id="pass-cancelar" style="margin-top:10px">Cancelar</button>
   </div>
 </div>
 
@@ -1104,14 +1140,14 @@
     ["Vuelos posteriores", "https://youtu.be/4IAQFpyPkOw"],
   ];
 
-  const screens = ["s-login", "s-reg-profe", "s-reg-alumno"];
+  const screens = ["s-login", "s-reg-profe", "s-reg-alumno", "s-olvide"];
   function showAuth(id) {
     _authVisible = true;
     $("auth-wrap").style.display = "flex";
     $("auth-wrap").classList.toggle("scrollable", id !== "s-login"); // login sin scroll; registros sí
     $("app-profe").classList.remove("active"); $("app-alumno").classList.remove("active");
     screens.forEach((s) => $(s).classList.toggle("active", s === id));
-    const subs = { "s-login": "Entrá a tu cuenta", "s-reg-profe": "Creá tu cuenta de profe", "s-reg-alumno": "Creá tu cuenta" };
+    const subs = { "s-login": "Entrá a tu cuenta", "s-reg-profe": "Creá tu cuenta de profe", "s-reg-alumno": "Creá tu cuenta", "s-olvide": "Recuperá tu acceso" };
     $("brand-sub").textContent = subs[id] || "";
     if (id === "s-login") pintarSugeridos();
     renderBotonesGoogle();   // ahora sí: hay una pantalla de auth visible
@@ -1202,6 +1238,8 @@
       // Profe deshabilitado (y no admin): mostramos bloqueo y no cargamos la app.
       if (!yo.es_admin && yo.habilitado === 0) { mostrarBloqueo(); return; }
       $("bloqueo").classList.remove("on");
+      pintarAvisosReset(yo.pedidos_reset);
+      if (yo.debe_cambiar) abrirCambioPass(true);
       await cargarCatalogo();
       cargarAlumnos();
     } else {
@@ -1213,6 +1251,7 @@
         return;
       }
       $("bloqueo").classList.remove("on");
+      if (yo.debe_cambiar) abrirCambioPass(true);
       alSwitchView("sesion");
       await cargarMiRutina();
     }
@@ -1304,7 +1343,7 @@
   // Normaliza para buscar sin importar mayúsculas ni tildes (María == maria, Muñoz == munoz).
   const normaliza = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   function itemAlumnoHTML(a) {
-    return `<div class="ex click" data-alumno="${a.id}"><div class="thumb ph" style="width:44px;height:44px;border-radius:50%"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div><div class="info"><div class="n">${esc(a.nombre)}</div><div class="m">${edadDesde(a.fecha_nac) != null ? edadDesde(a.fecha_nac) + " años" : esc(a.objetivo || "Sin datos")}</div></div><div class="acts"><button class="reset-al" data-reset-alumno="${a.id}" title="Resetear contraseña"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M17 6l2 2M15 8l2 2"/></svg></button><button class="del-al" data-del-alumno="${a.id}" title="Borrar alumno"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button></div></div>`;
+    return `<div class="ex click" data-alumno="${a.id}"><div class="thumb ph" style="width:44px;height:44px;border-radius:50%"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div><div class="info"><div class="n">${esc(a.nombre)}</div><div class="m">${a.pide_reset ? '<span class="tag-reset" style="margin:0 6px 0 0">Pidió clave nueva</span>' : ""}${edadDesde(a.fecha_nac) != null ? edadDesde(a.fecha_nac) + " años" : esc(a.objetivo || "Sin datos")}</div></div><div class="acts"><button class="reset-al${a.pide_reset ? ' pide-reset' : ''}" data-reset-alumno="${a.id}" title="${a.pide_reset ? 'Pidió clave nueva: tocá para generarla' : 'Resetear contraseña'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M17 6l2 2M15 8l2 2"/></svg></button><button class="del-al" data-del-alumno="${a.id}" title="Borrar alumno"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button></div></div>`;
   }
   function renderListaAlumnos() {
     const cont = $("al-lista");
@@ -2456,10 +2495,10 @@
       const ctrl = p.es_admin
         ? `<span class="adm-vos">${p.id === adminYoId ? 'vos' : ''}</span>`
         : `<button class="adm-toggle${p.habilitado ? ' on' : ''}" data-id="${p.id}" data-hab="${p.habilitado ? 1 : 0}" role="switch" aria-checked="${p.habilitado ? 'true' : 'false'}" title="${p.habilitado ? 'Habilitado' : 'En pausa'}"><span class="knob"></span></button>
-           <button class="adm-reset" data-reset-profe="${p.id}" data-nombre="${esc(p.nombre)}" title="Resetear contraseña"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M17 6l2 2M15 8l2 2"/></svg></button>
+           <button class="adm-reset${p.pide_reset ? ' pide-reset' : ''}" data-reset-profe="${p.id}" data-nombre="${esc(p.nombre)}" title="Resetear contraseña"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M17 6l2 2M15 8l2 2"/></svg></button>
            <button class="adm-del" data-del-profe="${p.id}" data-nombre="${esc(p.nombre)}" title="Borrar profe"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button>`;
       return `<div class="adm-row">
-        <div class="adm-info"><div class="adm-n">${esc(p.nombre)} ${badge}</div><div class="adm-e">${esc(p.email)} · ${p.alumnos} alumno${p.alumnos !== 1 ? 's' : ''}</div></div>
+        <div class="adm-info"><div class="adm-n">${esc(p.nombre)} ${badge}${p.pide_reset ? '<span class="tag-reset">Pidió clave</span>' : ''}</div><div class="adm-e">${esc(p.email)} · ${p.alumnos} alumno${p.alumnos !== 1 ? 's' : ''}</div></div>
         <div class="adm-ctrls">${ctrl}</div>
       </div>`;
     }).join("");
@@ -2472,7 +2511,8 @@
     try {
       const r = await api("/alumnos/" + id + "/reset-password", "POST", {}, true);
       let copiada = false; try { await navigator.clipboard.writeText(r.password); copiada = true; } catch {}
-      alert(`Nueva contraseña de ${nombre}:\n\n${r.password}\n\n${copiada ? "(Ya la copié al portapapeles.) " : ""}Pasásela por WhatsApp; con esa clave va a poder entrar.`);
+      alert(`Nueva contraseña de ${nombre}:\n\n${r.password}\n\n${copiada ? "(Ya la copié al portapapeles.) " : ""}Pasásela por WhatsApp; con esa clave va a poder entrar. Al entrar, la app le va a pedir que elija una propia.`);
+      cargarAlumnos(); refrescarAvisosReset();
     } catch (e) { alert(e.message); }
   }
   async function resetProfe(id, nombre) {
@@ -2480,7 +2520,8 @@
     try {
       const r = await api("/admin/profesores/" + id + "/reset-password", "POST", {}, true);
       let copiada = false; try { await navigator.clipboard.writeText(r.password); copiada = true; } catch {}
-      alert(`Nueva contraseña de ${nombre}:\n\n${r.password}\n\n${copiada ? "(Ya la copié al portapapeles.) " : ""}Pasásela para que pueda entrar.`);
+      alert(`Nueva contraseña de ${nombre}:\n\n${r.password}\n\n${copiada ? "(Ya la copié al portapapeles.) " : ""}Pasásela para que pueda entrar. Al entrar, la app le va a pedir que elija una propia.`);
+      abrirAdmin(); refrescarAvisosReset();
     } catch (e) { alert(e.message); }
   }
   async function borrarProfe(id, nombre) {
@@ -3056,6 +3097,7 @@
         <button class="btn sm ghost" id="pf-export-csv">Descargar CSV (historial)</button>
       </div>
       <div class="msg" id="pf-msg"></div>
+      <button class="btn ghost" id="pf-clave" style="margin-bottom:10px">Cambiar contraseña</button>
       <button class="btn ghost" id="pf-salir">Cerrar sesión</button>`;
     $("pf-objetivo").value = (alYo && alYo.objetivo) || "";
     $("pf-obs").value = (alYo && alYo.observaciones) || "";
@@ -3071,6 +3113,7 @@
       finally { $("pf-guardar").disabled = false; }
     };
     $("pf-salir").onclick = salir;
+    $("pf-clave").onclick = () => abrirCambioPass(false);
     $("pf-export-json").onclick = () => exportarDatos("json");
     $("pf-export-csv").onclick = () => exportarDatos("csv");
     $("pf-cam").onclick = () => $("pf-file").click();
@@ -3527,6 +3570,76 @@
   $("to-login-1").onclick = () => showAuth("s-login");
   const salir = async () => { try { await api("/logout", "POST", null, true); } catch {} borrarToken(); showAuth("s-login"); };
   $("profe-salir").onclick = salir; $("alumno-salir").onclick = salir;
+
+  // ---------- OLVIDÉ MI CONTRASEÑA ----------
+  // No hay mails: el pedido le aparece al admin (profes) o al profe (alumnos),
+  // que resetea con la llave y pasa la clave temporal por WhatsApp.
+  $("to-olvide").onclick = () => {
+    $("ol-email").value = $("login-email").value.trim();
+    msg($("ol-msg"), "", "");
+    $("ol-btn").disabled = false;
+    showAuth("s-olvide");
+  };
+  $("to-login-2").onclick = () => showAuth("s-login");
+  $("ol-btn").onclick = async () => {
+    const email = $("ol-email").value.trim();
+    if (!email) return msg($("ol-msg"), "Poné tu email", "error");
+    $("ol-btn").disabled = true;
+    try {
+      await api("/olvide-password", "POST", { email }, false);
+      // Mensaje genérico a propósito: no confirmamos si el mail existe.
+      msg($("ol-msg"), "¡Listo! Si ese mail tiene cuenta, ya le llegó el aviso a tu profe (o al administrador). Te va a pasar una clave nueva; cuando entres con ella vas a elegir una propia.", "ok");
+    } catch (e) { msg($("ol-msg"), e.message, "error"); $("ol-btn").disabled = false; }
+  };
+
+  // ---------- CAMBIAR CONTRASEÑA ----------
+  // obligatorio = true cuando la clave es temporal (vino de un reseteo): no pide la
+  // actual ni se puede cancelar; la única salida es elegir una o cerrar sesión.
+  let _passObligatorio = false;
+  function abrirCambioPass(obligatorio) {
+    _passObligatorio = !!obligatorio;
+    $("pass-title").textContent = obligatorio ? "Elegí tu contraseña" : "Cambiar contraseña";
+    $("pass-hint").textContent = obligatorio
+      ? "Entraste con una clave temporal. Elegí una propia para seguir."
+      : "Al cambiarla se cierra tu sesión en los otros dispositivos.";
+    $("pass-actual-wrap").style.display = obligatorio ? "none" : "";
+    $("pass-cancelar").textContent = obligatorio ? "Cerrar sesión" : "Cancelar";
+    ["pass-actual", "pass-nueva", "pass-nueva2"].forEach((id) => { $(id).value = ""; $(id).type = "password"; });
+    document.querySelectorAll('#pass-overlay [data-eye]').forEach((b) => (b.innerHTML = OJO_ON));
+    msg($("pass-msg"), "", "");
+    $("pass-overlay").classList.add("on");
+  }
+  $("pass-cancelar").onclick = () => {
+    $("pass-overlay").classList.remove("on");
+    if (_passObligatorio) salir();
+  };
+  $("pass-guardar").onclick = async () => {
+    const actual = $("pass-actual").value, nueva = $("pass-nueva").value;
+    if (!_passObligatorio && !actual) return msg($("pass-msg"), "Poné tu contraseña actual", "error");
+    if (nueva.length < 8) return msg($("pass-msg"), "La contraseña nueva necesita 8 caracteres o más", "error");
+    if (nueva !== $("pass-nueva2").value) return msg($("pass-msg"), "Las contraseñas no coinciden", "error");
+    if (!_passObligatorio && nueva === actual) return msg($("pass-msg"), "La nueva tiene que ser distinta de la actual", "error");
+    $("pass-guardar").disabled = true;
+    try {
+      await api("/mi-password", "PUT", { actual: _passObligatorio ? undefined : actual, nueva }, true);
+      msg($("pass-msg"), "¡Contraseña actualizada!", "ok");
+      setTimeout(() => $("pass-overlay").classList.remove("on"), 900);
+      _passObligatorio = false;
+    } catch (e) { msg($("pass-msg"), e.message, "error"); }
+    finally { $("pass-guardar").disabled = false; }
+  };
+  $("profe-clave").onclick = () => abrirCambioPass(false);
+
+  // Puntitos de aviso: pestaña Alumnos (pedidos de tus alumnos) y escudo de admin (pedidos de profes).
+  function pintarAvisosReset(p) {
+    p = p || {};
+    const tab = document.querySelector('[data-ptab="alumnos"]');
+    if (tab) { tab.classList.toggle("dot-aviso", p.alumnos > 0); tab.title = p.alumnos > 0 ? "Hay alumnos que pidieron clave nueva" : ""; }
+    $("profe-admin").classList.toggle("dot-aviso", p.profes > 0);
+  }
+  async function refrescarAvisosReset() {
+    try { const yo = await api("/yo", "GET", null, true); pintarAvisosReset(yo.pedidos_reset); } catch {}
+  }
 
   // Ver / ocultar contraseña
   const OJO_ON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>';

@@ -13,6 +13,7 @@
 --          sesión persistente por token.
 -- ============================================================
 
+DROP TABLE IF EXISTS pedidos_reset;
 DROP TABLE IF EXISTS invitaciones;
 DROP TABLE IF EXISTS sesiones;
 DROP TABLE IF EXISTS cargas;
@@ -36,6 +37,7 @@ CREATE TABLE profesores (
   habilitado         INTEGER NOT NULL DEFAULT 0,  -- 0 = deshabilitado (arranca en pausa hasta que el admin lo active)
   es_admin           INTEGER NOT NULL DEFAULT 0,  -- 1 = creador/administrador de la plataforma
   borrado            INTEGER NOT NULL DEFAULT 0,  -- 1 = borrado (soft delete): oculto y sin acceso, datos preservados
+  debe_cambiar       INTEGER NOT NULL DEFAULT 0,  -- 1 = clave temporal (reseteo): obliga a elegir una propia
   creado             TEXT DEFAULT (datetime('now'))
 );
 
@@ -56,6 +58,7 @@ CREATE TABLE alumnos (
                     'Rendimiento deportivo', 'Otro'
                  )),
   observaciones  TEXT,
+  debe_cambiar   INTEGER NOT NULL DEFAULT 0,  -- 1 = clave temporal (reseteo): obliga a elegir una propia
   creado         TEXT DEFAULT (datetime('now'))
 );
 
@@ -80,6 +83,16 @@ CREATE TABLE invitaciones (
   alumno_id  INTEGER,
   nota       TEXT,
   creada     TEXT DEFAULT (datetime('now'))
+);
+
+-- ------------------------------------------------------------
+-- PEDIDOS DE RESETEO  ("olvidé mi contraseña": uno pendiente por persona)
+-- ------------------------------------------------------------
+CREATE TABLE pedidos_reset (
+  rol         TEXT NOT NULL,
+  usuario_id  INTEGER NOT NULL,
+  creado      TEXT DEFAULT (datetime('now')),
+  PRIMARY KEY (rol, usuario_id)
 );
 
 -- ------------------------------------------------------------

@@ -23,6 +23,8 @@ Seguridad:
 - **Sesión persistente** por token (no vuelve a pedir login hasta borrar la app o cerrar sesión).
 - **Multi-tenant:** cada profe ve solo lo suyo; cada operación verifica la propiedad del recurso.
 - **Invitaciones de un solo uso:** el link se "quema" cuando el alumno se registra.
+- **Olvidé mi contraseña (sin mails):** el usuario deja un pedido; al admin (si es profe) o a su profe (si es alumno) le aparece un aviso y resetea con la llave. La respuesta es siempre la misma, exista o no el mail.
+- **Clave temporal:** todo reseteo marca `debe_cambiar = 1`; al entrar, la app obliga a elegir una contraseña propia. Cambiar la clave cierra las sesiones de los otros dispositivos.
 
 ## Estructura
 
@@ -60,9 +62,9 @@ Se sirve desde **GitHub Pages** (Settings → Pages → branch `main`, root). Se
 
 ## Endpoints de la API
 
-**Público:** `POST /registro/profe`, `POST /registro/alumno`, `POST /login`
+**Público:** `POST /registro/profe`, `POST /registro/alumno`, `POST /login`, `POST /olvide-password`
 
-**Con token:** `GET /yo`, `POST /logout`
+**Con token:** `GET /yo`, `POST /logout`, `PUT /mi-password`
 
 **Profe:** `GET/POST /catalogo`, `PUT/DELETE /catalogo/:id`, `GET /alumnos`, `GET /alumnos/:id`, `GET /alumnos/:id/cargas`, `POST /alumnos/:id/reset-password`, `GET/POST/DELETE /invitaciones`, `POST/PUT/DELETE` de `/dias`, `/bloques`, `/ejercicios`
 
