@@ -93,6 +93,57 @@ async function resolverSesion(request, env) {
 }
 
 // ------------------------------------------------------------
+//  LOGIN CON GOOGLE
+// ------------------------------------------------------------
+//  El front (botón de Google) nos manda un "ID token" firmado por Google.
+//  Lo verificamos acá mismo con las claves públicas de Google (RS256):
+//  firma, emisor, audiencia (nuestro client ID), vencimiento y mail verificado.
+//  Si todo da, el mail de Google es tan confiable como una contraseña.
+const GOOGLE_CLIENT_ID = "470393235359-fmaqhamksf7o30b3kgv7rcq2d7bjclqf.apps.googleusercontent.com";
+const GOOGLE_CERTS = "https://www.googleapis.com/oauth2/v3/certs";
+
+function b64urlABytes(s) {
+  s = s.replace(/-/g, "+").replace(/_/g, "/");
+  while (s.length % 4) s += "=";
+  const bin = atob(s);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+const b64urlAJSON = (s) => JSON.parse(new TextDecoder().decode(b64urlABytes(s)));
+
+// Devuelve los datos del usuario ({ email, nombre }) o tira un error con mensaje para mostrar.
+async function verificarTokenGoogle(credential, env) {
+  const partes = String(credential || "").split(".");
+  if (partes.length !== 3) throw new Error("Credencial de Google inválida");
+  let header, payload;
+  try { header = b64urlAJSON(partes[0]); payload = b64urlAJSON(partes[1]); }
+  catch { throw new Error("Credencial de Google inválida"); }
+  if (header.alg !== "RS256" || !header.kid) throw new Error("Credencial de Google inválida");
+
+  // Claves públicas de Google (Cloudflare las cachea una hora).
+  const resp = await fetch(GOOGLE_CERTS, { cf: { cacheTtl: 3600, cacheEverything: true } });
+  if (!resp.ok) throw new Error("No pudimos validar con Google. Probá de nuevo.");
+  const { keys } = await resp.json();
+  const jwk = (keys || []).find((k) => k.kid === header.kid);
+  if (!jwk) throw new Error("Credencial de Google vencida. Probá de nuevo.");
+  const clave = await crypto.subtle.importKey("jwk", jwk, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["verify"]);
+  const valida = await crypto.subtle.verify("RSASSA-PKCS1-v1_5", clave, b64urlABytes(partes[2]),
+    new TextEncoder().encode(partes[0] + "." + partes[1]));
+  if (!valida) throw new Error("Credencial de Google inválida");
+
+  const clientId = (env && env.GOOGLE_CLIENT_ID) || GOOGLE_CLIENT_ID;
+  const ahora = Math.floor(Date.now() / 1000);
+  if (payload.aud !== clientId) throw new Error("Credencial de Google inválida");
+  if (payload.iss !== "accounts.google.com" && payload.iss !== "https://accounts.google.com") throw new Error("Credencial de Google inválida");
+  if (!payload.exp || payload.exp < ahora - 60) throw new Error("La sesión de Google venció. Probá de nuevo.");
+  if (payload.email_verified !== true && payload.email_verified !== "true") throw new Error("Tu mail de Google no está verificado");
+  const email = String(payload.email || "").trim().toLowerCase();
+  if (!emailOk(email)) throw new Error("Google no nos pasó un mail válido");
+  return { email, nombre: String(payload.name || payload.given_name || email.split("@")[0]).slice(0, 80) };
+}
+
+// ------------------------------------------------------------
 //  Verificaciones de propiedad
 // ------------------------------------------------------------
 async function alumnoEsDelProfe(id, profeId, env) {
@@ -210,6 +261,521 @@ async function guardarSeriesPlan(env, ejId, plan) {
 }
 
 // ============================================================
+//  PLANIFICACIONES (plantillas generales) + EVALUACIONES
+// ============================================================
+//  Todo lo nuevo vive en este bloque y entra al router con UNA línea:
+//      const rNueva = await rutasPlanEval(request, env, url, path, method, seg, sesion, esProfe, esAlumno);
+//      if (rNueva) return rNueva;
+//  Devuelve una Response si la ruta es suya, o null si no (y el router sigue).
+//
+//  No modifica ninguna tabla existente: lee/escribe las tablas nuevas de
+//  migracion-planificaciones-evaluaciones.sql, y al ASIGNAR una plantilla
+//  inserta días/bloques/ejercicios del alumno igual que lo haría el editor.
+// ============================================================
+
+const TIPOS_EVAL = ["ohs", "unipodal", "rm", "cmj", "abalakov", "sj", "vbt"];
+const ESTADOS_EVAL = ["pendiente", "realizada", "revisada"];
+const MAX_JSON = 20000;   // tope de tamaño para resultado/datos (texto JSON)
+
+const numONull = (v) => {
+  if (v === null || v === undefined || v === "") return null;
+  const n = Number(String(v).replace(",", "."));
+  return isNaN(n) ? null : n;
+};
+const txt = (v, max) => (v === null || v === undefined || String(v).trim() === "") ? null : String(v).trim().slice(0, max || 2000);
+const fechaISO = (v) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v)) ? v : null;
+function jsonSeguro(s) { try { return s ? JSON.parse(s) : null; } catch { return null; } }
+function linkOk(v) {
+  const s = txt(v, 500);
+  return s && /^https?:\/\/\S+$/i.test(s) ? s : null;
+}
+
+// Normaliza la prescripción de un ejercicio de plantilla. Es el MISMO formato que
+// el editor le manda a POST /ejercicios: { series_plan, registrar_carga, notas }.
+function normalizarDatosEj(body) {
+  const plan = Array.isArray(body.series_plan) ? body.series_plan.slice(0, 20) : [];
+  return {
+    series_plan: plan.map((s, i) => ({
+      numero: i + 1,
+      reps: txt(s && s.reps, 40),
+      pausa: txt(s && s.pausa, 40),
+      peso: numONull(s && s.peso),
+      rpe: txt(s && s.rpe, 10),
+    })),
+    registrar_carga: (body.registrar_carga === 0 || body.registrar_carga === false || body.registrar_carga === "0") ? 0 : 1,
+    notas: txt(body.notas, 2000),
+  };
+}
+
+// ---------- Propiedad ----------
+async function plantillaEsDelProfe(id, profeId, env) {
+  return !!(await env.DB.prepare("SELECT 1 FROM plantillas WHERE id = ? AND profe_id = ?").bind(id, profeId).first());
+}
+async function plBloqueEsDelProfe(id, profeId, env) {
+  const r = await env.DB.prepare(
+    `SELECT b.plantilla_id FROM plantilla_bloques b JOIN plantillas p ON p.id = b.plantilla_id
+     WHERE b.id = ? AND p.profe_id = ?`).bind(id, profeId).first();
+  return r ? r.plantilla_id : null;
+}
+async function plEjercicioEsDelProfe(id, profeId, env) {
+  const r = await env.DB.prepare(
+    `SELECT b.plantilla_id FROM plantilla_ejercicios e JOIN plantilla_bloques b ON b.id = e.bloque_id
+     JOIN plantillas p ON p.id = b.plantilla_id WHERE e.id = ? AND p.profe_id = ?`).bind(id, profeId).first();
+  return r ? r.plantilla_id : null;
+}
+// Devuelve el Set de catalogo_id (de esa lista) que SÍ son del profe. Consulta por tandas
+// porque D1 limita la cantidad de parámetros por consulta.
+async function catalogosDelProfe(ids, profeId, env) {
+  const uniq = [...new Set(ids.map(Number).filter((n) => n > 0))];
+  const ok = new Set();
+  for (let i = 0; i < uniq.length; i += 80) {
+    const tanda = uniq.slice(i, i + 80);
+    const ph = tanda.map(() => "?").join(",");
+    const rs = (await env.DB.prepare(
+      `SELECT id FROM catalogo_ejercicios WHERE profe_id = ? AND id IN (${ph})`).bind(profeId, ...tanda).all()).results;
+    rs.forEach((r) => ok.add(r.id));
+  }
+  return ok;
+}
+const tocarPlantilla = (env, id) =>
+  env.DB.prepare("UPDATE plantillas SET actualizado = datetime('now') WHERE id = ?").bind(id).run();
+
+// Plantilla completa, con la misma forma que un "día" de la rutina
+// (bloques -> ejercicios con nombre/video del catálogo y series_plan),
+// así el front la pinta con las mismas funciones.
+async function armarPlantilla(id, env) {
+  const p = await env.DB.prepare(
+    "SELECT id, nombre, etiqueta, notas, usos, creado, actualizado FROM plantillas WHERE id = ?").bind(id).first();
+  if (!p) return null;
+  const res = await env.DB.batch([
+    env.DB.prepare("SELECT id, plantilla_id, nombre, orden, pausa FROM plantilla_bloques WHERE plantilla_id = ? ORDER BY orden, id").bind(id),
+    env.DB.prepare(
+      `SELECT e.id, e.bloque_id, e.catalogo_id, e.orden, e.datos, c.nombre, c.material, c.video_id
+       FROM plantilla_ejercicios e
+       JOIN plantilla_bloques b ON b.id = e.bloque_id
+       JOIN catalogo_ejercicios c ON c.id = e.catalogo_id
+       WHERE b.plantilla_id = ? ORDER BY e.orden, e.id`).bind(id),
+  ]);
+  const bloques = res[0].results;
+  const ejs = res[1].results.map((e) => {
+    const d = jsonSeguro(e.datos) || {};
+    const plan = Array.isArray(d.series_plan) ? d.series_plan : [];
+    return {
+      id: e.id, bloque_id: e.bloque_id, catalogo_id: e.catalogo_id, orden: e.orden,
+      nombre: e.nombre, material: e.material, video_id: e.video_id,
+      series_plan: plan, series: plan.length || null,
+      reps: plan[0] ? plan[0].reps : null, pausa: plan[0] ? plan[0].pausa : null,
+      registrar_carga: d.registrar_carga === 0 ? 0 : 1, notas: d.notas || null,
+    };
+  });
+  for (const b of bloques) b.ejercicios = ejs.filter((e) => e.bloque_id === b.id);
+  p.bloques = bloques;
+  return p;
+}
+
+// Inserta en lote los ejercicios ya mapeados a sus bloques nuevos, con su series_plan.
+//   items: [{ bloque_id, catalogo_id, orden, datos }]
+// Prueba primero con todas las columnas modernas (registrar_carga, peso, rpe) y, si la base
+// no las tiene, degrada sin romper. Cada batch de D1 es atómico: si una variante falla,
+// no queda nada a medias y se prueba la siguiente.
+async function insertarEjerciciosRutina(env, items) {
+  if (!items.length) return [];
+  const conReg = items.map((it) => {
+    const d = it.datos, p = d.series_plan || [];
+    return env.DB.prepare(
+      "INSERT INTO ejercicios (bloque_id, catalogo_id, orden, series, reps, pausa, notas, registrar_carga) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+    ).bind(it.bloque_id, it.catalogo_id, it.orden || 0, p.length || null, p[0] ? p[0].reps : null, p[0] ? p[0].pausa : null, d.notas || null, d.registrar_carga === 0 ? 0 : 1);
+  });
+  let res;
+  try { res = await env.DB.batch(conReg); }
+  catch (e) {
+    res = await env.DB.batch(items.map((it) => {
+      const d = it.datos, p = d.series_plan || [];
+      return env.DB.prepare(
+        "INSERT INTO ejercicios (bloque_id, catalogo_id, orden, series, reps, pausa, notas) VALUES (?, ?, ?, ?, ?, ?, ?)"
+      ).bind(it.bloque_id, it.catalogo_id, it.orden || 0, p.length || null, p[0] ? p[0].reps : null, p[0] ? p[0].pausa : null, d.notas || null);
+    }));
+  }
+  const ids = res.map((r) => r.meta.last_row_id);
+
+  // series_plan de todos los ejercicios en un solo batch (con variantes por columnas).
+  const filas = [];
+  items.forEach((it, i) => (it.datos.series_plan || []).forEach((s, k) => filas.push({ ej: ids[i], n: s.numero || k + 1, s })));
+  if (filas.length) {
+    const variantes = [
+      ["INSERT INTO series_plan (ejercicio_id, numero, reps, pausa, peso, rpe) VALUES (?, ?, ?, ?, ?, ?)", (f) => [f.ej, f.n, f.s.reps || null, f.s.pausa || null, numONull(f.s.peso), f.s.rpe != null && f.s.rpe !== "" ? String(f.s.rpe) : null]],
+      ["INSERT INTO series_plan (ejercicio_id, numero, reps, pausa, peso) VALUES (?, ?, ?, ?, ?)", (f) => [f.ej, f.n, f.s.reps || null, f.s.pausa || null, numONull(f.s.peso)]],
+      ["INSERT INTO series_plan (ejercicio_id, numero, reps, pausa) VALUES (?, ?, ?, ?)", (f) => [f.ej, f.n, f.s.reps || null, f.s.pausa || null]],
+    ];
+    for (const [sql, args] of variantes) {
+      try { await env.DB.batch(filas.map((f) => env.DB.prepare(sql).bind(...args(f)))); break; }
+      catch (e) { /* probamos la variante siguiente */ }
+    }
+  }
+  return ids;
+}
+
+// Crea en la rutina del alumno UN día copiando la plantilla (ya armada con armarPlantilla).
+async function plantillaADia(env, pl, alumnoId, fecha, nombre) {
+  let rd;
+  try {
+    rd = await env.DB.prepare("INSERT INTO dias (alumno_id, nombre, orden, fecha) VALUES (?, ?, ?, ?)")
+      .bind(alumnoId, nombre, 0, fecha || null).run();
+  } catch (e) {
+    rd = await env.DB.prepare("INSERT INTO dias (alumno_id, nombre, orden) VALUES (?, ?, ?)")
+      .bind(alumnoId, nombre, 0).run();
+  }
+  const diaId = rd.meta.last_row_id;
+  if (!pl.bloques.length) return diaId;
+  const resB = await env.DB.batch(pl.bloques.map((b) =>
+    env.DB.prepare("INSERT INTO bloques (dia_id, nombre, orden, pausa) VALUES (?, ?, ?, ?)")
+      .bind(diaId, b.nombre, b.orden || 0, b.pausa || null)));
+  const items = [];
+  pl.bloques.forEach((b, i) => {
+    const nuevoBloque = resB[i].meta.last_row_id;
+    for (const e of b.ejercicios) {
+      items.push({
+        bloque_id: nuevoBloque, catalogo_id: e.catalogo_id, orden: e.orden,
+        datos: { series_plan: e.series_plan, registrar_carga: e.registrar_carga, notas: e.notas },
+      });
+    }
+  });
+  await insertarEjerciciosRutina(env, items);
+  return diaId;
+}
+
+// Crea una plantilla completa a partir de una "foto" (snapshot) que manda el front:
+//   { nombre, etiqueta, notas, bloques: [{ nombre, pausa, ejercicios: [{ catalogo_id, series_plan, registrar_carga, notas }] }] }
+// Se usa para "Guardar como plantilla" (desde un día de un alumno) y para duplicar plantillas.
+async function crearPlantillaDesdeFoto(env, profeId, foto) {
+  const nombre = txt(foto.nombre, 120);
+  if (!nombre) throw errorValidacion("Poné un nombre para la planificación");
+  const bloques = Array.isArray(foto.bloques) ? foto.bloques.slice(0, 40) : [];
+  const catIds = [];
+  bloques.forEach((b) => (Array.isArray(b.ejercicios) ? b.ejercicios : []).forEach((e) => catIds.push(e.catalogo_id)));
+  const validos = await catalogosDelProfe(catIds, profeId, env);
+
+  const rp = await env.DB.prepare("INSERT INTO plantillas (profe_id, nombre, etiqueta, notas) VALUES (?, ?, ?, ?)")
+    .bind(profeId, nombre, txt(foto.etiqueta, 40), txt(foto.notas, 2000)).run();
+  const plId = rp.meta.last_row_id;
+  if (!bloques.length) return plId;
+
+  const resB = await env.DB.batch(bloques.map((b, i) =>
+    env.DB.prepare("INSERT INTO plantilla_bloques (plantilla_id, nombre, orden, pausa) VALUES (?, ?, ?, ?)")
+      .bind(plId, txt(b.nombre, 120) || "Bloque " + (i + 1), i, txt(b.pausa, 40))));
+  const stmts = [];
+  bloques.forEach((b, i) => {
+    const bId = resB[i].meta.last_row_id;
+    (Array.isArray(b.ejercicios) ? b.ejercicios.slice(0, 60) : []).forEach((e, k) => {
+      if (!validos.has(Number(e.catalogo_id))) return;   // ejercicio ajeno o borrado: lo salteamos
+      stmts.push(env.DB.prepare("INSERT INTO plantilla_ejercicios (bloque_id, catalogo_id, orden, datos) VALUES (?, ?, ?, ?)")
+        .bind(bId, Number(e.catalogo_id), k, JSON.stringify(normalizarDatosEj(e))));
+    });
+  });
+  if (stmts.length) await env.DB.batch(stmts);
+  return plId;
+}
+
+// Evaluación lista para el front: resultado parseado + nombre del ejercicio/alumno.
+function evalSalida(r) {
+  return {
+    id: r.id, alumno_id: r.alumno_id, alumno_nombre: r.alumno_nombre, tipo: r.tipo, estado: r.estado,
+    instrucciones: r.instrucciones, video_id: r.video_id, catalogo_id: r.catalogo_id,
+    ejercicio: r.ejercicio || null, fecha_limite: r.fecha_limite, fecha_realizada: r.fecha_realizada,
+    peso_corporal: r.peso_corporal, resultado: jsonSeguro(r.resultado), video_alumno: r.video_alumno,
+    comentario: r.comentario, devolucion: r.devolucion, creado: r.creado, actualizado: r.actualizado,
+  };
+}
+const SQL_EVAL = `SELECT ev.*, a.nombre AS alumno_nombre, c.nombre AS ejercicio
+  FROM evaluaciones ev
+  JOIN alumnos a ON a.id = ev.alumno_id
+  LEFT JOIN catalogo_ejercicios c ON c.id = ev.catalogo_id`;
+
+function resultadoJSON(v) {
+  if (v === undefined) return undefined;
+  if (v === null) return null;
+  const s = JSON.stringify(v);
+  if (s.length > MAX_JSON) throw new Error("El resultado es demasiado grande");
+  return s;
+}
+
+// ============================================================
+async function rutasPlanEval(request, env, url, path, method, seg, sesion, esProfe, esAlumno) {
+  const esMia =
+    seg[0] === "plantillas" || seg[0] === "plantilla-bloques" || seg[0] === "plantilla-ejercicios" ||
+    seg[0] === "evaluaciones" || seg[0] === "mis-evaluaciones";
+  if (!esMia) return null;
+  try {
+    return await rutasPlanEvalInterno(request, env, url, path, method, seg, sesion, esProfe, esAlumno);
+  } catch (err) {
+    // Si todavía no se corrió la migración, avisamos claro en vez de un "Error del servidor".
+    if (/no such table/i.test(String(err && err.message)))
+      return json({ error: "Falta correr la migración de planificaciones y evaluaciones en la base." }, 503);
+    if (err && err.esValidacion) return json({ error: err.message }, 400);
+    throw err;   // el catch general del router responde 500
+  }
+}
+function errorValidacion(m) { const e = new Error(m); e.esValidacion = true; return e; }
+
+async function rutasPlanEvalInterno(request, env, url, path, method, seg, sesion, esProfe, esAlumno) {
+  const body = (method === "POST" || method === "PUT") ? await request.json().catch(() => ({})) : {};
+
+  // ================= PLANTILLAS (profe) =================
+  if (esProfe && seg[0] === "plantillas") {
+    // Listado con conteos (para las tarjetas)
+    if (seg.length === 1 && method === "GET") {
+      const { results } = await env.DB.prepare(
+        `SELECT p.id, p.nombre, p.etiqueta, p.notas, p.usos, p.creado, p.actualizado,
+                (SELECT COUNT(*) FROM plantilla_bloques b WHERE b.plantilla_id = p.id) AS n_bloques,
+                (SELECT COUNT(*) FROM plantilla_ejercicios e JOIN plantilla_bloques b ON b.id = e.bloque_id
+                  WHERE b.plantilla_id = p.id) AS n_ejercicios
+         FROM plantillas p WHERE p.profe_id = ? ORDER BY p.actualizado DESC, p.id DESC`
+      ).bind(sesion.id).all();
+      return json(results);
+    }
+    // Crear (vacía, o completa desde una foto: "Guardar como plantilla")
+    if (seg.length === 1 && method === "POST") {
+      const plId = await crearPlantillaDesdeFoto(env, sesion.id, body);
+      return json(await armarPlantilla(plId, env), 201);
+    }
+    const plId = Number(seg[1]);
+    if (!plId || !(await plantillaEsDelProfe(plId, sesion.id, env))) return json({ error: "No autorizado" }, 403);
+
+    if (seg.length === 2 && method === "GET") return json(await armarPlantilla(plId, env));
+    if (seg.length === 2 && method === "PUT") {
+      const nombre = txt(body.nombre, 120);
+      if (!nombre) return json({ error: "Poné un nombre" }, 400);
+      await env.DB.prepare("UPDATE plantillas SET nombre = ?, etiqueta = ?, notas = ?, actualizado = datetime('now') WHERE id = ?")
+        .bind(nombre, txt(body.etiqueta, 40), txt(body.notas, 2000), plId).run();
+      return json({ ok: true });
+    }
+    if (seg.length === 2 && method === "DELETE") {
+      // Borrado explícito de hijos (por si la base no tiene las FK activas). Lo YA asignado
+      // a alumnos no se toca: son copias independientes.
+      await env.DB.batch([
+        env.DB.prepare("DELETE FROM plantilla_ejercicios WHERE bloque_id IN (SELECT id FROM plantilla_bloques WHERE plantilla_id = ?)").bind(plId),
+        env.DB.prepare("DELETE FROM plantilla_bloques WHERE plantilla_id = ?").bind(plId),
+        env.DB.prepare("DELETE FROM plantillas WHERE id = ?").bind(plId),
+      ]);
+      return json({ ok: true });
+    }
+    // Duplicar una plantilla (para armar variantes sin arrancar de cero)
+    if (seg.length === 3 && seg[2] === "duplicar" && method === "POST") {
+      const pl = await armarPlantilla(plId, env);
+      const foto = {
+        nombre: txt(body.nombre, 120) || (pl.nombre + " (copia)"), etiqueta: pl.etiqueta, notas: pl.notas,
+        bloques: pl.bloques.map((b) => ({ nombre: b.nombre, pausa: b.pausa, ejercicios: b.ejercicios })),
+      };
+      const nuevo = await crearPlantillaDesdeFoto(env, sesion.id, foto);
+      return json(await armarPlantilla(nuevo, env), 201);
+    }
+    // ASIGNAR a un alumno: una copia por cada fecha. body: { alumno_id, fechas: [...], nombre? }
+    if (seg.length === 3 && seg[2] === "asignar" && method === "POST") {
+      const alumnoId = Number(body.alumno_id);
+      const okAl = await env.DB.prepare("SELECT 1 FROM alumnos WHERE id = ? AND profe_id = ?").bind(alumnoId, sesion.id).first();
+      if (!okAl) return json({ error: "No es tu alumno" }, 403);
+      let fechas = Array.isArray(body.fechas) ? body.fechas.map(fechaISO).filter(Boolean) : [];
+      fechas = [...new Set(fechas)].slice(0, 24);
+      if (!fechas.length) fechas = [null];
+      const pl = await armarPlantilla(plId, env);
+      const nombre = txt(body.nombre, 120) || pl.nombre;
+      const nuevos = [];
+      for (const f of fechas) nuevos.push(await plantillaADia(env, pl, alumnoId, f, nombre));
+      await env.DB.prepare("UPDATE plantillas SET usos = usos + ? WHERE id = ?").bind(nuevos.length, plId).run();
+      return json({ ok: true, dias_ids: nuevos }, 201);
+    }
+    return null;
+  }
+
+  // --- Bloques de plantilla ---
+  if (esProfe && seg[0] === "plantilla-bloques") {
+    if (seg.length === 1 && method === "POST") {
+      const plId = Number(body.plantilla_id);
+      if (!plId || !(await plantillaEsDelProfe(plId, sesion.id, env))) return json({ error: "No autorizado" }, 403);
+      const nombre = txt(body.nombre, 120);
+      if (!nombre) return json({ error: "Poné un nombre" }, 400);
+      const r = await env.DB.prepare("INSERT INTO plantilla_bloques (plantilla_id, nombre, orden, pausa) VALUES (?, ?, ?, ?)")
+        .bind(plId, nombre, Number(body.orden) || 0, txt(body.pausa, 40)).run();
+      await tocarPlantilla(env, plId);
+      return json({ id: r.meta.last_row_id }, 201);
+    }
+    const bId = Number(seg[1]);
+    const plId = bId ? await plBloqueEsDelProfe(bId, sesion.id, env) : null;
+    if (!plId) return json({ error: "No autorizado" }, 403);
+    if (seg.length === 2 && method === "PUT") {
+      const nombre = txt(body.nombre, 120);
+      if (!nombre) return json({ error: "Poné un nombre" }, 400);
+      await env.DB.prepare("UPDATE plantilla_bloques SET nombre = ?, orden = ?, pausa = ? WHERE id = ?")
+        .bind(nombre, Number(body.orden) || 0, txt(body.pausa, 40), bId).run();
+      await tocarPlantilla(env, plId);
+      return json({ ok: true });
+    }
+    if (seg.length === 2 && method === "DELETE") {
+      await env.DB.batch([
+        env.DB.prepare("DELETE FROM plantilla_ejercicios WHERE bloque_id = ?").bind(bId),
+        env.DB.prepare("DELETE FROM plantilla_bloques WHERE id = ?").bind(bId),
+      ]);
+      await tocarPlantilla(env, plId);
+      return json({ ok: true });
+    }
+    return null;
+  }
+
+  // --- Ejercicios de plantilla (mismo body que /ejercicios) ---
+  if (esProfe && seg[0] === "plantilla-ejercicios") {
+    if (seg.length === 1 && method === "POST") {
+      const bId = Number(body.bloque_id);
+      const plId = bId ? await plBloqueEsDelProfe(bId, sesion.id, env) : null;
+      if (!plId) return json({ error: "No autorizado" }, 403);
+      const cat = await env.DB.prepare("SELECT 1 FROM catalogo_ejercicios WHERE id = ? AND profe_id = ?")
+        .bind(Number(body.catalogo_id), sesion.id).first();
+      if (!cat) return json({ error: "Ese ejercicio no está en tu catálogo" }, 403);
+      const r = await env.DB.prepare("INSERT INTO plantilla_ejercicios (bloque_id, catalogo_id, orden, datos) VALUES (?, ?, ?, ?)")
+        .bind(bId, Number(body.catalogo_id), Number(body.orden) || 0, JSON.stringify(normalizarDatosEj(body))).run();
+      await tocarPlantilla(env, plId);
+      return json({ id: r.meta.last_row_id }, 201);
+    }
+    const eId = Number(seg[1]);
+    const plId = eId ? await plEjercicioEsDelProfe(eId, sesion.id, env) : null;
+    if (!plId) return json({ error: "No autorizado" }, 403);
+    if (seg.length === 2 && method === "PUT") {
+      if (body.catalogo_id != null) {
+        const cat = await env.DB.prepare("SELECT 1 FROM catalogo_ejercicios WHERE id = ? AND profe_id = ?")
+          .bind(Number(body.catalogo_id), sesion.id).first();
+        if (!cat) return json({ error: "Ese ejercicio no está en tu catálogo" }, 403);
+        await env.DB.prepare("UPDATE plantilla_ejercicios SET catalogo_id = ?, orden = ?, datos = ? WHERE id = ?")
+          .bind(Number(body.catalogo_id), Number(body.orden) || 0, JSON.stringify(normalizarDatosEj(body)), eId).run();
+      } else {
+        await env.DB.prepare("UPDATE plantilla_ejercicios SET orden = ?, datos = ? WHERE id = ?")
+          .bind(Number(body.orden) || 0, JSON.stringify(normalizarDatosEj(body)), eId).run();
+      }
+      await tocarPlantilla(env, plId);
+      return json({ ok: true });
+    }
+    if (seg.length === 2 && method === "DELETE") {
+      await env.DB.prepare("DELETE FROM plantilla_ejercicios WHERE id = ?").bind(eId).run();
+      await tocarPlantilla(env, plId);
+      return json({ ok: true });
+    }
+    return null;
+  }
+
+  // ================= EVALUACIONES (profe) =================
+  if (esProfe && seg[0] === "evaluaciones") {
+    // Listado: todas las del profe, o filtradas por alumno.  GET /evaluaciones?alumno_id=12
+    if (seg.length === 1 && method === "GET") {
+      const alumnoId = Number(url.searchParams.get("alumno_id")) || null;
+      const stmt = alumnoId
+        ? env.DB.prepare(SQL_EVAL + " WHERE ev.profe_id = ? AND ev.alumno_id = ? ORDER BY ev.creado DESC, ev.id DESC").bind(sesion.id, alumnoId)
+        : env.DB.prepare(SQL_EVAL + " WHERE ev.profe_id = ? ORDER BY ev.creado DESC, ev.id DESC").bind(sesion.id);
+      return json((await stmt.all()).results.map(evalSalida));
+    }
+    // Pedir (o cargar directo) una evaluación a uno o varios alumnos.
+    //   body: { alumno_ids: [..], tipo, instrucciones, video, catalogo_id, fecha_limite,
+    //           estado?, resultado?, peso_corporal?, fecha_realizada?, devolucion? }
+    if (seg.length === 1 && method === "POST") {
+      const tipo = String(body.tipo || "");
+      if (!TIPOS_EVAL.includes(tipo)) return json({ error: "Tipo de evaluación no válido" }, 400);
+      const ids = [...new Set((Array.isArray(body.alumno_ids) ? body.alumno_ids : [body.alumno_id]).map(Number).filter((n) => n > 0))].slice(0, 200);
+      if (!ids.length) return json({ error: "Elegí al menos un alumno" }, 400);
+      const ph = ids.map(() => "?").join(",");
+      const propios = (await env.DB.prepare(`SELECT id FROM alumnos WHERE profe_id = ? AND id IN (${ph})`).bind(sesion.id, ...ids).all()).results.map((r) => r.id);
+      if (propios.length !== ids.length) return json({ error: "Algún alumno no es tuyo" }, 403);
+      let catalogoId = body.catalogo_id ? Number(body.catalogo_id) : null;
+      if (catalogoId && !(await env.DB.prepare("SELECT 1 FROM catalogo_ejercicios WHERE id = ? AND profe_id = ?").bind(catalogoId, sesion.id).first()))
+        return json({ error: "Ese ejercicio no está en tu catálogo" }, 403);
+      const estado = ESTADOS_EVAL.includes(body.estado) ? body.estado : "pendiente";
+      let resultado;
+      try { resultado = resultadoJSON(body.resultado === undefined ? null : body.resultado); }
+      catch (e) { return json({ error: e.message }, 400); }
+      const fechaReal = estado === "pendiente" ? null : (fechaISO(body.fecha_realizada) || new Date().toISOString().slice(0, 10));
+      const stmts = propios.map((aid) => env.DB.prepare(
+        `INSERT INTO evaluaciones (profe_id, alumno_id, tipo, estado, instrucciones, video_id, catalogo_id, fecha_limite,
+                                   fecha_realizada, peso_corporal, resultado, devolucion)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(sesion.id, aid, tipo, estado, txt(body.instrucciones, 3000), extraerVideoId(body.video), catalogoId,
+             fechaISO(body.fecha_limite), fechaReal, numONull(body.peso_corporal), resultado, txt(body.devolucion, 3000)));
+      const res = await env.DB.batch(stmts);
+      return json({ ok: true, ids: res.map((r) => r.meta.last_row_id) }, 201);
+    }
+    const evId = Number(seg[1]);
+    const ev = evId ? await env.DB.prepare("SELECT * FROM evaluaciones WHERE id = ? AND profe_id = ?").bind(evId, sesion.id).first() : null;
+    if (!ev) return json({ error: "No autorizado" }, 403);
+    if (seg.length === 2 && method === "GET") {
+      const r = await env.DB.prepare(SQL_EVAL + " WHERE ev.id = ?").bind(evId).first();
+      return json(evalSalida(r));
+    }
+    // Editar / revisar. Solo pisa los campos que vienen en el body.
+    if (seg.length === 2 && method === "PUT") {
+      const set = [], vals = [];
+      const campo = (col, val) => { set.push(col + " = ?"); vals.push(val); };
+      if (body.instrucciones !== undefined) campo("instrucciones", txt(body.instrucciones, 3000));
+      if (body.video !== undefined) campo("video_id", extraerVideoId(body.video));
+      if (body.catalogo_id !== undefined) {
+        const cid = body.catalogo_id ? Number(body.catalogo_id) : null;
+        if (cid && !(await env.DB.prepare("SELECT 1 FROM catalogo_ejercicios WHERE id = ? AND profe_id = ?").bind(cid, sesion.id).first()))
+          return json({ error: "Ese ejercicio no está en tu catálogo" }, 403);
+        campo("catalogo_id", cid);
+      }
+      if (body.fecha_limite !== undefined) campo("fecha_limite", fechaISO(body.fecha_limite));
+      if (body.fecha_realizada !== undefined) campo("fecha_realizada", fechaISO(body.fecha_realizada));
+      if (body.peso_corporal !== undefined) campo("peso_corporal", numONull(body.peso_corporal));
+      if (body.resultado !== undefined) {
+        try { campo("resultado", resultadoJSON(body.resultado)); } catch (e) { return json({ error: e.message }, 400); }
+      }
+      if (body.devolucion !== undefined) campo("devolucion", txt(body.devolucion, 3000));
+      if (body.estado !== undefined) {
+        if (!ESTADOS_EVAL.includes(body.estado)) return json({ error: "Estado no válido" }, 400);
+        campo("estado", body.estado);
+        if (body.estado !== "pendiente" && !ev.fecha_realizada && body.fecha_realizada === undefined)
+          campo("fecha_realizada", new Date().toISOString().slice(0, 10));
+      }
+      if (!set.length) return json({ ok: true });
+      set.push("actualizado = datetime('now')");
+      await env.DB.prepare(`UPDATE evaluaciones SET ${set.join(", ")} WHERE id = ?`).bind(...vals, evId).run();
+      const r = await env.DB.prepare(SQL_EVAL + " WHERE ev.id = ?").bind(evId).first();
+      return json(evalSalida(r));
+    }
+    if (seg.length === 2 && method === "DELETE") {
+      await env.DB.prepare("DELETE FROM evaluaciones WHERE id = ?").bind(evId).run();
+      return json({ ok: true });
+    }
+    return null;
+  }
+
+  // ================= EVALUACIONES (alumno) =================
+  if (esAlumno && seg[0] === "mis-evaluaciones") {
+    if (seg.length === 1 && method === "GET") {
+      const { results } = await env.DB.prepare(SQL_EVAL + " WHERE ev.alumno_id = ? ORDER BY ev.creado DESC, ev.id DESC")
+        .bind(sesion.id).all();
+      return json(results.map(evalSalida));
+    }
+    // Cargar / corregir su resultado. Una vez revisada por el profe, queda cerrada.
+    if (seg.length === 2 && method === "PUT") {
+      const evId = Number(seg[1]);
+      const ev = await env.DB.prepare("SELECT id, estado FROM evaluaciones WHERE id = ? AND alumno_id = ?").bind(evId, sesion.id).first();
+      if (!ev) return json({ error: "Esa evaluación no es tuya" }, 403);
+      if (ev.estado === "revisada") return json({ error: "Tu profe ya la revisó. Si querés corregir algo, escribile." }, 409);
+      let resultado;
+      try { resultado = resultadoJSON(body.resultado === undefined ? null : body.resultado); }
+      catch (e) { return json({ error: e.message }, 400); }
+      const video = body.video_alumno ? linkOk(body.video_alumno) : null;
+      if (body.video_alumno && !video) return json({ error: "Pegá un link válido (que empiece con http)" }, 400);
+      await env.DB.prepare(
+        `UPDATE evaluaciones SET estado = 'realizada', resultado = ?, peso_corporal = ?, video_alumno = ?, comentario = ?,
+                fecha_realizada = ?, actualizado = datetime('now') WHERE id = ?`
+      ).bind(resultado, numONull(body.peso_corporal), video, txt(body.comentario, 2000),
+             fechaISO(body.fecha_realizada) || new Date().toISOString().slice(0, 10), evId).run();
+      const r = await env.DB.prepare(SQL_EVAL + " WHERE ev.id = ?").bind(evId).first();
+      return json(evalSalida(r));
+    }
+    return null;
+  }
+
+  return null;
+}
+
+// ============================================================
 //  ROUTER
 // ============================================================
 export default {
@@ -286,6 +852,48 @@ export default {
           return json({ error: "Email o contraseña incorrectos" }, 401);
         const token = await crearSesion(rol, user.id, env);
         return json({ token, rol, id: user.id });
+      }
+
+      // Login / registro con Google. body: { credential, codigo_invitacion?, modo? }
+      //   - Mail que ya existe (profe o alumno): entra.
+      //   - Mail nuevo + código de invitación: se registra como alumno de ese profe.
+      //   - Mail nuevo + modo "registro_profe": se crea la cuenta de profe (arranca en pausa, igual que el registro común).
+      //   - Mail nuevo sin nada de eso: no creamos nada (así un alumno no termina siendo profe por error).
+      //  A las cuentas creadas por Google les ponemos una contraseña aleatoria que nadie conoce:
+      //  siguen entrando con Google, y si algún día la quieren, se la resetea el profe/admin.
+      if (path === "/auth/google" && method === "POST") {
+        const body = await request.json().catch(() => ({}));
+        let g;
+        try { g = await verificarTokenGoogle(body.credential, env); }
+        catch (e) { return json({ error: e.message }, 401); }
+
+        const profe = await env.DB.prepare("SELECT id FROM profesores WHERE lower(email) = ?").bind(g.email).first();
+        if (profe) return json({ token: await crearSesion("profe", profe.id, env), rol: "profe", id: profe.id });
+        const alumno = await env.DB.prepare("SELECT id FROM alumnos WHERE lower(email) = ?").bind(g.email).first();
+        if (alumno) return json({ token: await crearSesion("alumno", alumno.id, env), rol: "alumno", id: alumno.id });
+
+        const { hash, salt } = await hashPassword(genToken());   // clave aleatoria e inutilizable
+
+        if (body.codigo_invitacion) {
+          const inv = await env.DB.prepare("SELECT id, profe_id, usada FROM invitaciones WHERE codigo = ?")
+            .bind(body.codigo_invitacion).first();
+          if (!inv) return json({ error: "Link de invitación inválido" }, 400);
+          if (inv.usada) return json({ error: "Este link de invitación ya fue usado" }, 409);
+          const r = await env.DB.prepare(
+            `INSERT INTO alumnos (profe_id, nombre, email, password_hash, password_salt) VALUES (?, ?, ?, ?, ?)`
+          ).bind(inv.profe_id, g.nombre, g.email, hash, salt).run();
+          await env.DB.prepare("UPDATE invitaciones SET usada = 1, alumno_id = ? WHERE id = ?").bind(r.meta.last_row_id, inv.id).run();
+          return json({ token: await crearSesion("alumno", r.meta.last_row_id, env), rol: "alumno", id: r.meta.last_row_id }, 201);
+        }
+
+        if (body.modo === "registro_profe") {
+          const r = await env.DB.prepare(
+            `INSERT INTO profesores (nombre, email, password_hash, password_salt, codigo_invitacion) VALUES (?, ?, ?, ?, ?)`
+          ).bind(g.nombre, g.email, hash, salt, genCodigo("INV")).run();
+          return json({ token: await crearSesion("profe", r.meta.last_row_id, env), rol: "profe", id: r.meta.last_row_id }, 201);
+        }
+
+        return json({ error: "No hay ninguna cuenta con " + g.email + ". Si sos alumno, entrá con el link que te pasó tu profe; si sos profe, tocá \"Crear cuenta\"." }, 404);
       }
 
       // Olvidé mi contraseña (público). No manda mails: deja un PEDIDO que ve el admin
@@ -958,6 +1566,10 @@ export default {
         }
         return json({ ok: true });
       }
+
+      // ================= PLANIFICACIONES + EVALUACIONES (bloque nuevo) =================
+      const rNueva = await rutasPlanEval(request, env, url, path, method, seg, sesion, esProfe, esAlumno);
+      if (rNueva) return rNueva;
 
       // ================= ADMIN (creador de la plataforma) =================
       // Cualquier ruta /admin/* exige es_admin.
