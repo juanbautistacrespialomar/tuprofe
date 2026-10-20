@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- tuprofe · v79 -->
+<!-- tuprofe · v80 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
@@ -347,15 +347,17 @@
   .alview { position: absolute; inset: 0; display: none; flex-direction: column; }
   .alview.on { display: flex; }
   /* deja aire abajo para la barra flotante */
-  #al-sesion, #al-cargas, #al-perfil { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
+  #al-sesion, #al-cargas, #al-perfil, #al-evals { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
 
   /* --- Barra inferior flotante (formato de appdegastos, colores tuprofe) --- */
   .bottomnav { position: absolute; left: 0; right: 0; bottom: 0; z-index: 30; background: transparent; pointer-events: none; padding: 0 14px calc(max(env(safe-area-inset-bottom), 12px) + 14px); }
   .bottomnav-inner { max-width: 440px; margin: 0 auto; display: flex; position: relative; pointer-events: auto; background: var(--nav-glass); -webkit-backdrop-filter: blur(22px) saturate(1.5); backdrop-filter: blur(22px) saturate(1.5); border: 1px solid var(--border); border-radius: 26px; box-shadow: 0 6px 20px rgba(0,0,0,.35); padding: 6px 8px; }
   .navtab { position: relative; display: flex; align-items: center; justify-content: center; padding: 11px 0; background: none; border: none; cursor: pointer; color: var(--muted); flex: 0 0 auto; width: 62px; transition: flex-grow .3s ease, width .3s ease, color .25s; }
   .navtab span { display: block; font-size: 11.5px; font-weight: 600; white-space: nowrap; position: relative; z-index: 1; max-width: 0; opacity: 0; overflow: hidden; transition: max-width .3s ease, opacity .22s ease, margin-left .3s ease; }
-  #profe-main .navtab { flex: 1 1 0; width: auto; }
-  #profe-main .navtab span { max-width: 120px; opacity: 1; margin-left: 8px; }
+  /* Profe: 4 solapas con texto siempre visible -> ícono arriba, texto abajo (entra en celus angostos). */
+  #profe-main .navtab { flex: 1 1 0; width: auto; min-width: 0; flex-direction: column; gap: 3px; padding: 8px 0 7px; }
+  #profe-main .navtab svg { width: 21px; height: 21px; }
+  #profe-main .navtab span, #profe-main .navtab.active span { max-width: 100%; opacity: 1; margin-left: 0; font-size: 10px; letter-spacing: -.1px; overflow: hidden; text-overflow: ellipsis; }
   .navtab svg { width: 23px; height: 23px; position: relative; z-index: 1; }
   .navtab.active { color: var(--accent); flex: 1 1 auto; width: auto; }
   .navtab.active span { max-width: 100px; opacity: 1; margin-left: 8px; }
@@ -631,6 +633,70 @@
   .ovl-back { width: 38px; height: 38px; border-radius: 11px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); font-size: 22px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
   .ovl-back:active { transform: scale(.94); }
   .ovl-scroll { scrollbar-gutter: stable; }
+  /* ===== Planificaciones (plantillas generales) ===== */
+  .chips { display: flex; gap: 6px; overflow-x: auto; margin: 0 -18px 12px; padding: 0 18px 2px; scrollbar-width: none; touch-action: pan-x; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip { flex: 0 0 auto; height: 32px; padding: 0 13px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: 12.5px; font-weight: 500; cursor: pointer; white-space: nowrap; }
+  .chip.on { background: rgba(196,240,0,.12); border-color: rgba(196,240,0,.45); color: var(--accent); }
+  .chip b { font-weight: 700; margin-left: 4px; }
+  .tag { display: inline-block; font-size: 10.5px; font-weight: 600; color: var(--accent); background: rgba(196,240,0,.08); border: 1px solid rgba(196,240,0,.25); padding: 1px 8px; border-radius: 999px; text-transform: none; }
+  .pl-sec { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin: 16px 0 8px; }
+  .modo-pl { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--accent-ink); background: var(--accent); padding: 2px 9px; border-radius: 999px; text-transform: uppercase; letter-spacing: .4px; }
+  .alsel { max-height: 230px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 14px; }
+  .alsel label { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-bottom: 1px solid var(--border); font-size: 14px; cursor: pointer; }
+  .alsel label:last-child { border-bottom: none; }
+  .alsel input { width: 20px; height: 20px; accent-color: var(--accent); flex: 0 0 auto; }
+
+  /* ===== Evaluaciones ===== */
+  .ev-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 13px 14px; margin-bottom: 10px; cursor: pointer; transition: transform .08s, border-color .12s; }
+  .ev-card:active { transform: scale(.99); }
+  .ev-card.pend { border-color: rgba(196,240,0,.55); }
+  .ev-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .ev-n { font-size: 15px; font-weight: 600; min-width: 0; }
+  .ev-s { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+  .ev-v { font-family: "Anton", sans-serif; font-size: 20px; color: var(--accent); margin-top: 6px; letter-spacing: .3px; }
+  .est { flex: 0 0 auto; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); background: var(--surface-2); white-space: nowrap; }
+  .est.pendiente { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
+  .est.realizada { color: #33c4e8; border-color: rgba(51,196,232,.45); background: rgba(51,196,232,.08); }
+  .est.vencida { color: var(--danger); border-color: rgba(255,93,93,.45); background: rgba(255,93,93,.08); }
+  .ev-grupo { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin: 18px 0 8px; }
+  .ev-grupo:first-child { margin-top: 4px; }
+  .ev-box { background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 14px; font-size: 13.5px; line-height: 1.5; white-space: pre-wrap; }
+  .ev-box.acento { border-left: 3px solid var(--accent); }
+  .ev-lbl { font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .6px; margin: 4px 0 8px; }
+  .ev-calc { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 4px 0 14px; }
+  .ev-calc > div { background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; }
+  .ev-calc small { display: block; font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+  .ev-calc b { display: block; font-family: "Anton", sans-serif; font-weight: 400; font-size: 20px; color: var(--accent); margin-top: 2px; }
+  .ev-calc .full { grid-column: 1 / -1; }
+  .ev-chk { display: grid; grid-template-columns: 1fr; gap: 0; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 14px; }
+  .ev-chk label { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 13.5px; cursor: pointer; background: var(--surface-2); }
+  .ev-chk label:last-child { border-bottom: none; }
+  .ev-chk input { width: 19px; height: 19px; accent-color: var(--accent); flex: 0 0 auto; }
+  .ev-chk .sub { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; padding: 8px 12px 6px; background: var(--surface); border-bottom: 1px solid var(--border); }
+  .ev-score { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 6px; }
+  .ev-score button { height: 44px; border-radius: 11px; border: 1px solid var(--border); background: var(--surface-2); color: var(--muted); font-size: 16px; font-weight: 700; cursor: pointer; }
+  .ev-score button.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .ev-score-h { font-size: 11.5px; color: var(--muted); margin-bottom: 14px; }
+  .ev-rows { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .ev-row { display: grid; grid-template-columns: 26px 1fr 1fr 34px; gap: 8px; align-items: center; }
+  .ev-row.r2 { grid-template-columns: 26px 1fr 1fr; }
+  .ev-row .n { font-family: "Anton", sans-serif; color: var(--accent); text-align: center; font-size: 15px; }
+  .ev-row input { height: 44px; padding: 0 10px; text-align: center; }
+  .ev-row .x { width: 34px; height: 34px; border-radius: 9px; background: var(--surface-2); border: 1px solid var(--border); color: var(--muted); cursor: pointer; font-size: 16px; }
+  .ev-rowh { display: grid; grid-template-columns: 26px 1fr 1fr 34px; gap: 8px; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 4px; }
+  .ev-rowh.r2 { grid-template-columns: 26px 1fr 1fr; }
+  .seg2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px; }
+  .seg2 button { height: 38px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; }
+  .seg2 button.on { border-color: var(--accent); color: var(--accent); background: rgba(196,240,0,.08); }
+  .ev-hist { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; }
+  .ev-hist .h-main { flex: 1; min-width: 0; }
+  .ev-hist .h-n { font-size: 14px; font-weight: 600; }
+  .ev-hist .h-s { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .ev-hist .h-v { font-family: "Anton", sans-serif; font-size: 18px; color: var(--accent); text-align: right; white-space: nowrap; }
+  .ev-chart { width: 100%; height: auto; display: block; background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 12px; }
+  .ev-link { display: flex; align-items: center; justify-content: center; gap: 8px; height: 44px; border-radius: 12px; border: 1px solid var(--accent); color: var(--accent); background: rgba(196,240,0,.06); font-size: 14px; font-weight: 600; text-decoration: none; margin-bottom: 14px; }
+  .tag-eval { display: inline-block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: #33c4e8; border: 1px solid rgba(51,196,232,.45); background: rgba(51,196,232,.08); padding: 1px 7px; border-radius: 999px; margin-right: 6px; }
 .g-divisor { display:flex; align-items:center; gap:10px; margin:16px 0; color:#9aa; font-size:13px; }
 .g-divisor::before, .g-divisor::after { content:""; flex:1; height:1px; background:currentColor; opacity:.3; }
 .g-divisor span { white-space:nowrap; }
@@ -735,11 +801,24 @@
         <div class="search" id="al-buscar-wrap" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input type="text" id="al-buscar" placeholder="Buscar alumno..." /></div>
         <div id="al-lista"></div>
       </div>
+      <div class="tabview" id="tv-planif">
+        <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input type="text" id="pl-buscar" placeholder="Buscar planificación..." /></div>
+        <div class="toolbar"><button class="btn sm" id="pl-nueva">+ Nueva planificación</button></div>
+        <div class="chips" id="pl-chips"></div>
+        <div id="pl-lista"></div>
+      </div>
+      <div class="tabview" id="tv-evals">
+        <div class="toolbar"><button class="btn sm" id="ev-pedir">+ Pedir evaluación</button></div>
+        <div class="chips" id="ev-chips"></div>
+        <div id="ev-lista"></div>
+      </div>
     </div>
     <nav class="bottomnav">
       <div class="bottomnav-inner">
         <button class="navtab active" data-ptab="catalogo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></svg><span>Ejercicios</span></button>
+        <button class="navtab" data-ptab="planif"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3"/></svg><span>Planificaciones</span></button>
         <button class="navtab" data-ptab="alumnos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.4 3-5.3 6.5-5.3s6.5 1.9 6.5 5.3"/><path d="M16.5 5.5a3.2 3.2 0 0 1 0 6.4M21.5 20c0-2.7-1.6-4.4-3.9-5"/></svg><span>Alumnos</span></button>
+        <button class="navtab" data-ptab="evals"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M10 2h4M12 2v3"/></svg><span>Evaluaciones</span></button>
       </div>
     </nav>
   </div>
@@ -753,6 +832,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
         <div class="icon-btn" id="rut-seguim" title="Seguimiento: notas y esfuerzo"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg></div>
+        <div class="icon-btn" id="rut-evals" title="Evaluaciones del alumno"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M10 2h4M12 2v3"/></svg></div>
         <div class="icon-btn" id="rut-progreso" title="Ver progreso del alumno"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg></div>
       </div>
     </div>
@@ -780,6 +860,11 @@
     </div>
     <div class="body" id="al-cargas"></div>
   </div>
+  <!-- VISTA: EVALUACIONES -->
+  <div class="alview" id="al-view-evals">
+    <div class="app-header"><div class="hi"><b style="font-size:20px">Evaluaciones</b></div></div>
+    <div class="body" id="al-evals"></div>
+  </div>
   <!-- VISTA: PERFIL -->
   <div class="alview" id="al-view-perfil">
     <div class="app-header"><div class="hi"><b style="font-size:20px">Mi perfil</b></div></div>
@@ -790,6 +875,7 @@
     <div class="bottomnav-inner">
       <button class="navtab active" data-view="sesion"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></svg><span>Sesión</span></button>
       <button class="navtab" data-view="cargas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg><span>Cargas</span></button>
+      <button class="navtab" data-view="evals"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M10 2h4M12 2v3"/></svg><span>Evaluaciones</span></button>
       <button class="navtab" data-view="perfil"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.5 4-7 8-7s8 2.5 8 7"/></svg><span>Perfil</span></button>
     </div>
   </nav>
@@ -969,6 +1055,8 @@
     <button class="btn" id="nd-blanco">Empezar en blanco</button>
     <div class="mcal-sf-label" id="nd-moldes-label" style="margin-top:14px">O traer una sesión guardada</div>
     <div id="nd-moldes"></div>
+    <div class="mcal-sf-label" id="nd-plant-label" style="margin-top:14px;display:none">O usar una planificación general</div>
+    <div id="nd-plant"></div>
     <button class="btn ghost sm" id="nd-cancelar" style="margin-top:12px">Cancelar</button>
   </div>
 </div>
@@ -1044,6 +1132,82 @@
   <div class="sheet" style="max-height:90vh">
     <div class="ovl-head"><button class="ovl-back" id="seg-cerrar" title="Volver">‹</button><h3 id="seg-nombre" style="margin:0">Seguimiento</h3></div>
     <div id="seg-lista"></div>
+  </div>
+</div>
+
+<!-- ============ MODAL datos de una planificación (crear / editar / guardar desde un día) ============ -->
+<div class="overlay" id="pl-overlay">
+  <div class="sheet">
+    <h3 id="pl-h3">Nueva planificación</h3>
+    <div class="msg" id="pl-msg"></div>
+    <div class="hint" id="pl-hint" style="display:none"></div>
+    <div class="field"><label>Nombre</label><input type="text" id="pl-nombre" placeholder="Tren inferior A" /></div>
+    <div class="field"><label>Etiqueta <small style="color:var(--muted)">(opcional, para filtrar)</small></label><input type="text" id="pl-etiqueta" list="pl-etiquetas" placeholder="Fuerza, Hipertrofia, Movilidad..." /><datalist id="pl-etiquetas"></datalist></div>
+    <div class="field"><label>Notas para vos <small style="color:var(--muted)">(opcional, el alumno no las ve)</small></label><textarea id="pl-notas" placeholder="Ej: semana 1 del bloque de fuerza, nivel intermedio" style="min-height:60px"></textarea></div>
+    <button class="btn" id="pl-guardar">Crear</button>
+    <button class="btn ghost sm" id="pl-cancelar" style="margin-top:10px">Cancelar</button>
+  </div>
+</div>
+
+<!-- ============ MODAL asignar una planificación a un alumno ============ -->
+<div class="overlay" id="asig-overlay">
+  <div class="sheet">
+    <h3 id="asig-h3">Asignar planificación</h3>
+    <div class="hint" id="asig-sub" style="margin-bottom:12px">Se copia entera a la rutina del alumno. Después la ajustás para él sin tocar la planificación original.</div>
+    <div class="msg" id="asig-msg"></div>
+    <div class="field" id="asig-alumno-wrap"><label>Alumno</label><select id="asig-alumno"></select></div>
+    <div class="field" id="asig-fecha-wrap"><label>¿Qué día?</label><input type="date" id="asig-fecha" /></div>
+    <div class="field" id="asig-sem-wrap">
+      <label>¿Repetir por varias semanas?</label>
+      <div class="sctl"><button type="button" class="sbtn" id="asig-dec">−</button><input type="number" id="asig-semanas" inputmode="numeric" min="1" max="12" value="1" /><button type="button" class="sbtn" id="asig-inc">+</button></div>
+      <div class="hint" id="asig-hint" style="margin-top:6px"></div>
+    </div>
+    <button class="btn" id="asig-guardar">Asignar</button>
+    <button class="btn ghost sm" id="asig-cancelar" style="margin-top:10px">Cancelar</button>
+  </div>
+</div>
+
+<!-- ============ MODAL pedir evaluación (profe) ============ -->
+<div class="overlay" id="evp-overlay">
+  <div class="sheet">
+    <h3>Pedir evaluación</h3>
+    <div class="msg" id="evp-msg"></div>
+    <div class="field"><label>Test</label><select id="evp-tipo"></select></div>
+    <div class="hint" id="evp-desc"></div>
+    <div class="field" id="evp-ej-wrap" style="display:none"><label>Ejercicio</label><select id="evp-ej"></select></div>
+    <div class="field"><label id="evp-al-lbl">Alumnos</label>
+      <input type="text" id="evp-al-buscar" placeholder="Buscar alumno..." style="margin-bottom:8px;display:none" />
+      <div class="alsel" id="evp-alumnos"></div>
+    </div>
+    <div class="field"><label>Instrucciones para el alumno</label><textarea id="evp-instr" style="min-height:120px"></textarea></div>
+    <div class="field"><label>Video de YouTube con la explicación <small style="color:var(--muted)">(opcional)</small></label><input type="text" id="evp-video" placeholder="https://youtu.be/..." /></div>
+    <div class="field"><label>Hacerlo antes del <small style="color:var(--muted)">(opcional)</small></label><input type="date" id="evp-limite" /></div>
+    <div class="cargatoggle">
+      <div class="ct-txt"><b>Lo tomo yo en persona</b><small>No le pide nada al alumno: cargás vos el resultado</small></div>
+      <button type="button" class="swi" id="evp-yo"></button>
+    </div>
+    <button class="btn" id="evp-guardar" style="margin-top:14px">Pedir evaluación</button>
+    <button class="btn ghost sm" id="evp-cancelar" style="margin-top:10px">Cancelar</button>
+  </div>
+</div>
+
+<!-- ============ MODAL evaluación (detalle: profe revisa / alumno carga) ============ -->
+<div class="overlay" id="ev-overlay">
+  <div class="sheet ovl-scroll" style="max-height:92dvh;overflow-y:auto">
+    <div class="ovl-head"><button class="ovl-back" id="ev-cerrar" title="Volver">‹</button><div style="min-width:0"><h3 id="ev-h3" style="margin:0">Evaluación</h3><div class="hint" id="ev-sub" style="margin:2px 0 0"></div></div></div>
+    <div class="msg" id="ev-msg"></div>
+    <div id="ev-cuerpo"></div>
+    <button class="btn" id="ev-guardar">Guardar</button>
+    <button class="btn ghost sm" id="ev-borrar" style="margin-top:10px;color:var(--danger)">Borrar evaluación</button>
+  </div>
+</div>
+
+<!-- ============ MODAL evaluaciones de UN alumno (profe) ============ -->
+<div class="overlay" id="eval-al-overlay">
+  <div class="sheet ovl-scroll" style="max-height:90vh;overflow-y:auto">
+    <div class="ovl-head"><button class="ovl-back" id="eval-al-cerrar" title="Volver">‹</button><h3 id="eval-al-h3" style="margin:0">Evaluaciones</h3></div>
+    <button class="btn sm" id="eval-al-pedir" style="margin-bottom:14px">+ Pedir evaluación</button>
+    <div id="eval-al-lista"></div>
   </div>
 </div>
 
@@ -1242,6 +1406,8 @@
       if (yo.debe_cambiar) abrirCambioPass(true);
       await cargarCatalogo();
       cargarAlumnos();
+      cargarPlantillas();     // planificaciones generales (en segundo plano)
+      cargarEvalsProfe();     // evaluaciones (para los puntitos de "para revisar")
     } else {
       alYo = yo;
       $("alumno-nombre").textContent = yo.nombre || "Alumno";
@@ -1253,6 +1419,7 @@
       $("bloqueo").classList.remove("on");
       if (yo.debe_cambiar) abrirCambioPass(true);
       alSwitchView("sesion");
+      cargarMisEvals();       // evaluaciones (en segundo plano: prende el puntito si hay pendientes)
       await cargarMiRutina();
     }
   }
@@ -1343,7 +1510,7 @@
   // Normaliza para buscar sin importar mayúsculas ni tildes (María == maria, Muñoz == munoz).
   const normaliza = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   function itemAlumnoHTML(a) {
-    return `<div class="ex click" data-alumno="${a.id}"><div class="thumb ph" style="width:44px;height:44px;border-radius:50%"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div><div class="info"><div class="n">${esc(a.nombre)}</div><div class="m">${a.pide_reset ? '<span class="tag-reset" style="margin:0 6px 0 0">Pidió clave nueva</span>' : ""}${edadDesde(a.fecha_nac) != null ? edadDesde(a.fecha_nac) + " años" : esc(a.objetivo || "Sin datos")}</div></div><div class="acts"><button class="reset-al${a.pide_reset ? ' pide-reset' : ''}" data-reset-alumno="${a.id}" title="${a.pide_reset ? 'Pidió clave nueva: tocá para generarla' : 'Resetear contraseña'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M17 6l2 2M15 8l2 2"/></svg></button><button class="del-al" data-del-alumno="${a.id}" title="Borrar alumno"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button></div></div>`;
+    return `<div class="ex click" data-alumno="${a.id}"><div class="thumb ph" style="width:44px;height:44px;border-radius:50%"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div><div class="info"><div class="n">${esc(a.nombre)}</div><div class="m">${a.pide_reset ? '<span class="tag-reset" style="margin:0 6px 0 0">Pidió clave nueva</span>' : ""}${evalsParaRevisar(a.id) ? `<span class="tag-eval">${evalsParaRevisar(a.id)} eval. para revisar</span>` : ""}${edadDesde(a.fecha_nac) != null ? edadDesde(a.fecha_nac) + " años" : esc(a.objetivo || "Sin datos")}</div></div><div class="acts"><button class="reset-al${a.pide_reset ? ' pide-reset' : ''}" data-reset-alumno="${a.id}" title="${a.pide_reset ? 'Pidió clave nueva: tocá para generarla' : 'Resetear contraseña'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M17 6l2 2M15 8l2 2"/></svg></button><button class="del-al" data-del-alumno="${a.id}" title="Borrar alumno"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button></div></div>`;
   }
   function renderListaAlumnos() {
     const cont = $("al-lista");
@@ -1370,7 +1537,7 @@
   }
   async function borrarAlumno(id, nombre) {
     if (!confirm(`¿Borrar a ${nombre}?\n\nSe elimina su cuenta, su rutina y todo su historial de cargas. Esto no se puede deshacer.`)) return;
-    try { await api("/alumnos/" + id, "DELETE", null, true); cargarAlumnos(); }
+    try { await api("/alumnos/" + id, "DELETE", null, true); cargarAlumnos(); cargarEvalsProfe(); }
     catch (e) { alert("No se pudo borrar: " + e.message); }
   }
   // Buscador de alumnos: filtra en memoria sobre la lista ya cargada (sin request por tecla).
@@ -1483,6 +1650,8 @@
   const iconPlay = `<span class="play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>`;
   const iconCal = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>`;
   const iconBookmark = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`;
+  const iconLayers = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg>`;
+  const iconCopy = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg>`;
   const iconCheck = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>`;
 
   // ---------- RUTINA (PROFE) ----------
@@ -1490,7 +1659,9 @@
   let rutNav = { diaId: null, bloqueId: null };
   let calMes = null; // { y, m } mes que se está mirando en el calendario (m: 0-11)
   async function abrirAlumno(id, nombre) {
+    EDIT_CTX = "rutina"; PL_ACTUAL = null;
     alumnoActual = { id, nombre };
+    pintarHeaderEditor();
     rutNav = { diaId: null, bloqueId: null };
     calMes = null; // arranca siempre en el mes actual
     $("profe-main").style.display = "none";
@@ -1498,6 +1669,7 @@
     await cargarRutina();
   }
   function rutBack() {
+    if (enPlantilla()) return plBack();
     if (rutNav.bloqueId != null) { rutNav.bloqueId = null; renderRutina(); }
     else if (rutNav.diaId != null) { rutNav.diaId = null; renderRutina(); }
     else { $("profe-rutina").style.display = "none"; $("profe-main").style.display = "flex"; }
@@ -1823,7 +1995,7 @@
     // Si no, puede haber un día vacío en esa fecha (lo reutilizamos o reemplazamos).
     const vacio = existentes[0] || null;
     const hayMoldes = RUTINA.some((d) => d.es_molde);
-    if (hayMoldes) { abrirNuevoDia(iso, vacio); return; }
+    if (hayMoldes || PLANTILLAS.length) { abrirNuevoDia(iso, vacio); return; }
     // Sin sesiones guardadas: entro al vacío si existe, o creo uno nuevo.
     if (vacio) { rutNav.diaId = vacio.id; rutNav.bloqueId = null; renderRutina(); return; }
     try { await crearDiaEnBlanco(iso); }
@@ -1895,6 +2067,7 @@
       <div class="dia-bar-info">${fechaTxt}</div>
       <div class="dia-bar-acts">
         ${accionExtra}
+        ${(dia.bloques || []).length ? `<button data-dia-plantilla title="Guardar como planificación general">${iconLayers}</button>` : ""}
         <button data-dia-edit title="Editar día">${iconEdit}</button>
         <button class="danger" data-dia-del title="Borrar día">${iconTrash}</button>
       </div>
@@ -1923,6 +2096,7 @@
     const bd = cont.querySelector("[data-dia-del]"); if (bd) bd.onclick = () => borrarNodo("dias", dia.id, esMolde ? "¿Borrar esta sesión guardada?" : "Borrar el dia completo?");
     const bu = cont.querySelector("[data-dia-usar]"); if (bu) bu.onclick = () => abrirUsarMolde(dia);
     const bg = cont.querySelector("[data-dia-guardar]"); if (bg) bg.onclick = () => toggleGuardarEnCajon(dia, bg);
+    const bp = cont.querySelector("[data-dia-plantilla]"); if (bp) bp.onclick = () => abrirPlMeta("desdeDia", dia);
     cont.querySelectorAll("[data-bloque]").forEach((c) => (c.onclick = () => { rutNav.bloqueId = Number(c.dataset.bloque); renderRutina(); }));
     cont.querySelectorAll("[data-edit]").forEach((btn) => (btn.onclick = (e) => { e.stopPropagation(); abrirBloque(dia.id, findBloque(dia, Number(btn.dataset.edit))); }));
     cont.querySelectorAll("[data-del]").forEach((btn) => (btn.onclick = (e) => { e.stopPropagation(); borrarNodo("bloques", Number(btn.dataset.del), "Borrar el bloque?"); }));
@@ -2247,6 +2421,7 @@
     $("nuevodia-overlay").classList.add("on");
   }
   function renderNdMoldes() {
+    renderNdPlantillas();
     const moldes = RUTINA.filter((d) => d.es_molde);
     $("nd-moldes-label").style.display = moldes.length ? "" : "none";
     const cont = $("nd-moldes");
@@ -2326,18 +2501,19 @@
     const pausa = $("bloque-pausa").value.trim();
     const btn = $("bloque-guardar"); btn.disabled = true;
     try {
-      const dia = findDia(RUTINA, bloqueDiaId);
+      const dia = ctxDia(bloqueDiaId);
       if (bloqueEnEdicion) {
         const b = findBloque(dia, bloqueEnEdicion);
-        await api("/bloques/" + bloqueEnEdicion, "PUT", { nombre, pausa, orden: b ? b.orden || 0 : 0 }, true);
+        await api(epBloques() + "/" + bloqueEnEdicion, "PUT", { nombre, pausa, orden: b ? b.orden || 0 : 0 }, true);
         if (b) { b.nombre = nombre; b.pausa = pausa || null; }
       } else {
         const nOrden = dia && dia.bloques ? dia.bloques.length : 0;
-        const r = await api("/bloques", "POST", { dia_id: bloqueDiaId, nombre, pausa, orden: nOrden }, true);
+        // plantilla_id solo lo lee la ruta de planificaciones; la de rutinas lo ignora.
+        const r = await api(epBloques(), "POST", { dia_id: bloqueDiaId, plantilla_id: bloqueDiaId, nombre, pausa, orden: nOrden }, true);
         if (dia) (dia.bloques = dia.bloques || []).push({ id: r.id, dia_id: bloqueDiaId, nombre, pausa: pausa || null, orden: nOrden, ejercicios: [] });
       }
       $("bloque-overlay").classList.remove("on");
-      renderRutina();
+      ctxRender();
     } catch (e) { alert(e.message); } finally { btn.disabled = false; }
   };
 
@@ -2391,10 +2567,11 @@
     const notas = $("rej-notas").value.trim() || null;
     $("rej-guardar").disabled = true;
     try {
-      const dia = findDia(RUTINA, rutNav.diaId);
+      if (enPlantilla() && !PL_ACTUAL) throw new Error("No hay planificación abierta");
+      const dia = ctxDia(enPlantilla() ? PL_ACTUAL.id : rutNav.diaId);
       const bloque = findBloque(dia, rejBloqueId);
       const orden = bloque && bloque.ejercicios ? bloque.ejercicios.length : 0;
-      const r = await api("/ejercicios", "POST", { bloque_id: rejBloqueId, catalogo_id: catSeleccionado.id, series_plan, orden, registrar_carga, notas }, true);
+      const r = await api(epEjercicios(), "POST", { bloque_id: rejBloqueId, catalogo_id: catSeleccionado.id, series_plan, orden, registrar_carga, notas }, true);
       $("rej-overlay").classList.remove("on");
       if (bloque) {
         (bloque.ejercicios = bloque.ejercicios || []).push({
@@ -2403,8 +2580,8 @@
           series_plan: series_plan.map((s) => ({ numero: s.numero, reps: s.reps, pausa: s.pausa, peso: s.peso, rpe: s.rpe })),
           notas, catalogo_id: catSeleccionado.id, nombre: catSeleccionado.nombre, material: catSeleccionado.material, video_id: catSeleccionado.video_id
         });
-        renderRutina();
-      } else await cargarRutina();
+        ctxRender();
+      } else await ctxRecargar();
     }
     catch (e) { msg($("rej-msg"), e.message, "error"); } finally { $("rej-guardar").disabled = false; }
   };
@@ -2467,7 +2644,7 @@
     if (cambioCat) body.catalogo_id = edejCat.id;
     const btn = $("edej-guardar"); btn.disabled = true;
     try {
-      await api("/ejercicios/" + edejEj.id, "PUT", body, true);
+      await api(epEjercicios() + "/" + edejEj.id, "PUT", body, true);
       edejEj.series_plan = series_plan.map((s) => ({ numero: s.numero, reps: s.reps, pausa: s.pausa, peso: s.peso, rpe: s.rpe }));
       edejEj.series = series_plan.length;
       edejEj.reps = series_plan[0] ? series_plan[0].reps : null;
@@ -2476,7 +2653,7 @@
       edejEj.notas = notas;
       if (cambioCat) { edejEj.catalogo_id = edejCat.id; edejEj.nombre = edejCat.nombre; edejEj.video_id = edejCat.video_id; edejEj.material = edejCat.material; }
       $("edej-overlay").classList.remove("on");
-      renderRutina();
+      ctxRender();
     } catch (e) { msg($("edej-msg"), e.message, "error"); } finally { btn.disabled = false; }
   };
 
@@ -3311,6 +3488,8 @@
     $("al-view-sesion").classList.toggle("on", v === "sesion");
     $("al-view-cargas").classList.toggle("on", v === "cargas");
     $("al-view-perfil").classList.toggle("on", v === "perfil");
+    $("al-view-evals").classList.toggle("on", v === "evals");
+    if (v === "evals") renderMisEvals();
     if (v === "cargas") renderCargas();
     if (v === "perfil") renderPerfil();
   }
@@ -3484,11 +3663,963 @@
     } catch (e) { alert(e.message); } finally { btn.disabled = false; }
   }
 
+  // ============================================================
+  //  PLANIFICACIONES (plantillas generales del profe)
+  //  ------------------------------------------------------------
+  //  Una planificación tiene la misma forma que un día (bloques -> ejercicios),
+  //  así que se edita con las MISMAS pantallas y modales que la rutina de un
+  //  alumno. La diferencia la marca EDIT_CTX: en "plantilla" los modales le
+  //  pegan a /plantilla-bloques y /plantilla-ejercicios en vez de /bloques y
+  //  /ejercicios. Asignarla a un alumno crea una COPIA en su rutina.
+  // ============================================================
+  let EDIT_CTX = "rutina";          // "rutina" | "plantilla"
+  let PL_ACTUAL = null;             // planificación abierta en el editor
+  let plNav = { bloqueId: null };
+  let PLANTILLAS = [];
+  let PL_ERROR = null;
+  let plFiltro = "";                // etiqueta elegida en los chips ("" = todas)
+  const enPlantilla = () => EDIT_CTX === "plantilla";
+  const epBloques = () => (enPlantilla() ? "/plantilla-bloques" : "/bloques");
+  const epEjercicios = () => (enPlantilla() ? "/plantilla-ejercicios" : "/ejercicios");
+  function ctxDia(id) { return enPlantilla() ? (PL_ACTUAL && PL_ACTUAL.id === id ? PL_ACTUAL : null) : findDia(RUTINA, id); }
+  function ctxRender() { if (enPlantilla()) renderPlantilla(); else renderRutina(); }
+  async function ctxRecargar() {
+    if (!enPlantilla()) return cargarRutina();
+    try { PL_ACTUAL = await api("/plantillas/" + PL_ACTUAL.id, "GET", null, true); } catch (e) { alert(e.message); }
+    renderPlantilla();
+  }
+  // Los íconos de seguimiento/progreso/evaluaciones son del alumno: en una planificación no van.
+  function pintarHeaderEditor() {
+    const pl = enPlantilla();
+    ["rut-seguim", "rut-progreso", "rut-evals"].forEach((id) => { $(id).style.display = pl ? "none" : ""; });
+    if (!pl) pintarDotsEvalsProfe();
+  }
+
+  async function cargarPlantillas() {
+    try { PLANTILLAS = (await api("/plantillas", "GET", null, true)) || []; PL_ERROR = null; }
+    catch (e) { PLANTILLAS = []; PL_ERROR = e.message; }
+    if ($("tv-planif").classList.contains("on")) renderPlantillas();
+  }
+  function resumenPlantilla(p) {
+    const nb = p.n_bloques != null ? p.n_bloques : (p.bloques || []).length;
+    const ne = p.n_ejercicios != null ? p.n_ejercicios : contarEj(p).total;
+    const usos = Number(p.usos) || 0;
+    return `${nb} bloque${nb !== 1 ? "s" : ""} · ${ne} ejercicio${ne !== 1 ? "s" : ""}${usos ? ` · usada ${usos} ${usos === 1 ? "vez" : "veces"}` : ""}`;
+  }
+  function renderPlantillas() {
+    const cont = $("pl-lista");
+    if (PL_ERROR) { $("pl-chips").innerHTML = ""; cont.innerHTML = `<div class="empty"><p>${esc(PL_ERROR)}</p></div>`; return; }
+    // Chips de etiquetas (solo si hay alguna)
+    const etiquetas = [...new Set(PLANTILLAS.map((p) => (p.etiqueta || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+    if (plFiltro && !etiquetas.includes(plFiltro)) plFiltro = "";
+    $("pl-chips").innerHTML = etiquetas.length
+      ? [`<button class="chip${plFiltro ? "" : " on"}" data-et="">Todas</button>`].concat(etiquetas.map((e) => `<button class="chip${plFiltro === e ? " on" : ""}" data-et="${esc(e)}">${esc(e)}</button>`)).join("")
+      : "";
+    $("pl-chips").querySelectorAll("[data-et]").forEach((b) => (b.onclick = () => { plFiltro = b.dataset.et; renderPlantillas(); }));
+    $("pl-etiquetas").innerHTML = etiquetas.map((e) => `<option value="${esc(e)}">`).join("");
+
+    if (!PLANTILLAS.length) {
+      cont.innerHTML = `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 10h6M9 14h6M9 18h3"/></svg><p>Todavía no tenés planificaciones.<br>Armá una base y asignásela a cualquier alumno.<br><br><small>También podés entrar a un día de un alumno y tocar el ícono de capas para guardarlo como planificación.</small></p></div>`;
+      return;
+    }
+    const q = normaliza($("pl-buscar").value || "");
+    const lista = PLANTILLAS.filter((p) => (!plFiltro || (p.etiqueta || "").trim() === plFiltro) && (!q || normaliza(p.nombre).includes(q) || normaliza(p.etiqueta).includes(q)));
+    if (!lista.length) { cont.innerHTML = `<div class="empty"><p>Ninguna planificación coincide.</p></div>`; return; }
+    cont.innerHTML = lista.map((p) => `<div class="navcard" data-pl="${p.id}">
+        <div class="nc-main">
+          <div class="nc-t">${esc(p.nombre)}</div>
+          <div class="nc-s" style="text-transform:none">${p.etiqueta ? `<span class="tag" style="margin-right:6px">${esc(p.etiqueta)}</span>` : ""}${resumenPlantilla(p)}</div>
+        </div>
+        <div class="acts">
+          <button data-asig="${p.id}" title="Asignar a un alumno">${iconCal}</button>
+          <button data-dup="${p.id}" title="Duplicar">${iconCopy}</button>
+          <button class="danger" data-del="${p.id}" title="Borrar">${iconTrash}</button>
+        </div>
+      </div>`).join("");
+    cont.querySelectorAll("[data-pl]").forEach((c) => (c.onclick = () => abrirPlantilla(Number(c.dataset.pl))));
+    cont.querySelectorAll("[data-asig]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); abrirAsignar(PLANTILLAS.find((p) => p.id === Number(b.dataset.asig))); }));
+    cont.querySelectorAll("[data-dup]").forEach((b) => (b.onclick = async (e) => {
+      e.stopPropagation();
+      b.disabled = true;
+      try { await api("/plantillas/" + b.dataset.dup + "/duplicar", "POST", {}, true); await cargarPlantillas(); mostrarToast("✓ Planificación duplicada"); }
+      catch (err) { alert("No se pudo duplicar: " + err.message); b.disabled = false; }
+    }));
+    cont.querySelectorAll("[data-del]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); borrarPlantilla(Number(b.dataset.del)); }));
+  }
+  $("pl-buscar").oninput = renderPlantillas;
+  $("pl-nueva").onclick = () => abrirPlMeta("nueva");
+
+  async function borrarPlantilla(id) {
+    const p = PLANTILLAS.find((x) => x.id === id) || PL_ACTUAL;
+    if (!confirm(`¿Borrar la planificación "${p ? p.nombre : ""}"?\n\nLo que ya asignaste a tus alumnos NO se borra: son copias aparte.`)) return;
+    try {
+      await api("/plantillas/" + id, "DELETE", null, true);
+      PLANTILLAS = PLANTILLAS.filter((x) => x.id !== id);
+      if (PL_ACTUAL && PL_ACTUAL.id === id) cerrarEditorPlantilla();
+      renderPlantillas();
+    } catch (e) { alert("No se pudo borrar: " + e.message); }
+  }
+
+  // ---- Editor de una planificación (reusa la vista #profe-rutina) ----
+  async function abrirPlantilla(id, yaArmada) {
+    EDIT_CTX = "plantilla"; plNav = { bloqueId: null };
+    pintarHeaderEditor();
+    $("profe-main").style.display = "none";
+    $("profe-rutina").style.display = "flex";
+    if (yaArmada) { PL_ACTUAL = yaArmada; renderPlantilla(); return; }
+    const p = PLANTILLAS.find((x) => x.id === id);
+    $("rut-nombre").textContent = p ? p.nombre : "Planificación";
+    $("rut-dias").innerHTML = `<div class="empty"><p>Cargando...</p></div>`;
+    try { PL_ACTUAL = await api("/plantillas/" + id, "GET", null, true); renderPlantilla(); }
+    catch (e) { $("rut-dias").innerHTML = `<div class="empty"><p>${esc(e.message)}</p></div>`; }
+  }
+  function cerrarEditorPlantilla() {
+    EDIT_CTX = "rutina"; PL_ACTUAL = null; plNav = { bloqueId: null };
+    $("profe-rutina").style.display = "none"; $("profe-main").style.display = "flex";
+    profeSwitchTab("planif");
+    cargarPlantillas();   // refresca conteos y "actualizado"
+  }
+  function plBack() {
+    if (plNav.bloqueId != null) { plNav.bloqueId = null; renderPlantilla(); }
+    else cerrarEditorPlantilla();
+  }
+  function renderPlantilla() {
+    const pl = PL_ACTUAL;
+    if (!pl) return;
+    if (plNav.bloqueId != null) {
+      const b = findBloque(pl, plNav.bloqueId);
+      if (b) return renderPlBloque(pl, b);
+      plNav.bloqueId = null;
+    }
+    $("rut-nombre").textContent = pl.nombre;
+    const cont = $("rut-dias");
+    const { total } = contarEj(pl);
+    const bar = `<div class="dia-bar">
+      <div class="dia-bar-info" style="text-transform:none;display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="modo-pl">Planificación</span>${pl.etiqueta ? `<span class="tag">${esc(pl.etiqueta)}</span>` : ""}</div>
+      <div class="dia-bar-acts">
+        <button data-pl-asig title="Asignar a un alumno">${iconCal}</button>
+        <button data-pl-edit title="Editar nombre y etiqueta">${iconEdit}</button>
+        <button class="danger" data-pl-del title="Borrar planificación">${iconTrash}</button>
+      </div>
+    </div>`;
+    const notas = pl.notas ? `<div class="hint" style="margin:-4px 0 12px;white-space:pre-wrap">${esc(pl.notas)}</div>` : "";
+    const cards = (pl.bloques || []).map((b) => {
+      const n = contarEj(b).total;
+      return `<div class="navcard" data-bloque="${b.id}">
+        <div class="nc-main"><div class="nc-t">${esc(b.nombre)}</div><div class="nc-s">${b.pausa ? "pausa " + esc(b.pausa) + " · " : ""}${n} ejercicio${n !== 1 ? "s" : ""}</div></div>
+        <div class="acts">
+          <button data-edit="${b.id}" title="Editar bloque">${iconEdit}</button>
+          <button class="danger" data-del="${b.id}" title="Borrar bloque">${iconTrash}</button>
+        </div>
+        ${chevron}
+      </div>`;
+    }).join("");
+    cont.innerHTML = bar + notas +
+      ((pl.bloques || []).length ? cards : `<div class="empty"><p>Planificación vacía.<br>Agregá el primer bloque.</p></div>`) +
+      `<button class="btn sm" id="rut-add" style="margin-top:6px">+ Agregar bloque</button>` +
+      (total ? `<button class="btn ghost sm" id="pl-asignar-big" style="margin-top:10px">Asignar a un alumno</button>` : "");
+    cont.querySelector("[data-pl-asig]").onclick = () => abrirAsignar(pl);
+    cont.querySelector("[data-pl-edit]").onclick = () => abrirPlMeta("editar", pl);
+    cont.querySelector("[data-pl-del]").onclick = () => borrarPlantilla(pl.id);
+    const big = $("pl-asignar-big"); if (big) big.onclick = () => abrirAsignar(pl);
+    cont.querySelectorAll("[data-bloque]").forEach((c) => (c.onclick = () => { plNav.bloqueId = Number(c.dataset.bloque); renderPlantilla(); }));
+    cont.querySelectorAll("[data-edit]").forEach((btn) => (btn.onclick = (e) => { e.stopPropagation(); abrirBloque(pl.id, findBloque(pl, Number(btn.dataset.edit))); }));
+    cont.querySelectorAll("[data-del]").forEach((btn) => (btn.onclick = (e) => { e.stopPropagation(); plBorrar("bloque", Number(btn.dataset.del)); }));
+    $("rut-add").onclick = () => abrirBloque(pl.id);
+  }
+  function renderPlBloque(pl, bloque) {
+    $("rut-nombre").textContent = bloque.nombre;
+    const cont = $("rut-dias");
+    const rows = (bloque.ejercicios || []).map((e) => {
+      const thumb = e.video_id
+        ? `<div class="er-thumb"><img src="${thumbURL(e.video_id)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:9px;display:block">${iconPlay}</div>`
+        : `<div class="er-thumb ph"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M8 5v14l11-7z"/></svg></div>`;
+      return `<div class="ejrow" data-ej="${e.id}">
+        ${thumb}
+        <div class="er-info"><div class="er-n">${esc(e.nombre)}</div>${chipsPlanHTML(e) || '<div class="er-s">—</div>'}${e.notas ? `<div class="er-s" style="color:var(--accent)">Nota: ${esc(e.notas)}</div>` : ""}</div>
+        <div class="er-acts">
+          <button data-edit="${e.id}" title="Editar">${iconEdit}</button>
+          <button class="danger" data-del="${e.id}" title="Borrar">${iconTrash}</button>
+        </div>
+      </div>`;
+    }).join("");
+    cont.innerHTML = `<div class="hint" style="margin-bottom:10px"><span class="modo-pl">Planificación</span> &nbsp;${esc(pl.nombre)}</div>` +
+      ((bloque.ejercicios || []).length ? rows : `<div class="empty"><p>Bloque sin ejercicios.<br>Sumá el primero desde tu catálogo.</p></div>`) +
+      `<button class="btn sm" id="rut-add" style="margin-top:6px">+ Agregar ejercicio</button>`;
+    cont.querySelectorAll("[data-ej]").forEach((row) => (row.onclick = () => abrirDetalleEj(findEj(bloque, Number(row.dataset.ej)), "profe")));
+    cont.querySelectorAll("[data-edit]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); abrirEdej(findEj(bloque, Number(b.dataset.edit))); }));
+    cont.querySelectorAll("[data-del]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); plBorrar("ejercicio", Number(b.dataset.del)); }));
+    $("rut-add").onclick = () => abrirRej(bloque.id);
+  }
+  async function plBorrar(tipo, id) {
+    if (tipo === "bloque" && !confirm("¿Borrar el bloque?")) return;
+    const pl = PL_ACTUAL;
+    if (tipo === "bloque") pl.bloques = (pl.bloques || []).filter((b) => b.id !== id);
+    else (pl.bloques || []).forEach((b) => { b.ejercicios = (b.ejercicios || []).filter((e) => e.id !== id); });
+    renderPlantilla();
+    try { await api((tipo === "bloque" ? "/plantilla-bloques/" : "/plantilla-ejercicios/") + id, "DELETE", null, true); }
+    catch (e) { alert("No se pudo borrar: " + e.message); await ctxRecargar(); }
+  }
+
+  // ---- Modal datos de la planificación: nueva / editar / guardar un día como planificación ----
+  let plMetaModo = null, plMetaDia = null;
+  function abrirPlMeta(modo, obj) {
+    plMetaModo = modo; plMetaDia = modo === "desdeDia" ? obj : null;
+    const titulos = { nueva: "Nueva planificación", editar: "Editar planificación", desdeDia: "Guardar como planificación" };
+    $("pl-h3").textContent = titulos[modo];
+    $("pl-guardar").textContent = modo === "editar" ? "Guardar cambios" : (modo === "nueva" ? "Crear y armar" : "Guardar planificación");
+    $("pl-hint").style.display = modo === "desdeDia" ? "" : "none";
+    $("pl-hint").textContent = "Se guarda una copia de este día (bloques, ejercicios y series) para usarla con cualquier alumno. El día del alumno no cambia.";
+    $("pl-nombre").value = modo === "editar" ? obj.nombre : (modo === "desdeDia" ? (obj.nombre || "") : "");
+    $("pl-etiqueta").value = modo === "editar" ? (obj.etiqueta || "") : "";
+    $("pl-notas").value = modo === "editar" ? (obj.notas || "") : "";
+    $("pl-etiquetas").innerHTML = [...new Set(PLANTILLAS.map((p) => (p.etiqueta || "").trim()).filter(Boolean))].map((e) => `<option value="${esc(e)}">`).join("");
+    msg($("pl-msg"), "", "");
+    $("pl-overlay").classList.add("on");
+    $("pl-nombre").focus();
+  }
+  // Foto de un día (lo que ya está en memoria) en el formato que entiende POST /plantillas.
+  function fotoDeDia(dia) {
+    return (dia.bloques || []).map((b) => ({
+      nombre: b.nombre, pausa: b.pausa || null,
+      ejercicios: (b.ejercicios || []).map((e) => ({
+        catalogo_id: e.catalogo_id,
+        series_plan: planDe(e).map((s) => ({ reps: s.reps || null, pausa: s.pausa || null, peso: s.peso === "" ? null : s.peso, rpe: s.rpe || null })),
+        registrar_carga: e.registrar_carga == null ? 1 : Number(e.registrar_carga),
+        notas: e.notas || null,
+      })),
+    }));
+  }
+  $("pl-cancelar").onclick = () => $("pl-overlay").classList.remove("on");
+  $("pl-guardar").onclick = async () => {
+    const nombre = $("pl-nombre").value.trim();
+    if (!nombre) return msg($("pl-msg"), "Poné un nombre", "error");
+    const etiqueta = $("pl-etiqueta").value.trim() || null, notas = $("pl-notas").value.trim() || null;
+    const btn = $("pl-guardar"); btn.disabled = true;
+    try {
+      if (plMetaModo === "editar") {
+        await api("/plantillas/" + PL_ACTUAL.id, "PUT", { nombre, etiqueta, notas }, true);
+        Object.assign(PL_ACTUAL, { nombre, etiqueta, notas });
+        $("pl-overlay").classList.remove("on");
+        renderPlantilla();
+      } else if (plMetaModo === "desdeDia") {
+        await api("/plantillas", "POST", { nombre, etiqueta, notas, bloques: fotoDeDia(plMetaDia) }, true);
+        $("pl-overlay").classList.remove("on");
+        mostrarToast("✓ Guardada en Planificaciones");
+      } else {
+        const r = await api("/plantillas", "POST", { nombre, etiqueta, notas }, true);
+        $("pl-overlay").classList.remove("on");
+        abrirPlantilla(r.id, r);   // entro directo a armarla
+      }
+      cargarPlantillas();
+    } catch (e) { msg($("pl-msg"), e.message, "error"); }
+    finally { btn.disabled = false; }
+  };
+
+  // ---- Asignar una planificación a un alumno ----
+  //  ctx.alumnoId: si viene (desde el calendario del alumno), el alumno está fijo.
+  //  ctx.fecha / ctx.vacioId: fecha tocada en el calendario y, si había, el día vacío a reemplazar.
+  let asigPl = null, asigCtx = null;
+  function abrirAsignar(pl, ctx) {
+    if (!pl) return;
+    asigPl = pl; asigCtx = ctx || {};
+    const fijo = !!asigCtx.alumnoId;
+    if (!fijo && !ALUMNOS_PROF.length) { alert("Todavía no tenés alumnos para asignarle esta planificación."); return; }
+    $("asig-h3").textContent = "Asignar: " + pl.nombre;
+    $("asig-alumno-wrap").style.display = fijo ? "none" : "";
+    if (!fijo) {
+      const alumnos = ALUMNOS_PROF.slice().sort((a, b) => a.nombre.localeCompare(b.nombre));
+      $("asig-alumno").innerHTML = `<option value="">Elegí un alumno</option>` + alumnos.map((a) => `<option value="${a.id}">${esc(a.nombre)}</option>`).join("");
+    }
+    $("asig-fecha").value = asigCtx.fecha || hoyISO();
+    $("asig-semanas").value = "1";
+    msg($("asig-msg"), "", "");
+    actualizarHintAsig();
+    $("asig-overlay").classList.add("on");
+  }
+  function fechasSemanales(iso, n) {
+    const out = [];
+    for (let k = 0; k < n; k++) { const d = new Date(iso + "T00:00:00"); d.setDate(d.getDate() + 7 * k); out.push(isoLocal(d.getFullYear(), d.getMonth(), d.getDate())); }
+    return out;
+  }
+  function actualizarHintAsig() {
+    const iso = $("asig-fecha").value;
+    const n = Math.max(1, Math.min(12, Number($("asig-semanas").value) || 1));
+    const h = $("asig-hint");
+    if (!iso) { h.textContent = "Elegí la fecha."; return; }
+    if (n === 1) { h.textContent = nombreDiaPorFecha(iso); return; }
+    const f = fechasSemanales(iso, n);
+    h.textContent = `${n} sesiones · ${nombreDiaPorFecha(iso)} → ${new Date(f[n - 1] + "T00:00:00").toLocaleDateString("es-AR", { day: "numeric", month: "long" })} (una por semana)`;
+  }
+  $("asig-fecha").oninput = actualizarHintAsig;
+  $("asig-semanas").oninput = actualizarHintAsig;
+  $("asig-dec").onclick = () => { $("asig-semanas").value = Math.max(1, (Number($("asig-semanas").value) || 1) - 1); actualizarHintAsig(); };
+  $("asig-inc").onclick = () => { $("asig-semanas").value = Math.min(12, (Number($("asig-semanas").value) || 1) + 1); actualizarHintAsig(); };
+  $("asig-cancelar").onclick = () => $("asig-overlay").classList.remove("on");
+  $("asig-guardar").onclick = async () => {
+    const alumnoId = asigCtx.alumnoId || Number($("asig-alumno").value);
+    if (!alumnoId) return msg($("asig-msg"), "Elegí un alumno", "error");
+    const iso = $("asig-fecha").value;
+    if (!iso) return msg($("asig-msg"), "Elegí una fecha", "error");
+    const n = Math.max(1, Math.min(12, Number($("asig-semanas").value) || 1));
+    const btn = $("asig-guardar"); btn.disabled = true; const t = btn.textContent; btn.textContent = "Asignando...";
+    try {
+      // Si en esa fecha había un día vacío (del calendario), lo reemplazamos.
+      if (asigCtx.vacioId && iso === asigCtx.fecha) {
+        RUTINA = RUTINA.filter((d) => d.id !== asigCtx.vacioId);
+        await api("/dias/" + asigCtx.vacioId, "DELETE", null, true).catch(() => {});
+      }
+      const r = await api("/plantillas/" + asigPl.id + "/asignar", "POST", { alumno_id: alumnoId, fechas: fechasSemanales(iso, n) }, true);
+      $("asig-overlay").classList.remove("on");
+      $("nuevodia-overlay").classList.remove("on");
+      const pl = PLANTILLAS.find((p) => p.id === asigPl.id); if (pl) pl.usos = (Number(pl.usos) || 0) + n;
+      if (asigCtx.alumnoId && alumnoActual && alumnoActual.id === alumnoId && !enPlantilla()) {
+        // Desde el calendario del alumno: recargo su rutina y entro al día nuevo.
+        const ref = calMes || { y: new Date().getFullYear(), m: new Date().getMonth() };
+        await cargarRutinaEnRango(ref.y, ref.m);
+        rutNav.diaId = r.dias_ids && r.dias_ids.length ? r.dias_ids[0] : null; rutNav.bloqueId = null;
+        renderRutina();
+      } else {
+        const al = ALUMNOS_PROF.find((a) => a.id === alumnoId);
+        mostrarToast(`✓ Asignada a ${al ? al.nombre : "tu alumno"}: ${n} sesi${n === 1 ? "ón" : "ones"}`);
+      }
+      cargarPlantillas();
+    } catch (e) { msg($("asig-msg"), "No se pudo asignar: " + e.message, "error"); }
+    finally { btn.disabled = false; btn.textContent = t; }
+  };
+
+  // ---- Planificaciones dentro del menú "nuevo día" del calendario del alumno ----
+  function renderNdPlantillas() {
+    const cont = $("nd-plant");
+    $("nd-plant-label").style.display = PLANTILLAS.length ? "" : "none";
+    cont.innerHTML = PLANTILLAS.map((p) => `<div class="navcard" data-ndpl="${p.id}" style="cursor:pointer">
+      <div class="nc-main"><div class="nc-t">${esc(p.nombre)}</div><div class="nc-s" style="text-transform:none">${p.etiqueta ? `<span class="tag" style="margin-right:6px">${esc(p.etiqueta)}</span>` : ""}${resumenPlantilla(p)}</div></div>
+      ${chevron}
+    </div>`).join("");
+    cont.querySelectorAll("[data-ndpl]").forEach((c) => (c.onclick = () => {
+      $("nuevodia-overlay").classList.remove("on");
+      abrirAsignar(PLANTILLAS.find((p) => p.id === Number(c.dataset.ndpl)), { alumnoId: alumnoActual.id, fecha: nuevoDiaISO, vacioId: nuevoDiaVacioId });
+    }));
+  }
+
+  // ============================================================
+  //  EVALUACIONES
+  //  ------------------------------------------------------------
+  //  Ciclo: el profe la PIDE (pendiente) -> el alumno la HACE y carga
+  //  (realizada) -> el profe la REVISA y deja devolución (revisada).
+  //  También puede tomarla él en persona y cargarla directo.
+  //  Los cálculos (1RM, altura de salto, potencia, perfil carga-velocidad)
+  //  se hacen acá y se guardan junto con los datos crudos.
+  // ============================================================
+  const TESTS = {
+    ohs: {
+      n: "Overhead squat", grupo: "Test iniciales", modo: "video",
+      desc: "Screening de movilidad y control: sentadilla profunda con los brazos arriba. Muestra compensaciones de tobillo, cadera, columna y hombro.",
+      instr: "1. Descalzo, pies al ancho de los hombros y apuntando hacia adelante.\n2. Brazos estirados arriba, alineados con las orejas.\n3. Bajá lo más profundo que puedas sin despegar los talones y volvé a subir. 5 repeticiones a ritmo normal.\n4. Filmate de FRENTE y de COSTADO (dos videos, o uno girando a la mitad). Celular a la altura de la cadera y el cuerpo entero en cuadro.\n\nSubí el video a YouTube (oculto) o a Drive y pegá el link acá. Si sentís dolor, frená y contámelo en el comentario.",
+    },
+    unipodal: {
+      n: "Sentadilla unipodal", grupo: "Test iniciales", modo: "unipodal",
+      desc: "Control de rodilla, cadera y tronco apoyado en una sola pierna. Compara izquierda contra derecha.",
+      instr: "1. Descalzo, parado en una pierna; la otra apenas adelante, sin apoyar.\n2. Manos en la cintura.\n3. Bajá hasta donde puedas controlar y volvé a subir. 5 repeticiones con cada pierna.\n4. Filmate de FRENTE, cuerpo entero, las dos piernas.\n\nAnotá cuántas repeticiones pudiste hacer bien con cada pierna y pegá el link del video.",
+    },
+    rm: {
+      n: "Test de RM", grupo: "Evaluaciones físicas", modo: "rm", ej: true,
+      desc: "Repeticiones máximas con una carga. Con el peso y las reps se estima el 1RM (Brzycki hasta 10 reps, Epley de ahí en más).",
+      instr: "1. Entrá en calor: 2 o 3 series de aproximación subiendo el peso de a poco.\n2. Con la carga que te indico, hacé la mayor cantidad de repeticiones posible CON BUENA TÉCNICA. Cuando la técnica se rompe, cortás.\n3. Si hacés más de un intento, descansá 3 a 5 minutos entre intentos.\n4. Cargá el peso y las repeticiones que lograste.\n\nNo hace falta ir a 1 repetición: con 3 a 8 reps la estimación es buena y es más seguro.",
+    },
+    cmj: {
+      n: "CMJ", largo: "CMJ · salto con contramovimiento", grupo: "Evaluaciones físicas", modo: "salto",
+      desc: "Salto vertical con contramovimiento y manos en la cintura. Mide la capacidad de producir fuerza rápido usando el ciclo estiramiento-acortamiento.",
+      instr: "1. Entrá en calor 5 a 10 minutos (trote suave, sentadillas, saltitos).\n2. Manos en la cintura durante TODO el salto.\n3. Bajá rápido hasta media sentadilla y saltá lo más alto que puedas, piernas estiradas en el aire.\n4. Caé en el mismo lugar con las piernas estiradas al tocar el piso (si caés flexionado, la medición da de más).\n5. 3 intentos con 1 minuto de pausa.\n\nMedilo con la app que te indique (por ejemplo My Jump) y cargá los 3 intentos: en centímetros o en milisegundos de vuelo.",
+    },
+    abalakov: {
+      n: "Abalakov", largo: "Abalakov · CMJ con brazos", grupo: "Evaluaciones físicas", modo: "salto",
+      desc: "Igual que el CMJ pero con los brazos libres. Comparado con el CMJ muestra cuánto aporta la coordinación de los brazos.",
+      instr: "1. Entrá en calor 5 a 10 minutos.\n2. Igual que el CMJ pero USANDO LOS BRAZOS: al bajar llevalos hacia atrás y al saltar tiralos con fuerza hacia arriba.\n3. Caé en el mismo lugar con las piernas estiradas al tocar el piso.\n4. 3 intentos con 1 minuto de pausa.\n\nCargá los 3 intentos en centímetros o en milisegundos de vuelo.",
+    },
+    sj: {
+      n: "Squat jump", largo: "SJ · squat jump", grupo: "Evaluaciones físicas", modo: "salto",
+      desc: "Salto desde sentadilla sostenida, sin contramovimiento: fuerza explosiva \"pura\". Comparado con el CMJ da el índice de elasticidad.",
+      instr: "1. Entrá en calor 5 a 10 minutos.\n2. Manos en la cintura. Bajá a sentadilla con las rodillas a 90° y QUEDATE QUIETO 2 o 3 segundos.\n3. Saltá desde ahí lo más alto que puedas SIN volver a bajar antes (si hacés un rebote, ese intento no vale).\n4. Caé con las piernas estiradas al tocar el piso.\n5. 3 intentos con 1 minuto de pausa.\n\nCargá los 3 intentos en centímetros o en milisegundos de vuelo.",
+    },
+    vbt: {
+      n: "VBT", largo: "VBT · perfil carga-velocidad", grupo: "Evaluaciones físicas", modo: "vbt", ej: true,
+      desc: "Velocidad media de la barra con cargas crecientes. Con la recta carga-velocidad se estima el 1RM sin llegar al fallo y se definen zonas de entrenamiento.",
+      instr: "1. Entrá en calor bien con el ejercicio.\n2. Arrancá con una carga liviana y hacé 2 o 3 repeticiones empujando LO MÁS RÁPIDO POSIBLE en la subida (la bajada controlada).\n3. Subí la carga y repetí. Entre 4 y 6 cargas, hasta que la barra vaya lenta.\n4. Para cada carga anotá la velocidad media de la MEJOR repetición (m/s) que te marca el encoder o la app.\n5. Pausa de 2 a 3 minutos entre cargas.",
+    },
+  };
+  const TIPOS_ORDEN = ["ohs", "unipodal", "rm", "cmj", "abalakov", "sj", "vbt"];
+  const nombreTest = (t) => (TESTS[t] ? (TESTS[t].largo || TESTS[t].n) : t);
+
+  // Checklists de compensaciones (los marca el profe mirando el video)
+  const CHK_OHS = [
+    ["Vista de frente", [["pies_afuera", "Los pies giran hacia afuera"], ["pies_aplanan", "Los pies se aplanan (cae el arco)"], ["rodillas_adentro", "Las rodillas se van hacia adentro"], ["rodillas_afuera", "Las rodillas se van hacia afuera"], ["desplaza", "Corre el peso hacia un costado"]]],
+    ["Vista de costado", [["tronco", "El tronco se va muy adelante"], ["arco", "Arquea de más la zona lumbar"], ["redondea", "Se redondea la espalda abajo"], ["brazos", "Los brazos caen hacia adelante"], ["talones", "Se levantan los talones"]]],
+  ];
+  const CHK_UNI = [["valgo", "La rodilla se va hacia adentro"], ["pelvis", "Cae la cadera del lado libre"], ["tronco", "Rota o inclina el tronco"], ["equilibrio", "Pierde el equilibrio / apoya el otro pie"], ["profundidad", "Poca profundidad"]];
+  const PUNTAJE_TXT = "3 = limpio · 2 = con compensaciones · 1 = no logra el movimiento · 0 = dolor";
+
+  // ---- Cálculos ----
+  const r1 = (n) => Math.round(n * 10) / 10;
+  const r05 = (n) => Math.round(n * 2) / 2;
+  const fmtN = (n, d) => (n == null || isNaN(n) ? "—" : String(d === 0 ? Math.round(n) : (d === 2 ? Math.round(n * 100) / 100 : r1(n))).replace(".", ","));
+  function rmEstimado(peso, reps) {
+    peso = parsePeso(peso); reps = parsePeso(reps);
+    if (!(peso > 0) || !(reps >= 1)) return null;
+    if (reps === 1) return peso;
+    return r05(reps <= 10 ? peso * 36 / (37 - reps) : peso * (1 + reps / 30));   // Brzycki / Epley
+  }
+  // Altura (cm) desde el tiempo de vuelo (ms): h = g·t²/8
+  const alturaDesdeVuelo = (ms) => { const t = ms / 1000; return 981 * t * t / 8; };
+  function alturasSalto(res) {
+    const ints = (res && res.intentos) || [];
+    return ints.map((v) => parsePeso(v)).map((v) => (v == null || v <= 0 ? null : (res.modo === "ms" ? alturaDesdeVuelo(v) : v)));
+  }
+  // Potencia pico estimada (W), fórmula de Sayers: 60,7·h(cm) + 45,3·masa(kg) − 2055
+  const potenciaSayers = (hcm, kg) => (hcm > 0 && kg > 0 ? 60.7 * hcm + 45.3 * kg - 2055 : null);
+  // Velocidad mínima (m/s) al 1RM según el ejercicio: valores de referencia, el profe la puede cambiar.
+  function mvtSugerida(nombre) {
+    const n = normaliza(nombre);
+    if (/banca|bench|pecho/.test(n)) return 0.17;
+    if (/muerto|deadlift|rumano/.test(n)) return 0.15;
+    if (/militar|hombro/.test(n)) return 0.19;
+    return 0.3;
+  }
+  // Recta carga-velocidad por mínimos cuadrados: v = a + b·kg
+  function perfilVBT(res) {
+    const pts = ((res && res.puntos) || []).map((p) => ({ kg: parsePeso(p.kg), v: parsePeso(p.v) })).filter((p) => p.kg > 0 && p.v > 0);
+    if (pts.length < 2) return { pts, ok: false };
+    const n = pts.length;
+    const mx = pts.reduce((s, p) => s + p.kg, 0) / n, my = pts.reduce((s, p) => s + p.v, 0) / n;
+    const sxx = pts.reduce((s, p) => s + (p.kg - mx) ** 2, 0), sxy = pts.reduce((s, p) => s + (p.kg - mx) * (p.v - my), 0);
+    if (!sxx) return { pts, ok: false };
+    const b = sxy / sxx, a = my - b * mx;
+    const syy = pts.reduce((s, p) => s + (p.v - my) ** 2, 0);
+    const r2 = syy ? (sxy * sxy) / (sxx * syy) : 1;
+    const mvt = parsePeso(res.mvt) || 0.3;
+    const rm1 = b < 0 ? (mvt - a) / b : null;
+    return { pts, ok: b < 0 && rm1 > 0, a, b, r2, mvt, rm1: rm1 > 0 ? r05(rm1) : null };
+  }
+  // Gráfico SVG del perfil carga-velocidad (puntos + recta hasta el 1RM estimado)
+  function chartVBT(p) {
+    if (!p || p.pts.length < 2) return "";
+    const W = 320, H = 170, L = 38, R = 12, T = 12, B = 28;
+    const maxKg = Math.max(...p.pts.map((x) => x.kg), p.rm1 || 0) * 1.08;
+    const maxV = Math.max(...p.pts.map((x) => x.v), p.ok ? p.a : 0) * 1.1;
+    const X = (kg) => L + (kg / maxKg) * (W - L - R), Y = (v) => T + (1 - v / maxV) * (H - T - B);
+    let g = `<line x1="${L}" y1="${H - B}" x2="${W - R}" y2="${H - B}" stroke="var(--border)"/><line x1="${L}" y1="${T}" x2="${L}" y2="${H - B}" stroke="var(--border)"/>`;
+    for (let i = 0; i <= 4; i++) { const v = maxV * i / 4; g += `<text x="${L - 5}" y="${Y(v) + 3}" fill="var(--muted)" font-size="9" text-anchor="end">${fmtN(v, 2)}</text>`; }
+    for (let i = 0; i <= 4; i++) { const kg = maxKg * i / 4; g += `<text x="${X(kg)}" y="${H - B + 13}" fill="var(--muted)" font-size="9" text-anchor="middle">${Math.round(kg)}</text>`; }
+    g += `<text x="${W - R}" y="${H - 3}" fill="var(--muted)" font-size="9" text-anchor="end">kg</text><text x="${L + 6}" y="${T + 9}" fill="var(--muted)" font-size="9">m/s</text>`;
+    if (p.ok) {
+      g += `<line x1="${X(0)}" y1="${Y(p.a)}" x2="${X(p.rm1)}" y2="${Y(p.mvt)}" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+      g += `<circle cx="${X(p.rm1)}" cy="${Y(p.mvt)}" r="5" fill="none" stroke="var(--danger)" stroke-width="2"/>`;
+    }
+    p.pts.forEach((x) => { g += `<circle cx="${X(x.kg)}" cy="${Y(x.v)}" r="4.5" fill="var(--accent)"/>`; });
+    return `<svg class="ev-chart" viewBox="0 0 ${W} ${H}">${g}</svg>`;
+  }
+
+  // Métrica principal de una evaluación, para listas e historial.
+  //   { txt: "38,4 cm", num: 38.4 } — num se usa para la evolución.
+  function metricaEval(ev) {
+    const res = ev.resultado || {};
+    const t = TESTS[ev.tipo] || {};
+    if (t.modo === "rm") { const v = res.rm1 != null ? res.rm1 : rmEstimado(res.peso, res.reps); return v ? { txt: fmtN(v) + " kg", num: v, sub: "1RM est." } : null; }
+    if (t.modo === "salto") { const h = alturasSalto(res).filter((x) => x != null); return h.length ? { txt: fmtN(Math.max(...h)) + " cm", num: r1(Math.max(...h)) } : null; }
+    if (t.modo === "vbt") { const p = perfilVBT(res); return p.ok ? { txt: fmtN(p.rm1) + " kg", num: p.rm1, sub: "1RM est." } : null; }
+    if (t.modo === "video") return res.puntaje != null ? { txt: res.puntaje + "/3", num: Number(res.puntaje) } : null;
+    if (t.modo === "unipodal") {
+      const p = res.puntaje || {};
+      if (p.izq != null || p.der != null) return { txt: `I ${p.izq != null ? p.izq : "—"} · D ${p.der != null ? p.der : "—"}`, num: Math.min(p.izq != null ? Number(p.izq) : 3, p.der != null ? Number(p.der) : 3) };
+      const r = res.reps || {};
+      if (r.izq != null || r.der != null) return { txt: `I ${r.izq != null ? r.izq : "—"} · D ${r.der != null ? r.der : "—"} reps`, num: null };
+    }
+    return null;
+  }
+  const evVencida = (ev) => ev.estado === "pendiente" && ev.fecha_limite && ev.fecha_limite < hoyISO();
+  function pillEstado(ev, rolAlumno) {
+    if (!ev.id) return `<span class="est">Nueva</span>`;
+    if (evVencida(ev)) return `<span class="est vencida">Vencida</span>`;
+    const txt = { pendiente: "Pendiente", realizada: rolAlumno ? "Enviada" : "Para revisar", revisada: "Revisada" }[ev.estado] || ev.estado;
+    return `<span class="est ${ev.estado}">${txt}</span>`;
+  }
+  function fechaCortaISO(iso) { return iso ? new Date(iso + "T00:00:00").toLocaleDateString("es-AR", { day: "numeric", month: "short" }).replace(".", "") : ""; }
+  function evCardHTML(ev, conAlumno, rolAlumno) {
+    const m = metricaEval(ev);
+    const titulo = conAlumno ? `${esc(ev.alumno_nombre || "")} <span style="color:var(--muted);font-weight:500">· ${esc(TESTS[ev.tipo] ? TESTS[ev.tipo].n : ev.tipo)}</span>` : esc(nombreTest(ev.tipo));
+    let sub;
+    if (ev.estado === "pendiente") sub = (rolAlumno ? "Te lo pidió tu profe" : "Esperando al alumno") + (ev.fecha_limite ? ` · hasta el ${fechaCortaISO(ev.fecha_limite)}` : "");
+    else sub = (ev.fecha_realizada ? "Hecha el " + fechaCortaISO(ev.fecha_realizada) : "");
+    if (ev.ejercicio) sub += (sub ? " · " : "") + esc(ev.ejercicio);
+    if (ev.estado === "revisada" && ev.devolucion && rolAlumno) sub += " · tiene devolución";
+    const pend = rolAlumno ? ev.estado === "pendiente" : ev.estado === "realizada";
+    return `<div class="ev-card${pend ? " pend" : ""}" data-ev="${ev.id}">
+      <div class="ev-top"><div class="ev-n">${titulo}</div>${pillEstado(ev, rolAlumno)}</div>
+      <div class="ev-s">${sub}</div>
+      ${m ? `<div class="ev-v">${esc(m.txt)}${m.sub ? ` <span style="font-family:Inter;font-size:11px;color:var(--muted)">${m.sub}</span>` : ""}</div>` : ""}
+    </div>`;
+  }
+  // Historial por test: último valor, variación contra el anterior y mini-gráfico.
+  function historialEvalsHTML(evs) {
+    const hechas = evs.filter((e) => e.estado !== "pendiente").map((e) => ({ e, m: metricaEval(e) })).filter((x) => x.m && x.m.num != null);
+    if (!hechas.length) return "";
+    const grupos = {};
+    hechas.forEach((x) => { const k = x.e.tipo + (x.e.catalogo_id ? "|" + x.e.catalogo_id : ""); (grupos[k] = grupos[k] || []).push(x); });
+    const filas = Object.values(grupos).map((g) => {
+      g.sort((a, b) => String(a.e.fecha_realizada || a.e.creado).localeCompare(String(b.e.fecha_realizada || b.e.creado)));
+      const ult = g[g.length - 1], prev = g.length > 1 ? g[g.length - 2] : null;
+      let delta = "";
+      if (prev) {
+        const d = r1(ult.m.num - prev.m.num);
+        delta = d > 0 ? `<span class="tr up">▲ ${fmtN(d)}</span>` : d < 0 ? `<span class="tr down">▼ ${fmtN(Math.abs(d))}</span>` : `<span class="tr eq">= igual</span>`;
+      }
+      const nombre = TESTS[ult.e.tipo] ? TESTS[ult.e.tipo].n : ult.e.tipo;
+      return { fecha: ult.e.fecha_realizada || "", html: `<div class="ev-hist"><div class="h-main"><div class="h-n">${esc(nombre)}${ult.e.ejercicio ? ` <span style="color:var(--muted);font-weight:500">· ${esc(ult.e.ejercicio)}</span>` : ""}</div><div class="h-s">${g.length} medici${g.length === 1 ? "ón" : "ones"} · última ${fechaCortaISO(ult.e.fecha_realizada)} ${delta}</div></div><div>${sparkline(g.map((x) => x.m.num))}<div class="h-v">${esc(ult.m.txt)}</div></div></div>` };
+    }).sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
+    return `<div class="ev-grupo">Evolución</div>` + filas.map((f) => f.html).join("");
+  }
+  // Último CMJ del alumno ANTES de una evaluación (para comparar Abalakov y SJ).
+  function cmjDeReferencia(evs, ev) {
+    const ref = (evs || []).filter((x) => x.tipo === "cmj" && x.estado !== "pendiente" && x.id !== ev.id)
+      .sort((a, b) => String(b.fecha_realizada || "").localeCompare(String(a.fecha_realizada || "")));
+    for (const x of ref) { const m = metricaEval(x); if (m && m.num) return m.num; }
+    return null;
+  }
+
+  // ---------- Formulario de resultados (lo comparten alumno y profe) ----------
+  //  EVF guarda el estado del formulario mientras se edita.
+  let EVF = null;
+  function nuevoEVF(ev, rol, listaContexto) {
+    const res = JSON.parse(JSON.stringify(ev.resultado || {}));
+    const t = TESTS[ev.tipo];
+    if (t.modo === "salto") { res.modo = res.modo || "cm"; res.intentos = (res.intentos || ["", "", ""]).slice(0, 6); while (res.intentos.length < 3) res.intentos.push(""); }
+    if (t.modo === "vbt") { res.puntos = res.puntos && res.puntos.length ? res.puntos : [{ kg: "", v: "" }, { kg: "", v: "" }, { kg: "", v: "" }, { kg: "", v: "" }]; if (res.mvt == null) res.mvt = mvtSugerida(ev.ejercicio || ""); }
+    if (t.modo === "video") { res.checks = res.checks || {}; }
+    if (t.modo === "unipodal") { res.checks = res.checks || { izq: {}, der: {} }; res.checks.izq = res.checks.izq || {}; res.checks.der = res.checks.der || {}; res.reps = res.reps || {}; res.puntaje = res.puntaje || {}; }
+    return {
+      ev, rol, tipo: ev.tipo, res, lista: listaContexto || [],
+      peso_corporal: ev.peso_corporal != null ? String(ev.peso_corporal).replace(".", ",") : "",
+      video: ev.video_alumno || "", comentario: ev.comentario || "",
+      soloLectura: rol === "alumno" && ev.estado === "revisada",
+      // Puntaje elegido a mano (por pierna en el unipodal): mientras no lo toque, se sugiere solo según el checklist.
+      manual: (() => {
+        const p = (ev.resultado || {}).puntaje;
+        if (t.modo === "unipodal") return { izq: !!(p && p.izq != null), der: !!(p && p.der != null) };
+        return { gral: typeof p === "number" };
+      })(),
+    };
+  }
+  const inp = (attrs) => `<input type="text" ${attrs} />`;
+  function evFormHTML() {
+    const f = EVF, t = TESTS[f.tipo], ro = f.soloLectura ? "disabled" : "";
+    let h = "";
+    const pesoCorp = `<div class="field"><label>Tu peso corporal hoy <small style="color:var(--muted)">(kg, opcional)</small></label>${inp(`id="evf-pc" inputmode="decimal" placeholder="75" value="${esc(f.peso_corporal)}" ${ro}`)}</div>`;
+    const videoAlumno = f.rol === "alumno"
+      ? `<div class="field"><label>Link de tu video</label>${inp(`id="evf-video" inputmode="url" placeholder="https://youtu.be/... o link de Drive" value="${esc(f.video)}" ${ro}`)}<div class="hint" style="margin-top:6px">Subilo a YouTube (como "oculto") o a Google Drive con acceso por link, y pegá el link acá.</div></div>`
+      : (f.video ? `<a class="ev-link" href="${esc(f.video)}" target="_blank" rel="noopener">▶ Ver el video del alumno</a>` : `<div class="hint">El alumno todavía no cargó video.</div>`);
+    const comentario = f.rol === "alumno"
+      ? `<div class="field"><label>Comentario para tu profe <small style="color:var(--muted)">(opcional)</small></label><textarea id="evf-com" placeholder="¿Sentiste dolor o alguna molestia? ¿Algo que te costó?" style="min-height:70px" ${ro}>${esc(f.comentario)}</textarea></div>`
+      : (f.comentario ? `<div class="ev-lbl">Comentario del alumno</div><div class="ev-box">${esc(f.comentario)}</div>` : "");
+
+    if (t.modo === "video" || t.modo === "unipodal") {
+      h += videoAlumno;
+      if (t.modo === "unipodal") {
+        const r = f.res.reps || {};
+        h += `<div class="ev-lbl">Repeticiones bien hechas (de 5)</div><div class="row2" style="margin-bottom:14px">
+          <div class="field" style="margin:0"><label>Pierna izquierda</label>${inp(`id="evf-ri" inputmode="numeric" placeholder="5" value="${esc(r.izq != null ? r.izq : "")}" ${ro}`)}</div>
+          <div class="field" style="margin:0"><label>Pierna derecha</label>${inp(`id="evf-rd" inputmode="numeric" placeholder="5" value="${esc(r.der != null ? r.der : "")}" ${ro}`)}</div></div>`;
+      }
+      h += comentario;
+      // El checklist y el puntaje los completa el profe mirando el video. El alumno ve el puntaje una vez revisada.
+      if (f.rol === "profe") {
+        if (t.modo === "video") {
+          h += `<div class="ev-lbl">Lo que ves en el video</div><div class="ev-chk">` + CHK_OHS.map(([sub, items]) =>
+            `<div class="sub">${sub}</div>` + items.map(([k, txt]) => `<label><input type="checkbox" data-chk="${k}" ${f.res.checks[k] ? "checked" : ""}/> ${txt}</label>`).join("")).join("") + `</div>`;
+          h += `<div class="ev-lbl">Puntaje</div><div class="ev-score" id="evf-score">${[3, 2, 1, 0].map((n) => `<button type="button" data-sc="${n}" class="${Number(f.res.puntaje) === n && f.res.puntaje != null ? "on" : ""}">${n}</button>`).join("")}</div><div class="ev-score-h">${PUNTAJE_TXT}</div>`;
+        } else {
+          ["izq", "der"].forEach((lado) => {
+            const nom = lado === "izq" ? "Pierna izquierda" : "Pierna derecha";
+            h += `<div class="ev-lbl">${nom}</div><div class="ev-chk">` + CHK_UNI.map(([k, txt]) => `<label><input type="checkbox" data-chk="${lado}.${k}" ${f.res.checks[lado][k] ? "checked" : ""}/> ${txt}</label>`).join("") + `</div>`;
+            h += `<div class="ev-score" id="evf-score-${lado}">${[3, 2, 1, 0].map((n) => `<button type="button" data-sc="${n}" data-lado="${lado}" class="${f.res.puntaje[lado] != null && Number(f.res.puntaje[lado]) === n ? "on" : ""}">${n}</button>`).join("")}</div>`;
+          });
+          h += `<div class="ev-score-h">${PUNTAJE_TXT}</div>`;
+        }
+      } else if (f.ev.estado === "revisada") {
+        const m = metricaEval(f.ev);
+        if (m) h += `<div class="ev-calc"><div class="full"><small>Puntaje de tu profe</small><b>${esc(m.txt)}</b></div></div>`;
+      }
+    }
+
+    if (t.modo === "rm") {
+      h += `${f.ev.ejercicio ? `<div class="ev-lbl">${esc(f.ev.ejercicio)}</div>` : ""}<div class="row2">
+        <div class="field"><label>Peso (kg)</label>${inp(`id="evf-peso" inputmode="decimal" placeholder="80" value="${esc(f.res.peso != null ? String(f.res.peso).replace(".", ",") : "")}" ${ro}`)}</div>
+        <div class="field"><label>Repeticiones</label>${inp(`id="evf-reps" inputmode="numeric" placeholder="5" value="${esc(f.res.reps != null ? f.res.reps : "")}" ${ro}`)}</div></div>` + pesoCorp + `<div id="evf-calc"></div>` + comentario;
+    }
+
+    if (t.modo === "salto") {
+      h += `<div class="ev-lbl">¿Cómo lo mediste?</div><div class="seg2"><button type="button" data-modo="cm" class="${f.res.modo === "cm" ? "on" : ""}" ${ro}>Altura (cm)</button><button type="button" data-modo="ms" class="${f.res.modo === "ms" ? "on" : ""}" ${ro}>Tiempo de vuelo (ms)</button></div>`;
+      h += `<div class="ev-rowh r2"><span>#</span><span>${f.res.modo === "ms" ? "Vuelo (ms)" : "Altura (cm)"}</span><span>${f.res.modo === "ms" ? "= altura" : ""}</span></div><div class="ev-rows">` +
+        f.res.intentos.map((v, i) => `<div class="ev-row r2"><span class="n">${i + 1}</span>${inp(`data-int="${i}" inputmode="decimal" placeholder="${f.res.modo === "ms" ? "560" : "38,5"}" value="${esc(String(v).replace(".", ","))}" ${ro}`)}<span class="hint" style="margin:0;text-align:center" data-alt="${i}"></span></div>`).join("") + `</div>`;
+      h += pesoCorp + `<div id="evf-calc"></div>` + comentario;
+    }
+
+    if (t.modo === "vbt") {
+      h += `${f.ev.ejercicio ? `<div class="ev-lbl">${esc(f.ev.ejercicio)}</div>` : ""}<div class="ev-rowh"><span>#</span><span>Carga (kg)</span><span>Vel. media (m/s)</span><span></span></div><div class="ev-rows">` +
+        f.res.puntos.map((p, i) => `<div class="ev-row"><span class="n">${i + 1}</span>${inp(`data-kg="${i}" inputmode="decimal" placeholder="60" value="${esc(String(p.kg).replace(".", ","))}" ${ro}`)}${inp(`data-v="${i}" inputmode="decimal" placeholder="0,85" value="${esc(String(p.v).replace(".", ","))}" ${ro}`)}${f.soloLectura ? "<span></span>" : `<button type="button" class="x" data-quitar="${i}" title="Quitar">×</button>`}</div>`).join("") + `</div>`;
+      if (!f.soloLectura) h += `<button type="button" class="am-add" id="evf-addpt" style="margin-bottom:14px">+ Agregar otra carga</button>`;
+      h += `<div class="field"><label>Velocidad al 1RM (m/s) <small style="color:var(--muted)">(referencia del ejercicio${f.rol === "profe" ? ", la podés ajustar" : ""})</small></label>${inp(`id="evf-mvt" inputmode="decimal" value="${esc(String(f.res.mvt).replace(".", ","))}" ${f.rol === "profe" ? "" : "disabled"}`)}</div>`;
+      h += `<div id="evf-calc"></div>` + comentario;
+    }
+    return h;
+  }
+  // Recalcula y repinta SOLO el recuadro de resultados (sin perder el foco de los inputs).
+  function evRecalc() {
+    const f = EVF, t = TESTS[f.tipo], box = $("evf-calc");
+    if (t.modo === "rm" && box) {
+      const rm = rmEstimado(f.res.peso, f.res.reps);
+      f.res.rm1 = rm;
+      const pc = parsePeso(f.peso_corporal);
+      box.innerHTML = rm ? `<div class="ev-calc"><div><small>1RM estimado</small><b>${fmtN(rm)} kg</b></div><div><small>Fuerza relativa</small><b>${pc > 0 ? fmtN(rm / pc, 2) + " × PC" : "—"}</b></div></div>` : "";
+    }
+    if (t.modo === "salto") {
+      const alts = alturasSalto(f.res);
+      document.querySelectorAll("[data-alt]").forEach((el) => { const a = alts[Number(el.dataset.alt)]; el.textContent = f.res.modo === "ms" && a != null ? fmtN(a) + " cm" : ""; });
+      const vals = alts.filter((x) => x != null);
+      f.res.mejor = vals.length ? r1(Math.max(...vals)) : null;
+      f.res.promedio = vals.length ? r1(vals.reduce((s, x) => s + x, 0) / vals.length) : null;
+      const pc = parsePeso(f.peso_corporal);
+      const pot = f.res.mejor && pc > 0 ? potenciaSayers(f.res.mejor, pc) : null;
+      f.res.potencia = pot ? Math.round(pot) : null;
+      let extra = "";
+      if (f.tipo !== "cmj" && f.res.mejor) {
+        const cmj = cmjDeReferencia(f.lista, f.ev);
+        if (cmj) {
+          if (f.tipo === "abalakov") extra = `<div class="full"><small>Aporte de los brazos vs. tu último CMJ (${fmtN(cmj)} cm)</small><b>${fmtN((f.res.mejor - cmj) / cmj * 100)} %</b></div>`;
+          if (f.tipo === "sj") extra = `<div class="full"><small>Índice de elasticidad (CMJ ${fmtN(cmj)} cm vs. SJ)</small><b>${fmtN((cmj - f.res.mejor) / f.res.mejor * 100)} %</b></div>`;
+        }
+      }
+      if (box) box.innerHTML = vals.length ? `<div class="ev-calc"><div><small>Mejor salto</small><b>${fmtN(f.res.mejor)} cm</b></div><div><small>Promedio</small><b>${fmtN(f.res.promedio)} cm</b></div>${pot ? `<div class="full"><small>Potencia pico estimada (Sayers)</small><b>${Math.round(pot)} W · ${fmtN(pot / pc, 1)} W/kg</b></div>` : ""}${extra}</div>` : "";
+    }
+    if (t.modo === "vbt" && box) {
+      const p = perfilVBT(f.res);
+      f.res.rm1 = p.ok ? p.rm1 : null;
+      f.res.r2 = p.ok ? Math.round(p.r2 * 1000) / 1000 : null;
+      if (p.pts.length < 2) { box.innerHTML = `<div class="hint">Cargá al menos 2 cargas con su velocidad para armar el perfil.</div>`; return; }
+      if (!p.ok) { box.innerHTML = chartVBT(p) + `<div class="hint" style="color:var(--danger)">La velocidad tiene que bajar a medida que sube la carga. Revisá los datos.</div>`; return; }
+      const zona = (pct) => fmtN(p.a + p.b * (p.rm1 * pct), 2);
+      box.innerHTML = chartVBT(p) + `<div class="ev-calc"><div><small>1RM estimado</small><b>${fmtN(p.rm1)} kg</b></div><div><small>Ajuste (R²)</small><b>${String(Math.round(p.r2 * 1000) / 1000).replace(".", ",")}</b></div>
+        <div class="full"><small>Velocidad esperada por % del 1RM</small><b style="font-size:14px;font-family:Inter;font-weight:600;color:var(--text);line-height:1.6">60% del 1RM → ${zona(0.6)} m/s<br>75% del 1RM → ${zona(0.75)} m/s<br>85% del 1RM → ${zona(0.85)} m/s</b></div></div>` +
+        (p.r2 < 0.9 ? `<div class="hint" style="margin-top:-6px">R² bajo: los puntos están dispersos, conviene repetir el test.</div>` : "");
+    }
+  }
+  function evFormBind() {
+    const f = EVF, cuerpo = $("ev-cuerpo");
+    const onIn = (el, fn) => { if (el) el.oninput = () => { fn(el.value); evRecalc(); }; };
+    onIn($("evf-pc"), (v) => { f.peso_corporal = v; });
+    onIn($("evf-video"), (v) => { f.video = v.trim(); });
+    onIn($("evf-com"), (v) => { f.comentario = v; });
+    onIn($("evf-peso"), (v) => { f.res.peso = parsePeso(v); });
+    onIn($("evf-reps"), (v) => { f.res.reps = parsePeso(v); });
+    onIn($("evf-ri"), (v) => { f.res.reps.izq = parsePeso(v); });
+    onIn($("evf-rd"), (v) => { f.res.reps.der = parsePeso(v); });
+    onIn($("evf-mvt"), (v) => { f.res.mvt = parsePeso(v); });
+    cuerpo.querySelectorAll("[data-int]").forEach((el) => onIn(el, (v) => { f.res.intentos[Number(el.dataset.int)] = v.replace(",", "."); }));
+    cuerpo.querySelectorAll("[data-kg]").forEach((el) => onIn(el, (v) => { f.res.puntos[Number(el.dataset.kg)].kg = v.replace(",", "."); }));
+    cuerpo.querySelectorAll("[data-v]").forEach((el) => onIn(el, (v) => { f.res.puntos[Number(el.dataset.v)].v = v.replace(",", "."); }));
+    cuerpo.querySelectorAll("[data-modo]").forEach((b) => (b.onclick = () => { if (f.soloLectura) return; f.res.modo = b.dataset.modo; f.res.intentos = f.res.intentos.map(() => ""); pintarEvForm(); }));
+    cuerpo.querySelectorAll("[data-quitar]").forEach((b) => (b.onclick = () => { f.res.puntos.splice(Number(b.dataset.quitar), 1); if (!f.res.puntos.length) f.res.puntos.push({ kg: "", v: "" }); pintarEvForm(); }));
+    const add = $("evf-addpt"); if (add) add.onclick = () => { f.res.puntos.push({ kg: "", v: "" }); pintarEvForm(); };
+    // Checklist: si el profe no eligió el puntaje a mano, se sugiere solo (3 limpio / 2 con compensaciones).
+    cuerpo.querySelectorAll("[data-chk]").forEach((el) => (el.onchange = () => {
+      const k = el.dataset.chk;
+      if (k.includes(".")) { const [lado, c] = k.split("."); f.res.checks[lado][c] = el.checked; if (!f.manual[lado]) { const n = Object.values(f.res.checks[lado]).some(Boolean); f.res.puntaje[lado] = n ? 2 : 3; marcarScore("evf-score-" + lado, f.res.puntaje[lado]); } }
+      else { f.res.checks[k] = el.checked; if (!f.manual.gral) { f.res.puntaje = Object.values(f.res.checks).some(Boolean) ? 2 : 3; marcarScore("evf-score", f.res.puntaje); } }
+    }));
+    cuerpo.querySelectorAll("[data-sc]").forEach((b) => (b.onclick = () => {
+      const n = Number(b.dataset.sc);
+      f.manual[b.dataset.lado || "gral"] = true;
+      if (b.dataset.lado) { f.res.puntaje[b.dataset.lado] = n; marcarScore("evf-score-" + b.dataset.lado, n); }
+      else { f.res.puntaje = n; marcarScore("evf-score", n); }
+    }));
+  }
+  function marcarScore(id, n) { const c = $(id); if (c) c.querySelectorAll("[data-sc]").forEach((x) => x.classList.toggle("on", Number(x.dataset.sc) === n)); }
+  function pintarEvForm() { $("evf-wrap").innerHTML = evFormHTML(); evFormBind(); evRecalc(); }
+  // ¿Hay algún dato cargado en el resultado? (para decidir si el profe "revisa" o solo edita el pedido)
+  function evTieneDatos(f) {
+    const r = f.res, t = TESTS[f.tipo];
+    if (f.video || (f.comentario || "").trim()) return true;
+    if (t.modo === "rm") return r.peso > 0 && r.reps > 0;
+    if (t.modo === "salto") return r.intentos.some((v) => parsePeso(v) > 0);
+    if (t.modo === "vbt") return perfilVBT(r).pts.length > 0;
+    if (t.modo === "video") return r.puntaje != null || Object.values(r.checks).some(Boolean);
+    if (t.modo === "unipodal") return r.reps.izq != null || r.reps.der != null || r.puntaje.izq != null || r.puntaje.der != null;
+    return false;
+  }
+  function resultadoParaGuardar(f) {
+    const r = JSON.parse(JSON.stringify(f.res));
+    const t = TESTS[f.tipo];
+    if (t.modo === "salto") r.intentos = r.intentos.map((v) => parsePeso(v)).filter((v) => v != null);
+    if (t.modo === "vbt") r.puntos = r.puntos.map((p) => ({ kg: parsePeso(p.kg), v: parsePeso(p.v) })).filter((p) => p.kg > 0 && p.v > 0);
+    return r;
+  }
+
+  // ---------- Modal de una evaluación ----------
+  let EV_ROL = null, EV_ON_SAVE = null;
+  function abrirEval(ev, rol, listaContexto, onSave) {
+    EV_ROL = rol; EV_ON_SAVE = onSave || null;
+    EVF = nuevoEVF(ev, rol, listaContexto);
+    const t = TESTS[ev.tipo];
+    $("ev-h3").textContent = nombreTest(ev.tipo);
+    $("ev-sub").innerHTML = (rol === "profe" ? esc(ev.alumno_nombre || "") + " · " : "") + pillEstado(ev, rol === "alumno");
+    msg($("ev-msg"), "", "");
+    let h = "";
+    if (ev.estado === "revisada" && ev.devolucion && rol === "alumno") h += `<div class="ev-lbl">Devolución de tu profe</div><div class="ev-box acento">${esc(ev.devolucion)}</div>`;
+    if (rol === "alumno") {
+      if (ev.video_id) h += `<div class="video-embed" style="border-radius:12px;overflow:hidden;margin-bottom:14px"><iframe src="${embedURL(ev.video_id)}" title="Explicación" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe></div>`;
+      if (ev.fecha_limite && ev.estado === "pendiente") h += `<div class="hint" style="color:${evVencida(ev) ? "var(--danger)" : "var(--accent)"}">Hacelo antes del ${esc(fmtFechaLarga(ev.fecha_limite))}</div>`;
+      if (ev.instrucciones) h += `<div class="ev-lbl">Cómo hacerlo</div><div class="ev-box">${esc(ev.instrucciones)}</div>`;
+      h += `<div class="ev-lbl" style="margin-top:6px">${ev.estado === "revisada" ? "Lo que cargaste" : "Tus resultados"}</div>`;
+    } else {
+      h += `<details style="margin-bottom:14px"${ev.estado === "pendiente" ? " open" : ""}><summary style="cursor:pointer;color:var(--muted);font-size:13px;margin-bottom:10px">Lo que le pediste${ev.ejercicio ? " · " + esc(ev.ejercicio) : ""}</summary>
+        <div class="field"><label>Instrucciones</label><textarea id="evr-instr" style="min-height:100px">${esc(ev.instrucciones || "")}</textarea></div>
+        <div class="row2"><div class="field"><label>Video (YouTube)</label><input type="text" id="evr-video" value="${ev.video_id ? "https://youtu.be/" + esc(ev.video_id) : ""}" placeholder="https://youtu.be/..." /></div>
+        <div class="field"><label>Antes del</label><input type="date" id="evr-limite" value="${esc(ev.fecha_limite || "")}" /></div></div></details>`;
+      h += `<div class="ev-lbl">Resultados</div>`;
+    }
+    h += `<div id="evf-wrap"></div>`;
+    if (rol === "profe") h += `<div class="field" style="margin-top:6px"><label>Devolución para el alumno</label><textarea id="evr-dev" placeholder="Qué viste, qué vamos a trabajar..." style="min-height:90px">${esc(ev.devolucion || "")}</textarea></div>`;
+    $("ev-cuerpo").innerHTML = h;
+    pintarEvForm();
+    const g = $("ev-guardar");
+    g.style.display = EVF.soloLectura ? "none" : "";
+    g.textContent = rol === "alumno" ? (ev.estado === "realizada" ? "Actualizar resultado" : "Enviar a mi profe") : "Guardar";
+    $("ev-borrar").style.display = rol === "profe" && ev.id ? "" : "none";
+    $("ev-overlay").classList.add("on");
+  }
+  $("ev-cerrar").onclick = () => { $("ev-overlay").classList.remove("on"); $("ev-cuerpo").innerHTML = ""; };
+  $("ev-guardar").onclick = async () => {
+    const f = EVF; if (!f) return;
+    const btn = $("ev-guardar"); btn.disabled = true;
+    try {
+      const resultado = resultadoParaGuardar(f);
+      let actualizado;
+      if (EV_ROL === "alumno") {
+        if (!evTieneDatos(f)) { msg($("ev-msg"), "Cargá tu resultado (o el link del video) antes de enviar.", "error"); return; }
+        if (f.video && !/^https?:\/\/\S+$/i.test(f.video)) { msg($("ev-msg"), "El link del video tiene que empezar con http", "error"); return; }
+        actualizado = await api("/mis-evaluaciones/" + f.ev.id, "PUT", { resultado, peso_corporal: parsePeso(f.peso_corporal), video_alumno: f.video || null, comentario: f.comentario || null }, true);
+        mostrarToast("✓ Enviado a tu profe");
+      } else {
+        const devolucion = $("evr-dev").value.trim();
+        if (!f.ev.id) {
+          // "Lo tomo yo": la evaluación recién se crea acá, ya revisada y con su resultado.
+          if (!evTieneDatos(f)) { msg($("ev-msg"), "Cargá el resultado antes de guardar.", "error"); return; }
+          await api("/evaluaciones", "POST", {
+            alumno_ids: [f.ev.alumno_id], tipo: f.tipo, catalogo_id: f.ev.catalogo_id || null,
+            instrucciones: $("evr-instr").value.trim() || null, video: $("evr-video").value.trim() || null,
+            fecha_limite: $("evr-limite").value || null, estado: "revisada", resultado,
+            peso_corporal: parsePeso(f.peso_corporal), devolucion: devolucion || null,
+          }, true);
+          mostrarToast("✓ Evaluación guardada");
+          $("ev-overlay").classList.remove("on");
+          if (EV_ON_SAVE) EV_ON_SAVE(null);
+          return;
+        }
+        const body = { instrucciones: $("evr-instr").value, video: $("evr-video").value.trim() || null, fecha_limite: $("evr-limite").value || null, devolucion: devolucion || null, peso_corporal: parsePeso(f.peso_corporal) };
+        // Si hay resultados (del alumno o cargados por el profe) o una devolución, queda revisada.
+        // Si es un pedido sin nada todavía, solo se actualiza el pedido y sigue pendiente.
+        if (evTieneDatos(f) || f.ev.estado !== "pendiente" || devolucion) { body.resultado = resultado; body.estado = "revisada"; }
+        actualizado = await api("/evaluaciones/" + f.ev.id, "PUT", body, true);
+        mostrarToast(body.estado === "revisada" ? "✓ Evaluación revisada" : "✓ Pedido actualizado");
+      }
+      $("ev-overlay").classList.remove("on");
+      if (EV_ON_SAVE) EV_ON_SAVE(actualizado);
+    } catch (e) { msg($("ev-msg"), e.message, "error"); }
+    finally { btn.disabled = false; }
+  };
+  $("ev-borrar").onclick = async () => {
+    if (!EVF || !confirm("¿Borrar esta evaluación? No se puede deshacer.")) return;
+    try {
+      await api("/evaluaciones/" + EVF.ev.id, "DELETE", null, true);
+      $("ev-overlay").classList.remove("on");
+      if (EV_ON_SAVE) EV_ON_SAVE(null);
+    } catch (e) { msg($("ev-msg"), e.message, "error"); }
+  };
+
+  // ---------- PROFE: lista general, por alumno y pedido ----------
+  let EVALS_PROF = [], EVALS_ERR = null, evChip = null, evChipManual = false;
+  async function cargarEvalsProfe() {
+    try { EVALS_PROF = (await api("/evaluaciones", "GET", null, true)) || []; EVALS_ERR = null; }
+    catch (e) { EVALS_PROF = []; EVALS_ERR = e.message; }
+    pintarDotsEvalsProfe();
+    if ($("tv-evals").classList.contains("on")) renderEvalsProfe();
+    if ($("tv-alumnos").classList.contains("on") && ALUMNOS_PROF.length) renderListaAlumnos();
+    if ($("eval-al-overlay").classList.contains("on")) renderEvalAlumno();
+  }
+  const evalsParaRevisar = (alumnoId) => EVALS_PROF.filter((e) => e.alumno_id === alumnoId && e.estado === "realizada").length;
+  function pintarDotsEvalsProfe() {
+    const n = EVALS_PROF.filter((e) => e.estado === "realizada").length;
+    const tab = document.querySelector('[data-ptab="evals"]');
+    if (tab) { tab.classList.toggle("dot-aviso", n > 0); tab.title = n ? `${n} para revisar` : ""; }
+    if (alumnoActual && !enPlantilla()) $("rut-evals").classList.toggle("dot-aviso", evalsParaRevisar(alumnoActual.id) > 0);
+  }
+  function renderEvalsProfe() {
+    const cont = $("ev-lista");
+    if (EVALS_ERR) { $("ev-chips").innerHTML = ""; cont.innerHTML = `<div class="empty"><p>${esc(EVALS_ERR)}</p></div>`; return; }
+    const cnt = { realizada: 0, pendiente: 0, revisada: 0 };
+    EVALS_PROF.forEach((e) => { cnt[e.estado] = (cnt[e.estado] || 0) + 1; });
+    if (!evChipManual) evChip = cnt.realizada ? "realizada" : (cnt.pendiente ? "pendiente" : "todas");
+    const chips = [["realizada", "Para revisar"], ["pendiente", "Pendientes"], ["revisada", "Revisadas"], ["todas", "Todas"]];
+    $("ev-chips").innerHTML = chips.map(([k, t]) => `<button class="chip${evChip === k ? " on" : ""}" data-evc="${k}">${t}${k !== "todas" && cnt[k] ? `<b>${cnt[k]}</b>` : ""}</button>`).join("");
+    $("ev-chips").querySelectorAll("[data-evc]").forEach((b) => (b.onclick = () => { evChip = b.dataset.evc; evChipManual = true; renderEvalsProfe(); }));
+    if (!EVALS_PROF.length) {
+      cont.innerHTML = `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M10 2h4"/></svg><p>Todavía no pediste evaluaciones.<br>Pedí la batería inicial (overhead squat + unipodal) a tus alumnos nuevos, o un test físico cuando quieras medir.</p></div>`;
+      return;
+    }
+    const lista = EVALS_PROF.filter((e) => evChip === "todas" || e.estado === evChip);
+    cont.innerHTML = lista.length ? lista.map((e) => evCardHTML(e, true, false)).join("") : `<div class="empty"><p>No hay evaluaciones en este estado.</p></div>`;
+    cont.querySelectorAll("[data-ev]").forEach((c) => (c.onclick = () => abrirEvalProfe(Number(c.dataset.ev))));
+  }
+  function abrirEvalProfe(id) {
+    const ev = EVALS_PROF.find((e) => e.id === id); if (!ev) return;
+    abrirEval(ev, "profe", EVALS_PROF.filter((e) => e.alumno_id === ev.alumno_id), () => cargarEvalsProfe());
+  }
+  // Evaluaciones de UN alumno (botón del cronómetro dentro de su rutina)
+  function abrirEvalAlumno() {
+    if (!alumnoActual) return;
+    $("eval-al-h3").textContent = "Evaluaciones de " + alumnoActual.nombre;
+    renderEvalAlumno();
+    $("eval-al-overlay").classList.add("on");
+    cargarEvalsProfe();
+  }
+  function renderEvalAlumno() {
+    const cont = $("eval-al-lista");
+    if (EVALS_ERR) { cont.innerHTML = `<div class="empty"><p>${esc(EVALS_ERR)}</p></div>`; return; }
+    const evs = EVALS_PROF.filter((e) => e.alumno_id === alumnoActual.id);
+    if (!evs.length) { cont.innerHTML = `<div class="empty"><p>Todavía no le pediste ninguna evaluación.</p></div>`; return; }
+    const grupo = (t, arr) => (arr.length ? `<div class="ev-grupo">${t}</div>` + arr.map((e) => evCardHTML(e, false, false)).join("") : "");
+    cont.innerHTML = grupo("Para revisar", evs.filter((e) => e.estado === "realizada")) +
+      grupo("Pendientes", evs.filter((e) => e.estado === "pendiente")) +
+      historialEvalsHTML(evs) +
+      grupo("Revisadas", evs.filter((e) => e.estado === "revisada"));
+    cont.querySelectorAll("[data-ev]").forEach((c) => (c.onclick = () => abrirEvalProfe(Number(c.dataset.ev))));
+  }
+  $("rut-evals").onclick = abrirEvalAlumno;
+  $("eval-al-cerrar").onclick = () => $("eval-al-overlay").classList.remove("on");
+  $("eval-al-pedir").onclick = () => abrirPedirEval([alumnoActual.id]);
+  $("ev-pedir").onclick = () => abrirPedirEval([]);
+
+  // Pedir evaluación
+  let evpSel = new Set(), evpInstrTocado = false;
+  function abrirPedirEval(preseleccion) {
+    if (!ALUMNOS_PROF.length) { alert("Todavía no tenés alumnos."); return; }
+    evpSel = new Set(preseleccion || []);
+    $("evp-tipo").innerHTML = ["Test iniciales", "Evaluaciones físicas"].map((g) =>
+      `<optgroup label="${g}">` + TIPOS_ORDEN.filter((t) => TESTS[t].grupo === g).map((t) => `<option value="${t}">${esc(nombreTest(t))}</option>`).join("") + `</optgroup>`).join("");
+    $("evp-ej").innerHTML = `<option value="">Elegí el ejercicio</option>` + CATALOGO.slice().sort((a, b) => a.nombre.localeCompare(b.nombre)).map((c) => `<option value="${c.id}">${esc(c.nombre)}</option>`).join("");
+    $("evp-al-buscar").value = "";
+    $("evp-al-buscar").style.display = ALUMNOS_PROF.length > 6 ? "" : "none";
+    $("evp-video").value = ""; $("evp-limite").value = "";
+    $("evp-yo").classList.remove("on");
+    evpInstrTocado = false;
+    onTipoEvp();
+    renderEvpAlumnos();
+    msg($("evp-msg"), "", "");
+    $("evp-overlay").classList.add("on");
+  }
+  function onTipoEvp() {
+    const t = TESTS[$("evp-tipo").value];
+    $("evp-desc").textContent = t.desc;
+    $("evp-ej-wrap").style.display = t.ej ? "" : "none";
+    if (!evpInstrTocado) $("evp-instr").value = t.instr;
+  }
+  function renderEvpAlumnos() {
+    const q = normaliza($("evp-al-buscar").value || "");
+    const alumnos = ALUMNOS_PROF.slice().sort((a, b) => a.nombre.localeCompare(b.nombre)).filter((a) => !q || normaliza(a.nombre).includes(q) || evpSel.has(a.id));
+    $("evp-alumnos").innerHTML = alumnos.map((a) => `<label><input type="checkbox" data-al="${a.id}" ${evpSel.has(a.id) ? "checked" : ""}/> ${esc(a.nombre)}</label>`).join("") || `<div class="hint" style="padding:12px;margin:0">Ningún alumno coincide.</div>`;
+    $("evp-alumnos").querySelectorAll("[data-al]").forEach((c) => (c.onchange = () => { const id = Number(c.dataset.al); if (c.checked) evpSel.add(id); else evpSel.delete(id); actualizarEvpLabel(); }));
+    actualizarEvpLabel();
+  }
+  function actualizarEvpLabel() {
+    $("evp-al-lbl").textContent = evpSel.size ? `Alumnos (${evpSel.size})` : "Alumnos";
+    $("evp-guardar").textContent = $("evp-yo").classList.contains("on") ? "Cargar el resultado" : (evpSel.size > 1 ? `Pedírsela a ${evpSel.size} alumnos` : "Pedir evaluación");
+  }
+  $("evp-tipo").onchange = onTipoEvp;
+  $("evp-instr").oninput = () => { evpInstrTocado = true; };
+  $("evp-al-buscar").oninput = renderEvpAlumnos;
+  $("evp-yo").onclick = () => { $("evp-yo").classList.toggle("on"); actualizarEvpLabel(); };
+  $("evp-cancelar").onclick = () => $("evp-overlay").classList.remove("on");
+  $("evp-guardar").onclick = async () => {
+    const tipo = $("evp-tipo").value, t = TESTS[tipo];
+    const yo = $("evp-yo").classList.contains("on");
+    if (!evpSel.size) return msg($("evp-msg"), "Elegí al menos un alumno", "error");
+    if (yo && evpSel.size !== 1) return msg($("evp-msg"), "Para cargarla vos, elegí un solo alumno", "error");
+    const catalogo_id = t.ej ? Number($("evp-ej").value) || null : null;
+    if (t.ej && !catalogo_id) return msg($("evp-msg"), "Elegí el ejercicio a evaluar", "error");
+    const btn = $("evp-guardar"); btn.disabled = true;
+    try {
+      if (yo) {
+        // Borrador local: no se crea nada hasta que el profe guarde el resultado.
+        const alId = [...evpSel][0];
+        const al = ALUMNOS_PROF.find((a) => a.id === alId);
+        const cat = CATALOGO.find((c) => c.id === catalogo_id);
+        const vid = ($("evp-video").value.match(/(?:v=|youtu\.be\/|shorts\/|embed\/)([A-Za-z0-9_-]{11})/) || [])[1] || null;
+        const borrador = { id: null, tipo, estado: "pendiente", alumno_id: alId, alumno_nombre: al ? al.nombre : "",
+          catalogo_id, ejercicio: cat ? cat.nombre : null, instrucciones: $("evp-instr").value.trim(), video_id: vid,
+          fecha_limite: $("evp-limite").value || null, resultado: null };
+        $("evp-overlay").classList.remove("on");
+        abrirEval(borrador, "profe", EVALS_PROF.filter((e) => e.alumno_id === alId), () => cargarEvalsProfe());
+        return;
+      }
+      await api("/evaluaciones", "POST", {
+        alumno_ids: [...evpSel], tipo, catalogo_id,
+        instrucciones: $("evp-instr").value.trim() || null, video: $("evp-video").value.trim() || null,
+        fecha_limite: $("evp-limite").value || null,
+      }, true);
+      $("evp-overlay").classList.remove("on");
+      await cargarEvalsProfe();
+      mostrarToast(evpSel.size > 1 ? `✓ Pedida a ${evpSel.size} alumnos` : "✓ Evaluación pedida");
+    } catch (e) { msg($("evp-msg"), e.message, "error"); }
+    finally { btn.disabled = false; }
+  };
+
+  // ---------- ALUMNO: solapa Evaluaciones ----------
+  let MIS_EVALS = [], MIS_EVALS_ERR = null;
+  async function cargarMisEvals() {
+    try { MIS_EVALS = (await api("/mis-evaluaciones", "GET", null, true)) || []; MIS_EVALS_ERR = null; }
+    catch (e) { MIS_EVALS = []; MIS_EVALS_ERR = e.status === 503 ? null : e.message; }   // sin migración: la solapa queda vacía, sin asustar
+    // El puntito: igual que un día que todavía no hiciste, marca lo que tenés pendiente.
+    const pend = MIS_EVALS.filter((e) => e.estado === "pendiente").length;
+    const tab = document.querySelector('#app-alumno [data-view="evals"]');
+    if (tab) { tab.classList.toggle("dot-aviso", pend > 0); tab.title = pend ? `${pend} pendiente${pend !== 1 ? "s" : ""}` : ""; }
+    if ($("al-view-evals").classList.contains("on")) renderMisEvals();
+  }
+  function renderMisEvals() {
+    const cont = $("al-evals");
+    if (MIS_EVALS_ERR) { cont.innerHTML = `<div class="empty"><p>${esc(MIS_EVALS_ERR)}</p></div>`; return; }
+    if (!MIS_EVALS.length) {
+      cont.innerHTML = `<div class="empty" style="padding:50px 20px"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M10 2h4"/></svg><p>Todavía no tenés evaluaciones.<br>Cuando tu profe te pida un test, te aparece acá.</p></div>`;
+      return;
+    }
+    const pend = MIS_EVALS.filter((e) => e.estado === "pendiente");
+    const hechas = MIS_EVALS.filter((e) => e.estado !== "pendiente");
+    cont.innerHTML = (pend.length ? `<div class="ev-grupo">Para hacer (${pend.length})</div>` + pend.map((e) => evCardHTML(e, false, true)).join("") : "") +
+      historialEvalsHTML(MIS_EVALS) +
+      (hechas.length ? `<div class="ev-grupo">Historial</div>` + hechas.map((e) => evCardHTML(e, false, true)).join("") : "");
+    cont.querySelectorAll("[data-ev]").forEach((c) => (c.onclick = () => {
+      const ev = MIS_EVALS.find((e) => e.id === Number(c.dataset.ev));
+      if (ev) abrirEval(ev, "alumno", MIS_EVALS, () => cargarMisEvals());
+    }));
+  }
+
   // ---------- Tabs ----------
   function profeSwitchTab(tab) {
     document.querySelectorAll("#profe-main .navtab").forEach((t) => t.classList.toggle("active", t.dataset.ptab === tab));
     $("tv-catalogo").classList.toggle("on", tab === "catalogo");
     $("tv-alumnos").classList.toggle("on", tab === "alumnos");
+    $("tv-planif").classList.toggle("on", tab === "planif");
+    $("tv-evals").classList.toggle("on", tab === "evals");
+    if (tab === "planif") renderPlantillas();
+    if (tab === "evals") renderEvalsProfe();
   }
   document.querySelectorAll("#profe-main .navtab").forEach((t) => (t.onclick = () => profeSwitchTab(t.dataset.ptab)));
 
@@ -3541,6 +4672,7 @@
     const contId = enAlumno ? "ra-msg" : (enProfe ? "rp-msg" : "login-msg");
     const body = { credential: resp.credential };
     if (enAlumno && codigoInvitacion) body.codigo_invitacion = codigoInvitacion;
+    if (enProfe) body.modo = "registro_profe";   // solo desde "Crear cuenta" se puede dar de alta un profe
     try {
       const r = await api("/auth/google", "POST", body, false);
       guardarToken(r.token);
