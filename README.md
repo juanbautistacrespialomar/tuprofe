@@ -36,6 +36,7 @@ tuprofe/
 ├── icon-192.png / icon-512.png   # ícono de la app
 ├── schema.sql                    # esquema completo (instalación de cero)
 ├── migracion-invitaciones.sql    # migración: tabla invitaciones sin borrar datos
+├── migracion-planificaciones-evaluaciones.sql  # migración: plantillas + evaluaciones (solo crea tablas)
 ├── wrangler.toml                 # config Cloudflare + binding a D1
 └── worker/
     └── index.js                  # la API
@@ -68,7 +69,11 @@ Se sirve desde **GitHub Pages** (Settings → Pages → branch `main`, root). Se
 
 **Profe:** `GET/POST /catalogo`, `PUT/DELETE /catalogo/:id`, `GET /alumnos`, `GET /alumnos/:id`, `GET /alumnos/:id/cargas`, `POST /alumnos/:id/reset-password`, `GET/POST/DELETE /invitaciones`, `POST/PUT/DELETE` de `/dias`, `/bloques`, `/ejercicios`
 
-**Alumno:** `GET /mi-rutina`, `POST /cargas`, `GET /mis-cargas`, `GET /mis-mejores-marcas`, `PUT /mi-perfil` (foto, objetivo, observaciones)
+**Profe · Planificaciones:** `GET/POST /plantillas`, `GET/PUT/DELETE /plantillas/:id`, `POST /plantillas/:id/duplicar`, `POST /plantillas/:id/asignar` (`{ alumno_id, fechas: [...] }`), `POST/PUT/DELETE` de `/plantilla-bloques` y `/plantilla-ejercicios`
+
+**Profe · Evaluaciones:** `GET /evaluaciones` (`?alumno_id=`), `POST /evaluaciones` (`{ alumno_ids, tipo, ... }`), `GET/PUT/DELETE /evaluaciones/:id`
+
+**Alumno:** `GET /mis-evaluaciones`, `PUT /mis-evaluaciones/:id`, `GET /mi-rutina`, `POST /cargas`, `GET /mis-cargas`, `GET /mis-mejores-marcas`, `PUT /mi-perfil` (foto, objetivo, observaciones)
 
 **Admin:** `GET /admin/profesores`, `PUT/DELETE /admin/profesores/:id`, `POST /admin/profesores/:id/reset-password`
 
@@ -77,3 +82,11 @@ Se sirve desde **GitHub Pages** (Settings → Pages → branch `main`, root). Se
 - La versión vive en el `CACHE` de `sw.js` (`tuprofe-vXX`) y en el cartel de versión del `index.html`.
 - **Al publicar, subí SIEMPRE `index.html` y `sw.js` juntos, con el número aumentado.** El `sw.js` es el que dispara la actualización en los celulares.
 - La app se actualiza sola: al detectar una versión nueva muestra un cartel central de "Actualizar".
+
+## Planificaciones y evaluaciones (v80)
+
+- **Planificaciones:** plantillas generales del profe (solapa propia). Se arman con el mismo editor que la rutina y se **asignan** a un alumno en una o varias fechas: se crea una COPIA en su rutina, editable sin tocar la plantilla. También se puede guardar cualquier día de un alumno como planificación (ícono de capas).
+- **Evaluaciones:** el profe pide un test (uno o varios alumnos, con instrucciones y video). Al alumno le aparece un puntito en la solapa Evaluaciones hasta que lo carga; al profe, uno cuando hay algo para revisar.
+  - Test iniciales: `ohs` (overhead squat) y `unipodal` (por pierna). El alumno pega el link del video; el profe marca compensaciones y puntaje 0-3.
+  - Evaluaciones físicas: `rm` (1RM estimado, Brzycki/Epley), `cmj`, `abalakov`, `sj` (altura en cm o por tiempo de vuelo; potencia de Sayers; % de brazos e índice de elasticidad contra el último CMJ) y `vbt` (perfil carga-velocidad y 1RM estimado).
+- Migración: `npx wrangler d1 execute tuprofe-db --file=migracion-planificaciones-evaluaciones.sql --remote` (solo crea tablas; re-ejecutable).
