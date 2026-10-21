@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- tuprofe · v80 -->
+<!-- tuprofe · v81 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
@@ -1221,6 +1221,31 @@
   const GOOGLE_CLIENT_ID = "470393235359-fmaqhamksf7o30b3kgv7rcq2d7bjclqf.apps.googleusercontent.com";
   const TOKEN_KEY = "tuprofe_token";
   const $ = (id) => document.getElementById(id);
+  // ---------- Ventanas (overlays) apiladas ----------
+  // Todas las ventanas comparten el mismo z-index, así que sin esto gana la que está más abajo
+  // en el HTML, no la que se abrió último (ej.: "Pedir evaluación" quedaba detrás de las
+  // evaluaciones del alumno). Regla general para toda la app: la ventana que se abre queda
+  // SIEMPRE arriba de las que ya estaban abiertas. Al cerrarse vuelve a su valor normal.
+  // Se mantiene por debajo del bloqueo de cuenta (60) y del aviso de actualización (95).
+  (function apilarVentanas() {
+    const todas = () => Array.from(document.querySelectorAll(".overlay"));
+    const alAbrir = (ov) => {
+      const tope = todas().filter((o) => o !== ov && o.classList.contains("on"))
+        .reduce((m, o) => Math.max(m, Number(o.style.zIndex) || 40), 40);
+      ov.style.zIndex = String(Math.min(tope + 1, 59));
+    };
+    const obs = new MutationObserver((cambios) => {
+      for (const c of cambios) {
+        const ov = c.target;
+        const abierta = ov.classList.contains("on");
+        if (abierta && !ov._abierta) alAbrir(ov);
+        if (!abierta && ov._abierta) ov.style.zIndex = "";
+        ov._abierta = abierta;
+      }
+    });
+    const iniciar = () => todas().forEach((ov) => { ov._abierta = ov.classList.contains("on"); obs.observe(ov, { attributes: true, attributeFilter: ["class"] }); });
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", iniciar); else iniciar();
+  })();
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
   const EJERCICIOS_BASE = [
