@@ -179,44 +179,93 @@ async function diaEsDelAlumno(id, alumnoId, env) {
     .bind(id, alumnoId).first());
 }
 
+// ------------------------------------------------------------
+//  ESQUEMA AL DÍA (automático y aditivo)
+// ------------------------------------------------------------
+//  La app usa columnas que se fueron sumando con el tiempo. En vez de depender de
+//  migraciones manuales, la primera vez que arranca cada worker revisa qué columnas
+//  existen y AGREGA solo las que faltan (ALTER TABLE ... ADD COLUMN). Nunca borra ni
+//  modifica datos. Si otra instancia la agregó al mismo tiempo, el "duplicate column"
+//  se ignora.
+const COLUMNAS_NECESARIAS = {
+  dias:        [["fecha", "TEXT"], ["es_molde", "INTEGER NOT NULL DEFAULT 0"], ["nota_alumno", "TEXT"], ["origen_dia_id", "INTEGER"]],
+  ejercicios:  [["registrar_carga", "INTEGER NOT NULL DEFAULT 1"]],
+  series_plan: [["peso", "REAL"], ["rpe", "TEXT"]],
+  cargas:      [["serie", "INTEGER"], ["rpe", "TEXT"]],
+};
+let ESQUEMA_OK = false;
+async function asegurarEsquema(env) {
+  if (ESQUEMA_OK) return;
+  try {
+    await env.DB.prepare(`CREATE TABLE IF NOT EXISTS series_plan (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ejercicio_id INTEGER NOT NULL REFERENCES ejercicios(id) ON DELETE CASCADE,
+      numero INTEGER NOT NULL, reps TEXT, pausa TEXT)`).run();
+    await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_series_plan_ej ON series_plan(ejercicio_id)").run();
+    for (const tabla in COLUMNAS_NECESARIAS) {
+      const existentes = new Set((await env.DB.prepare(`PRAGMA table_info(${tabla})`).all()).results.map((c) => c.name));
+      for (const [col, tipo] of COLUMNAS_NECESARIAS[tabla]) {
+        if (existentes.has(col)) continue;
+        try { await env.DB.prepare(`ALTER TABLE ${tabla} ADD COLUMN ${col} ${tipo}`).run(); }
+        catch (e) { if (!/duplicate column/i.test(String(e && e.message))) throw e; }
+      }
+    }
+    await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_dias_origen ON dias(origen_dia_id)").run();
+    ESQUEMA_OK = true;
+  } catch (e) {
+    // Si algo falla seguimos igual (las consultas tienen sus propios planes B) y se reintenta en el próximo pedido.
+    console.log("asegurarEsquema:", String(e));
+  }
+}
+
+const redondear05 = (n) => Math.round(n * 2) / 2;
+
 // Rutina anidada: días -> bloques -> ejercicios (con datos del catálogo)
 //   incluirMoldes = true  -> trae TODO (para el profe: rutina real + cajón de sesiones)
 //   incluirMoldes = false -> excluye los moldes (para el alumno: nunca ve la biblioteca del profe)
-async function armarRutina(alumnoId, env, incluirMoldes = true) {
-  const qDias = "SELECT id, nombre, orden, fecha, es_molde, nota_alumno FROM dias WHERE alumno_id = ? ORDER BY (fecha IS NULL), fecha, orden";
+//   rango = { desde, hasta } (YYYY-MM-DD, opcional): trae solo los días con fecha en ese
+//   rango + los días sin fecha y los moldes (esos vienen siempre). Sin rango, trae todo.
+async function armarRutina(alumnoId, env, incluirMoldes = true, rango = null) {
+  const conRango = !!(rango && rango.desde && rango.hasta);
+  const filtro = conRango ? " AND (d.fecha IS NULL OR (d.fecha >= ? AND d.fecha <= ?))" : "";
+  const args = conRango ? [alumnoId, rango.desde, rango.hasta] : [alumnoId];
+  const qDias = `SELECT d.id, d.nombre, d.orden, d.fecha, d.es_molde, d.nota_alumno, d.origen_dia_id FROM dias d
+     WHERE d.alumno_id = ?${filtro} ORDER BY (d.fecha IS NULL), d.fecha, d.orden`;
   const qBloques = `SELECT b.id, b.dia_id, b.nombre, b.orden, b.pausa
      FROM bloques b JOIN dias d ON d.id = b.dia_id
-     WHERE d.alumno_id = ? ORDER BY b.orden`;
-  const qEjercicios = `SELECT e.id, e.bloque_id, e.orden, e.series, e.reps, e.pausa, e.notas, e.catalogo_id,
+     WHERE d.alumno_id = ?${filtro} ORDER BY b.orden`;
+  const qEjercicios = `SELECT e.id, e.bloque_id, e.orden, e.series, e.reps, e.pausa, e.notas, e.catalogo_id, e.registrar_carga,
             c.nombre, c.material, c.video_id
      FROM ejercicios e
      JOIN catalogo_ejercicios c ON c.id = e.catalogo_id
      JOIN bloques b ON b.id = e.bloque_id
      JOIN dias d ON d.id = b.dia_id
-     WHERE d.alumno_id = ? ORDER BY e.orden`;
-  const qSeries = `SELECT sp.ejercicio_id, sp.numero, sp.reps, sp.pausa
+     WHERE d.alumno_id = ?${filtro} ORDER BY e.orden`;
+  const qSeries = `SELECT sp.ejercicio_id, sp.numero, sp.reps, sp.pausa, sp.peso, sp.rpe
        FROM series_plan sp
        JOIN ejercicios e ON e.id = sp.ejercicio_id
        JOIN bloques b ON b.id = e.bloque_id
        JOIN dias d ON d.id = b.dia_id
-       WHERE d.alumno_id = ? ORDER BY sp.ejercicio_id, sp.numero`;
+       WHERE d.alumno_id = ?${filtro} ORDER BY sp.ejercicio_id, sp.numero`;
 
   let dias, bloques, ejercicios, spRows;
   try {
     // Las 4 lecturas en un SOLO viaje a la base (batch). Es lo que hace que abrir
     // la rutina sea rápido en vez de sumar 4 idas y vueltas.
     const res = await env.DB.batch([
-      env.DB.prepare(qDias).bind(alumnoId),
-      env.DB.prepare(qBloques).bind(alumnoId),
-      env.DB.prepare(qEjercicios).bind(alumnoId),
-      env.DB.prepare(qSeries).bind(alumnoId),
+      env.DB.prepare(qDias).bind(...args),
+      env.DB.prepare(qBloques).bind(...args),
+      env.DB.prepare(qEjercicios).bind(...args),
+      env.DB.prepare(qSeries).bind(...args),
     ]);
     dias = res[0].results; bloques = res[1].results;
     ejercicios = res[2].results; spRows = res[3].results;
   } catch (e) {
     // Fallback (alguna migración no corrió): vamos query por query, degradando sin romper.
     try {
-      dias = (await env.DB.prepare(qDias).bind(alumnoId).all()).results;
+      dias = (await env.DB.prepare(qDias).bind(...args).all()).results;
+    } catch (e0) { try {
+      dias = (await env.DB.prepare(qDias.replace(", d.origen_dia_id", "")).bind(...args).all()).results;
     } catch (e1) {
       try {
         dias = (await env.DB.prepare("SELECT id, nombre, orden, fecha FROM dias WHERE alumno_id = ? ORDER BY (fecha IS NULL), fecha, orden").bind(alumnoId).all()).results;
@@ -225,12 +274,16 @@ async function armarRutina(alumnoId, env, incluirMoldes = true) {
         for (const d of dias) d.fecha = null;
       }
       for (const d of dias) d.es_molde = 0;
-    }
+    } }
     for (const d of dias) if (d.nota_alumno === undefined) d.nota_alumno = null;
-    bloques = (await env.DB.prepare(qBloques).bind(alumnoId).all()).results;
-    ejercicios = (await env.DB.prepare(qEjercicios).bind(alumnoId).all()).results;
-    try { spRows = (await env.DB.prepare(qSeries).bind(alumnoId).all()).results; }
-    catch (e3) { spRows = []; }
+    bloques = (await env.DB.prepare(qBloques).bind(...args).all()).results;
+    try { ejercicios = (await env.DB.prepare(qEjercicios).bind(...args).all()).results; }
+    catch (e4) { ejercicios = (await env.DB.prepare(qEjercicios.replace(", e.registrar_carga", "")).bind(...args).all()).results; }
+    try { spRows = (await env.DB.prepare(qSeries).bind(...args).all()).results; }
+    catch (e3) {
+      try { spRows = (await env.DB.prepare(qSeries.replace(", sp.peso, sp.rpe", "")).bind(...args).all()).results; }
+      catch (e5) { spRows = []; }
+    }
   }
 
   // El alumno nunca ve los moldes. Filtramos acá: los bloques/ejercicios se
@@ -238,8 +291,22 @@ async function armarRutina(alumnoId, env, incluirMoldes = true) {
   if (!incluirMoldes) dias = dias.filter((d) => !Number(d.es_molde));
 
   const planPorEj = {};
-  for (const r of (spRows || [])) (planPorEj[r.ejercicio_id] = planPorEj[r.ejercicio_id] || []).push({ numero: r.numero, reps: r.reps, pausa: r.pausa });
-  for (const e of ejercicios) e.series_plan = planPorEj[e.id] || [];
+  for (const r of (spRows || [])) (planPorEj[r.ejercicio_id] = planPorEj[r.ejercicio_id] || []).push({
+    numero: r.numero, reps: r.reps, pausa: r.pausa,
+    peso: r.peso != null ? r.peso : null, rpe: r.rpe != null ? r.rpe : null,
+  });
+  for (const e of ejercicios) {
+    e.series_plan = planPorEj[e.id] || [];
+    e.registrar_carga = e.registrar_carga === 0 ? 0 : 1;   // por defecto se pide carga
+  }
+
+  // Tilde "guardado en el cajón": un día real está guardado si existe un molde que salió de él.
+  // Los moldes no tienen fecha, así que siempre vienen en la consulta aunque haya rango.
+  const origenesConMolde = new Set(dias.filter((d) => Number(d.es_molde) && d.origen_dia_id != null).map((d) => d.origen_dia_id));
+  for (const d of dias) {
+    if (d.origen_dia_id === undefined) d.origen_dia_id = null;
+    d.guardado_cajon = !Number(d.es_molde) && origenesConMolde.has(d.id) ? 1 : 0;
+  }
 
   for (const b of bloques) b.ejercicios = ejercicios.filter((e) => e.bloque_id === b.id);
   for (const d of dias) d.bloques = bloques.filter((b) => b.dia_id === d.id);
@@ -251,11 +318,19 @@ async function armarRutina(alumnoId, env, incluirMoldes = true) {
 async function guardarSeriesPlan(env, ejId, plan) {
   if (!Array.isArray(plan)) return false;
   try {
-    await env.DB.prepare("DELETE FROM series_plan WHERE ejercicio_id = ?").bind(ejId).run();
-    const stmts = plan.map((s, i) =>
-      env.DB.prepare("INSERT INTO series_plan (ejercicio_id, numero, reps, pausa) VALUES (?, ?, ?, ?)")
-        .bind(ejId, s.numero ?? (i + 1), s.reps || null, s.pausa || null));
-    if (stmts.length) await env.DB.batch(stmts);
+    const numPeso = (v) => { if (v === null || v === undefined || v === "") return null; const n = Number(String(v).replace(",", ".")); return isNaN(n) ? null : n; };
+    const txtRpe = (v) => (v === null || v === undefined || String(v).trim() === "" ? null : String(v).trim().slice(0, 10));
+    // Borrar + insertar en el MISMO batch (atómico): si algo falla, no queda el ejercicio sin series.
+    const conPeso = [env.DB.prepare("DELETE FROM series_plan WHERE ejercicio_id = ?").bind(ejId)].concat(plan.map((s, i) =>
+      env.DB.prepare("INSERT INTO series_plan (ejercicio_id, numero, reps, pausa, peso, rpe) VALUES (?, ?, ?, ?, ?, ?)")
+        .bind(ejId, s.numero ?? (i + 1), s.reps || null, s.pausa || null, numPeso(s.peso), txtRpe(s.rpe))));
+    try { await env.DB.batch(conPeso); }
+    catch (e) {
+      // Base sin columnas peso/rpe: guardamos al menos reps y pausa (comportamiento anterior).
+      await env.DB.batch([env.DB.prepare("DELETE FROM series_plan WHERE ejercicio_id = ?").bind(ejId)].concat(plan.map((s, i) =>
+        env.DB.prepare("INSERT INTO series_plan (ejercicio_id, numero, reps, pausa) VALUES (?, ?, ?, ?)")
+          .bind(ejId, s.numero ?? (i + 1), s.reps || null, s.pausa || null))));
+    }
     return true;
   } catch (e) { return false; }
 }
@@ -920,6 +995,7 @@ export default {
       // ================= REQUIERE TOKEN =================
       const sesion = await resolverSesion(request, env);
       if (!sesion) return json({ error: "No autorizado" }, 401);
+      await asegurarEsquema(env);   // agrega columnas faltantes, una sola vez por instancia
       const esProfe = sesion.rol === "profe";
       const esAlumno = sesion.rol === "alumno";
 
@@ -1108,7 +1184,9 @@ export default {
         const alumno = await env.DB.prepare(
           "SELECT id, nombre, email, fecha_nac, objetivo, observaciones FROM alumnos WHERE id = ?"
         ).bind(alumnoId).first();
-        alumno.dias = await armarRutina(alumnoId, env);
+        const desde = url.searchParams.get("desde"), hasta = url.searchParams.get("hasta");
+        const okF = (v) => /^\d{4}-\d{2}-\d{2}$/.test(v || "");
+        alumno.dias = await armarRutina(alumnoId, env, true, okF(desde) && okF(hasta) ? { desde, hasta } : null);
         return json(alumno);
       }
       // Borrar un alumno (y toda su rutina/historial). Borrado explícito en orden,
@@ -1273,38 +1351,75 @@ export default {
         let ejercicios = [], plan = {};
         if (bloqueIds.length) {
           const ph = bloqueIds.map(() => "?").join(",");
-          ejercicios = (await env.DB.prepare(
-            `SELECT id, bloque_id, catalogo_id, orden, series, reps, pausa, notas
-             FROM ejercicios WHERE bloque_id IN (${ph}) ORDER BY orden`
-          ).bind(...bloqueIds).all()).results;
+          try {
+            ejercicios = (await env.DB.prepare(
+              `SELECT id, bloque_id, catalogo_id, orden, series, reps, pausa, notas, registrar_carga
+               FROM ejercicios WHERE bloque_id IN (${ph}) ORDER BY orden`
+            ).bind(...bloqueIds).all()).results;
+          } catch (e) {
+            ejercicios = (await env.DB.prepare(
+              `SELECT id, bloque_id, catalogo_id, orden, series, reps, pausa, notas
+               FROM ejercicios WHERE bloque_id IN (${ph}) ORDER BY orden`
+            ).bind(...bloqueIds).all()).results;
+          }
           const ejIds = ejercicios.map((e) => e.id);
           if (ejIds.length) {
             try {
               const ph2 = ejIds.map(() => "?").join(",");
-              const sp = (await env.DB.prepare(
-                `SELECT ejercicio_id, numero, reps, pausa FROM series_plan WHERE ejercicio_id IN (${ph2}) ORDER BY numero`
-              ).bind(...ejIds).all()).results;
+              let sp;
+              try {
+                sp = (await env.DB.prepare(
+                  `SELECT ejercicio_id, numero, reps, pausa, peso, rpe FROM series_plan WHERE ejercicio_id IN (${ph2}) ORDER BY numero`
+                ).bind(...ejIds).all()).results;
+              } catch (e2) {
+                sp = (await env.DB.prepare(
+                  `SELECT ejercicio_id, numero, reps, pausa FROM series_plan WHERE ejercicio_id IN (${ph2}) ORDER BY numero`
+                ).bind(...ejIds).all()).results;
+              }
               for (const s of sp) (plan[s.ejercicio_id] = plan[s.ejercicio_id] || []).push(s);
             } catch (e) { plan = {}; }  // migración de series_plan sin correr: degradamos
           }
         }
 
         // Qué fechas: un molde no lleva fecha; si no, las que manden (o una sin fecha).
-        const fechas = comoMolde ? [null] : (Array.isArray(body.fechas) && body.fechas.length ? body.fechas : [null]);
+        // Ordenadas, porque la semana de la progresión sale de la posición de cada fecha.
+        const fechasOk = Array.isArray(body.fechas) ? body.fechas.filter((f) => /^\d{4}-\d{2}-\d{2}$/.test(f || "")).sort() : [];
+        const fechas = comoMolde ? [null] : (fechasOk.length ? fechasOk.slice(0, 60) : [null]);
         const nombre = body.nombre || origen.nombre;
         const nuevos = [];
 
+        // Progresión semanal del peso objetivo ("Armar mes" / "Usar sesión" por varias semanas).
+        //   body.progresion = { peso: { incremento: 2.5 }, deload?: { factor: 0.9 } }
+        //   Semana k (0, 1, 2...) = peso base + k × incremento, redondeado a 0,5 kg.
+        //   Con deload, la última semana es el 90% de la semana anterior.
+        //   Solo toca las series que tienen peso objetivo cargado.
+        const prog = !comoMolde && fechas.length > 1 && body.progresion && body.progresion.peso ? body.progresion : null;
+        const inc = prog ? Number(prog.peso.incremento) || 0 : 0;
+        const factorDeload = prog && prog.deload ? Number(prog.deload.factor) || 0.9 : null;
+        const pesoSemana = (base, k, total) => {
+          if (base == null || base === "" || isNaN(Number(base))) return base == null || base === "" ? null : base;
+          const b = Number(base);
+          if (!prog) return b;
+          if (factorDeload && total > 1 && k === total - 1) return redondear05((b + (k - 1) * inc) * factorDeload);
+          return redondear05(b + k * inc);
+        };
+
         // Insertamos por lotes (batch) para minimizar los viajes a la base:
         // 1 día + 1 batch de bloques + 1 batch de ejercicios + 1 batch de series, por fecha.
-        for (const fecha of fechas) {
+        for (let k = 0; k < fechas.length; k++) {
+          const fecha = fechas[k];
           let rd;
           try {
+            // El molde recuerda de qué día salió (para el tilde "guardado en el cajón").
+            rd = await env.DB.prepare("INSERT INTO dias (alumno_id, nombre, orden, fecha, es_molde, origen_dia_id) VALUES (?, ?, ?, ?, ?, ?)")
+              .bind(origen.alumno_id, nombre, 0, fecha || null, comoMolde, comoMolde ? diaId : null).run();
+          } catch (e0) { try {
             rd = await env.DB.prepare("INSERT INTO dias (alumno_id, nombre, orden, fecha, es_molde) VALUES (?, ?, ?, ?, ?)")
               .bind(origen.alumno_id, nombre, 0, fecha || null, comoMolde).run();
           } catch (e) {
             rd = await env.DB.prepare("INSERT INTO dias (alumno_id, nombre, orden, fecha) VALUES (?, ?, ?, ?)")
               .bind(origen.alumno_id, nombre, 0, fecha || null).run();
-          }
+          } }
           const nuevoDia = rd.meta.last_row_id;
 
           // Bloques en un solo batch; guardamos el mapeo viejo->nuevo para los hijos.
@@ -1321,26 +1436,41 @@ export default {
           const mapaEj = {};
           const ejList = ejercicios.filter((e) => mapaBloque[e.bloque_id]);
           if (ejList.length) {
-            const stmtsE = ejList.map((e) =>
-              env.DB.prepare(
-                "INSERT INTO ejercicios (bloque_id, catalogo_id, orden, series, reps, pausa, notas) VALUES (?, ?, ?, ?, ?, ?, ?)"
-              ).bind(mapaBloque[e.bloque_id], e.catalogo_id, e.orden, e.series, e.reps, e.pausa, e.notas));
-            const resE = await env.DB.batch(stmtsE);
+            let resE;
+            try {
+              resE = await env.DB.batch(ejList.map((e) =>
+                env.DB.prepare(
+                  "INSERT INTO ejercicios (bloque_id, catalogo_id, orden, series, reps, pausa, notas, registrar_carga) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+                ).bind(mapaBloque[e.bloque_id], e.catalogo_id, e.orden, e.series, e.reps, e.pausa, e.notas, e.registrar_carga === 0 ? 0 : 1)));
+            } catch (e1) {
+              resE = await env.DB.batch(ejList.map((e) =>
+                env.DB.prepare(
+                  "INSERT INTO ejercicios (bloque_id, catalogo_id, orden, series, reps, pausa, notas) VALUES (?, ?, ?, ?, ?, ?, ?)"
+                ).bind(mapaBloque[e.bloque_id], e.catalogo_id, e.orden, e.series, e.reps, e.pausa, e.notas)));
+            }
             ejList.forEach((e, i) => { mapaEj[e.id] = resE[i].meta.last_row_id; });
           }
 
           // Series planificadas en un solo batch (degradamos si la tabla no existe).
-          const stmtsS = [];
+          const filasS = [];
           for (const viejoId in plan) {
             const nuevoEjId = mapaEj[viejoId];
             if (!nuevoEjId) continue;
-            for (const s of plan[viejoId]) {
-              stmtsS.push(env.DB.prepare(
-                "INSERT INTO series_plan (ejercicio_id, numero, reps, pausa) VALUES (?, ?, ?, ?)"
-              ).bind(nuevoEjId, s.numero, s.reps || null, s.pausa || null));
+            for (const s of plan[viejoId]) filasS.push({ ej: nuevoEjId, s });
+          }
+          if (filasS.length) {
+            try {
+              await env.DB.batch(filasS.map(({ ej, s }) => env.DB.prepare(
+                "INSERT INTO series_plan (ejercicio_id, numero, reps, pausa, peso, rpe) VALUES (?, ?, ?, ?, ?, ?)"
+              ).bind(ej, s.numero, s.reps || null, s.pausa || null, pesoSemana(s.peso, k, fechas.length), s.rpe != null ? s.rpe : null)));
+            } catch (e) {
+              try {
+                await env.DB.batch(filasS.map(({ ej, s }) => env.DB.prepare(
+                  "INSERT INTO series_plan (ejercicio_id, numero, reps, pausa) VALUES (?, ?, ?, ?)"
+                ).bind(ej, s.numero, s.reps || null, s.pausa || null)));
+              } catch (e2) {}
             }
           }
-          if (stmtsS.length) { try { await env.DB.batch(stmtsS); } catch (e) {} }
 
           nuevos.push(nuevoDia);
         }
@@ -1366,7 +1496,16 @@ export default {
       if (seg[0] === "dias" && seg.length === 2 && method === "DELETE" && esProfe) {
         const diaId = Number(seg[1]);
         if (!(await diaEsDelProfe(diaId, sesion.id, env))) return json({ error: "No autorizado" }, 403);
+        let info = null;
+        try { info = await env.DB.prepare("SELECT es_molde, origen_dia_id FROM dias WHERE id = ?").bind(diaId).first(); } catch (e) {}
         await env.DB.prepare("DELETE FROM dias WHERE id = ?").bind(diaId).run();
+        // Si era un molde (sesión del cajón), le contamos al front si el día del que salió
+        // se quedó sin ninguna copia guardada, para que destilde el ícono del cajón.
+        if (info && Number(info.es_molde) && info.origen_dia_id != null) {
+          const quedan = await env.DB.prepare("SELECT COUNT(*) AS n FROM dias WHERE es_molde = 1 AND origen_dia_id = ?")
+            .bind(info.origen_dia_id).first();
+          return json({ ok: true, origen: { id: info.origen_dia_id, guardado_cajon: quedan && quedan.n > 0 ? 1 : 0 } });
+        }
         return json({ ok: true });
       }
 
@@ -1405,10 +1544,19 @@ export default {
         const series = plan ? plan.length : (body.series || null);
         const reps = plan && plan[0] ? (plan[0].reps || null) : (body.reps || null);
         const pausa = plan && plan[0] ? (plan[0].pausa || null) : (body.pausa || null);
-        const r = await env.DB.prepare(
-          `INSERT INTO ejercicios (bloque_id, catalogo_id, orden, series, reps, pausa, notas)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`
-        ).bind(bloque_id, catalogo_id, orden || 0, series, reps, pausa, notas || null).run();
+        const regCarga = (body.registrar_carga === 0 || body.registrar_carga === false || body.registrar_carga === "0") ? 0 : 1;
+        let r;
+        try {
+          r = await env.DB.prepare(
+            `INSERT INTO ejercicios (bloque_id, catalogo_id, orden, series, reps, pausa, notas, registrar_carga)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+          ).bind(bloque_id, catalogo_id, orden || 0, series, reps, pausa, notas || null, regCarga).run();
+        } catch (e) {
+          r = await env.DB.prepare(
+            `INSERT INTO ejercicios (bloque_id, catalogo_id, orden, series, reps, pausa, notas)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`
+          ).bind(bloque_id, catalogo_id, orden || 0, series, reps, pausa, notas || null).run();
+        }
         const ejId = r.meta.last_row_id;
         if (plan) await guardarSeriesPlan(env, ejId, plan);
         return json({ id: ejId }, 201);
@@ -1435,6 +1583,10 @@ export default {
           ).bind(series, reps, pausa, notas || null, orden || 0, ejId).run();
         }
         if (plan) await guardarSeriesPlan(env, ejId, plan);
+        if (body.registrar_carga !== undefined) {
+          const regCarga = (body.registrar_carga === 0 || body.registrar_carga === false || body.registrar_carga === "0") ? 0 : 1;
+          try { await env.DB.prepare("UPDATE ejercicios SET registrar_carga = ? WHERE id = ?").bind(regCarga, ejId).run(); } catch (e) {}
+        }
         return json({ ok: true });
       }
       if (seg[0] === "ejercicios" && seg.length === 2 && method === "DELETE" && esProfe) {
@@ -1558,6 +1710,18 @@ export default {
           const obj = body.objetivo || null;
           if (obj !== null && !OBJ.includes(obj)) return json({ error: "Objetivo no válido" }, 400);
           await env.DB.prepare("UPDATE alumnos SET objetivo = ? WHERE id = ?").bind(obj, sesion.id).run();
+        }
+        // Nombre (opcional, no puede quedar vacío)
+        if (body.nombre !== undefined) {
+          const nom = String(body.nombre || "").trim().slice(0, 80);
+          if (!nom) return json({ error: "El nombre no puede quedar vacío" }, 400);
+          await env.DB.prepare("UPDATE alumnos SET nombre = ? WHERE id = ?").bind(nom, sesion.id).run();
+        }
+        // Fecha de nacimiento (opcional, YYYY-MM-DD o vacío)
+        if (body.fecha_nac !== undefined) {
+          const f = body.fecha_nac ? String(body.fecha_nac) : null;
+          if (f !== null && !/^\d{4}-\d{2}-\d{2}$/.test(f)) return json({ error: "Fecha de nacimiento no válida" }, 400);
+          await env.DB.prepare("UPDATE alumnos SET fecha_nac = ? WHERE id = ?").bind(f, sesion.id).run();
         }
         // Observaciones (opcional)
         if (body.observaciones !== undefined) {
