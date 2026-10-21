@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- tuprofe · v81 -->
+<!-- tuprofe · v82 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
@@ -697,6 +697,31 @@
   .ev-chart { width: 100%; height: auto; display: block; background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 12px; }
   .ev-link { display: flex; align-items: center; justify-content: center; gap: 8px; height: 44px; border-radius: 12px; border: 1px solid var(--accent); color: var(--accent); background: rgba(196,240,0,.06); font-size: 14px; font-weight: 600; text-decoration: none; margin-bottom: 14px; }
   .tag-eval { display: inline-block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: #33c4e8; border: 1px solid rgba(51,196,232,.45); background: rgba(51,196,232,.08); padding: 1px 7px; border-radius: 999px; margin-right: 6px; }
+  /* ===== Diálogo propio (reemplaza alert/confirm del navegador) ===== */
+  #dlg { position: fixed; inset: 0; z-index: 90; display: none; align-items: center; justify-content: center; padding: 20px max(20px, env(safe-area-inset-right, 0px)) 20px max(20px, env(safe-area-inset-left, 0px)); background: rgba(0,0,0,.62); touch-action: pan-y; }
+  #dlg.on { display: flex; }
+  #dlg [hidden] { display: none !important; }
+  #dlg .dlg-card { width: 100%; max-width: 380px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 20px 18px 16px; box-shadow: 0 16px 50px rgba(0,0,0,.55); animation: dlgIn .16s ease-out; }
+  @keyframes dlgIn { from { transform: scale(.96); opacity: 0; } to { transform: none; opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { #dlg .dlg-card { animation: none; } }
+  #dlg .dlg-t { font-size: 17px; font-weight: 600; line-height: 1.3; margin-bottom: 8px; }
+  #dlg .dlg-m { font-size: 14px; color: var(--muted); line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 50dvh; overflow-y: auto; user-select: text; -webkit-user-select: text; }
+  #dlg .dlg-copia { margin-top: 12px; display: flex; gap: 8px; }
+  #dlg .dlg-copia input { height: 44px; font-size: 14px; font-family: ui-monospace, Menlo, monospace; }
+  #dlg .dlg-copia button { flex: 0 0 auto; height: 44px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--accent); background: rgba(196,240,0,.08); color: var(--accent); font-weight: 600; cursor: pointer; }
+  #dlg .dlg-acts { display: flex; gap: 8px; margin-top: 18px; }
+  #dlg .dlg-acts button { flex: 1; height: 46px; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--text); }
+  #dlg .dlg-acts .dlg-ok { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  #dlg .dlg-acts .dlg-ok.peligro { background: var(--danger); border-color: var(--danger); color: #fff; }
+  #dlg .dlg-acts button:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+  /* ===== Indicador "sin señal" (alumno) ===== */
+  /* Abajo, justo encima de la barra de solapas: no tapa el encabezado ni los botones. */
+  #offline-pill { position: fixed; left: 50%; bottom: calc(max(env(safe-area-inset-bottom, 0px), 12px) + 92px); transform: translateX(-50%); z-index: 35; display: none; align-items: center; gap: 8px; max-width: calc(100% - 32px); background: var(--surface-2); border: 1px solid #ffa31a; color: #ffc266; font-size: 12.5px; font-weight: 600; padding: 7px 13px; border-radius: 999px; box-shadow: 0 6px 18px rgba(0,0,0,.4); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #offline-pill.on { display: inline-flex; }
+  /* Con el indicador visible, los avisos flotantes suben para no pisarlo. */
+  body.con-pill .pr-toast { bottom: calc(140px + env(safe-area-inset-bottom, 0px)); }
+  #offline-pill .op-dot { width: 7px; height: 7px; border-radius: 50%; background: #ffa31a; flex: 0 0 auto; }
+  .cg-pend { font-size: 10px; font-weight: 700; color: #ffc266; border: 1px solid rgba(255,163,26,.5); border-radius: 999px; padding: 1px 6px; margin-left: 6px; vertical-align: 1px; }
 .g-divisor { display:flex; align-items:center; gap:10px; margin:16px 0; color:#9aa; font-size:13px; }
 .g-divisor::before, .g-divisor::after { content:""; flex:1; height:1px; background:currentColor; opacity:.3; }
 .g-divisor span { white-space:nowrap; }
@@ -1211,6 +1236,19 @@
   </div>
 </div>
 
+<!-- ============ DIÁLOGO PROPIO (avisos y confirmaciones) ============ -->
+<div id="dlg" role="dialog" aria-modal="true" aria-labelledby="dlg-t">
+  <div class="dlg-card">
+    <div class="dlg-t" id="dlg-t"></div>
+    <div class="dlg-m" id="dlg-m"></div>
+    <div class="dlg-copia" id="dlg-copia" hidden><input type="text" id="dlg-copia-txt" readonly /><button type="button" id="dlg-copia-btn">Copiar</button></div>
+    <div class="dlg-acts"><button type="button" id="dlg-no">Cancelar</button><button type="button" class="dlg-ok" id="dlg-ok">Aceptar</button></div>
+  </div>
+</div>
+
+<!-- ============ INDICADOR SIN SEÑAL (alumno) ============ -->
+<button type="button" id="offline-pill" aria-live="polite"><span class="op-dot"></span><span id="offline-txt">Sin señal</span></button>
+
 <div id="update-banner">
   <div class="ub-txt"><b>Hay una versión nueva</b><span>Actualizá para tener lo último.</span></div>
   <button id="update-btn">Actualizar</button>
@@ -1246,6 +1284,68 @@
     const iniciar = () => todas().forEach((ov) => { ov._abierta = ov.classList.contains("on"); obs.observe(ov, { attributes: true, attributeFilter: ["class"] }); });
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", iniciar); else iniciar();
   })();
+  // ---------- Diálogo propio (reemplaza alert / confirm / prompt) ----------
+  //  aviso(texto, {titulo, copiar})  -> muestra un mensaje con "Entendido".
+  //  confirmar(texto, {ok, no, peligro}) -> Promise<boolean>.
+  //  Los cartelitos del navegador en el celu se ven fuera de la app y en algunas vistas ni
+  //  aparecen; estos usan el diseño de la app y quedan por encima de cualquier ventana.
+  //  Si se piden varios a la vez, salen de a uno, en orden.
+  const _dlgCola = [];
+  let _dlgActivo = false;
+  function _dlgMostrar() {
+    if (_dlgActivo || !_dlgCola.length) return;
+    _dlgActivo = true;
+    const { texto, op, resolver } = _dlgCola.shift();
+    const lineas = String(texto == null ? "" : texto).split("\n");
+    // Primera línea = título; el resto (si hay) = detalle.
+    const titulo = op.titulo || lineas[0];
+    const cuerpo = op.titulo ? String(texto) : lineas.slice(1).join("\n").replace(/^\n+/, "");
+    $("dlg-t").textContent = titulo;
+    $("dlg-m").textContent = cuerpo;
+    $("dlg-m").hidden = !cuerpo;
+    $("dlg-copia").hidden = !op.copiar;
+    if (op.copiar) {
+      $("dlg-copia-txt").value = op.copiar;
+      $("dlg-copia-btn").textContent = "Copiar";
+      $("dlg-copia-btn").onclick = async () => {
+        try { await navigator.clipboard.writeText(op.copiar); $("dlg-copia-btn").textContent = "Copiado ✓"; }
+        catch { $("dlg-copia-txt").focus(); $("dlg-copia-txt").select(); }
+      };
+    }
+    const ok = $("dlg-ok"), no = $("dlg-no");
+    ok.textContent = op.ok || (op.confirmar ? "Aceptar" : "Entendido");
+    ok.classList.toggle("peligro", !!op.peligro);
+    no.hidden = !op.confirmar;
+    no.textContent = op.no || "Cancelar";
+    const cerrar = (v) => {
+      $("dlg").classList.remove("on");
+      document.removeEventListener("keydown", teclas, true);
+      _dlgActivo = false;
+      resolver(v);
+      setTimeout(_dlgMostrar, 60);
+    };
+    const teclas = (e) => {
+      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); cerrar(false); }
+      else if (e.key === "Enter" && document.activeElement !== no) { e.preventDefault(); e.stopPropagation(); cerrar(true); }
+    };
+    ok.onclick = () => cerrar(true);
+    no.onclick = () => cerrar(false);
+    $("dlg").onclick = (e) => { if (e.target === $("dlg")) cerrar(false); };
+    document.addEventListener("keydown", teclas, true);
+    $("dlg").classList.add("on");
+    setTimeout(() => (op.confirmar && op.peligro ? no : ok).focus(), 30);
+  }
+  function aviso(texto, op) { return new Promise((r) => { _dlgCola.push({ texto, op: { ...(op || {}) }, resolver: r }); _dlgMostrar(); }); }
+  function confirmar(texto, op) {
+    op = { ...(op || {}), confirmar: true };
+    // Botón principal según la acción que se pregunta ("¿Borrar...?" -> "Borrar", en rojo).
+    if (!op.ok) {
+      const m = String(texto).match(/^¿\s*([A-Za-zÁÉÍÓÚáéíóúñÑ]+)/);
+      if (m) op.ok = m[1].charAt(0).toUpperCase() + m[1].slice(1).toLowerCase();
+    }
+    if (op.peligro === undefined) op.peligro = /^¿\s*(borrar|resetear|eliminar|quitar)/i.test(String(texto));
+    return new Promise((r) => { _dlgCola.push({ texto, op, resolver: r }); _dlgMostrar(); });
+  }
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
   const EJERCICIOS_BASE = [
@@ -1362,7 +1462,7 @@
     prToastTimer = setTimeout(() => el.classList.remove("on"), ms);
   }
   const token = () => localStorage.getItem(TOKEN_KEY);
-  const guardarToken = (t) => localStorage.setItem(TOKEN_KEY, t);
+  const guardarToken = (t) => { try { localStorage.setItem(TOKEN_KEY, t); } catch {} };
   const borrarToken = () => localStorage.removeItem(TOKEN_KEY);
 
   // --- Mails recordados EN ESTE CELULAR (solo el email, nunca la contraseña) ---
@@ -1407,17 +1507,125 @@
     if (otra) otra.onclick = () => { $("login-email").value = ""; $("login-email").focus(); };
   }
 
+  // ============================================================
+  //  MODO SIN SEÑAL (alumno)
+  //  ------------------------------------------------------------
+  //  1) Lectura: lo último que el alumno vio (rutina, cargas, marcas, evaluaciones,
+  //     perfil y foto) queda guardado en el celu. Si abre la app sin señal, la ve igual.
+  //  2) Escritura: si guarda una carga o la nota del día sin señal, queda en una COLA
+  //     en el celu y se manda sola cuando vuelve la conexión (con la fecha real en que
+  //     entrenó, no la del envío). En pantalla ya aparece como hecha.
+  //  Todo vive en localStorage y está atado al usuario: si entra otra persona en el
+  //  mismo celu, no ve nada del anterior.
+  // ============================================================
+  const CACHE_PREF = "tuprofe_cache:", COLA_KEY = "tuprofe_cola";
+  const LECTURAS_ALUMNO = ["/yo", "/mi-rutina", "/mis-cargas", "/mis-mejores-marcas", "/mis-evaluaciones", "/mi-foto"];
+  const lsLeer = (k, def) => { try { const v = localStorage.getItem(k); return v == null ? def : JSON.parse(v); } catch { return def; } };
+  const lsGuardar = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } };
+  const lsBorrar = (k) => { try { localStorage.removeItem(k); } catch {} };
+  const dueñoCache = () => (token() || "").slice(0, 16);   // ata la caché a la sesión actual
+  let SIN_SENAL = false;
+  function limpiarDatosOffline() {
+    try { Object.keys(localStorage).filter((k) => k.startsWith(CACHE_PREF)).forEach(lsBorrar); } catch {}
+    lsBorrar(COLA_KEY);
+  }
+
   async function api(path, method, body, auth) {
+    method = method || "GET";
     const headers = { "Content-Type": "application/json" };
     if (auth) headers["Authorization"] = "Bearer " + token();
-    const res = await fetch(API + path, { method: method || "GET", headers, body: body ? JSON.stringify(body) : undefined });
+    const cacheable = auth && method === "GET" && LECTURAS_ALUMNO.includes(path);
+    let res;
+    try {
+      res = await fetch(API + path, { method, headers, body: body ? JSON.stringify(body) : undefined });
+    } catch (e) {
+      // Sin conexión (no hubo respuesta del servidor). Si es una lectura del alumno, devolvemos lo último guardado.
+      if (cacheable) {
+        const c = lsLeer(CACHE_PREF + path, null);
+        if (c && c.dueño === dueñoCache()) { marcarSinSenal(true); return c.data; }
+      }
+      const err = new Error("No hay conexión. Revisá la señal y probá de nuevo.");
+      err.sinRed = true;
+      marcarSinSenal(true);
+      throw err;
+    }
     const data = await res.json().catch(() => ({}));
     if (!res.ok) { const err = new Error(data.error || "Algo salió mal"); err.status = res.status; throw err; }
+    if (SIN_SENAL) marcarSinSenal(false);
+    // Solo guardamos lecturas de ALUMNOS (el profe necesita datos frescos y no usa el modo sin señal).
+    if (cacheable && (path !== "/yo" || data.rol === "alumno") && (path === "/yo" || ROL_ACTUAL === "alumno"))
+      lsGuardar(CACHE_PREF + path, { dueño: dueñoCache(), t: Date.now(), data });
     return data;
+  }
+  let ROL_ACTUAL = null;
+
+  // ---- Cola de envíos pendientes ----
+  const leerCola = () => { const c = lsLeer(COLA_KEY, []); return Array.isArray(c) ? c.filter((x) => x && x.dueño === dueñoCache()) : []; };
+  const guardarCola = (c) => lsGuardar(COLA_KEY, c);
+  // Manda ya; si no hay señal, lo deja en la cola. `clave` evita duplicados: si se vuelve a
+  // guardar lo mismo (el mismo ejercicio el mismo día) queda solo la última versión.
+  async function enviarOEncolar(path, method, body, clave) {
+    try { return { ok: true, data: await api(path, method, body, true) }; }
+    catch (e) {
+      if (!e.sinRed) throw e;
+      const cola = leerCola().filter((x) => x.clave !== clave);
+      cola.push({ dueño: dueñoCache(), clave, path, method, body, t: Date.now() });
+      if (!guardarCola(cola)) throw new Error("No hay conexión y no se pudo guardar en el celu. Probá de nuevo.");
+      pintarSinSenal();
+      return { ok: false, encolado: true };
+    }
+  }
+  let _enviandoCola = false;
+  async function enviarCola() {
+    if (_enviandoCola || !token() || ROL_ACTUAL !== "alumno") return;
+    let cola = leerCola();
+    if (!cola.length) { pintarSinSenal(); return; }
+    _enviandoCola = true;
+    let enviados = 0, descartados = 0;
+    try {
+      while (cola.length) {
+        const it = cola[0];
+        try { await api(it.path, it.method, it.body, true); enviados++; }
+        catch (e) {
+          if (e.sinRed) break;                          // sigue sin señal: probamos más tarde
+          if (e.status >= 500) break;                   // problema del servidor: reintentamos después
+          descartados++;                                // 4xx: ya no es válido (ej. el profe borró el ejercicio)
+        }
+        cola = leerCola().filter((x) => !(x.clave === it.clave && x.t === it.t));
+        guardarCola(cola);
+      }
+    } finally { _enviandoCola = false; }
+    pintarSinSenal();
+    if (enviados || descartados) {
+      await Promise.all([recargarCargas(), cargarMejoresMarcas()]);
+      renderMiRutina();
+      if (enviados) mostrarToast(`✓ Volvió la señal: se envi${enviados === 1 ? "ó 1 registro guardado" : "aron " + enviados + " registros guardados"}`);
+      if (descartados) aviso("Algunos registros guardados sin señal ya no se pudieron enviar\nPuede que tu profe haya cambiado esos ejercicios mientras tanto.");
+    }
+  }
+  function marcarSinSenal(v) { SIN_SENAL = !!v; pintarSinSenal(); }
+  function pintarSinSenal() {
+    const pill = $("offline-pill"); if (!pill) return;
+    const n = ROL_ACTUAL === "alumno" ? leerCola().length : 0;
+    const mostrar = ROL_ACTUAL === "alumno" && (SIN_SENAL || n > 0);
+    pill.classList.toggle("on", mostrar);
+    document.body.classList.toggle("con-pill", mostrar);
+    if (mostrar) $("offline-txt").textContent = SIN_SENAL
+      ? (n ? `Sin señal · ${n} por enviar` : "Sin señal · viendo lo último guardado")
+      : `${n} por enviar · tocá para reintentar`;
+  }
+  // Reintentos automáticos: al volver la conexión, al volver a la app y cada 30 segundos.
+  window.addEventListener("online", () => { enviarCola().then(() => { if (SIN_SENAL && ROL_ACTUAL === "alumno") refrescarAlumnoSilencioso(); }); });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) enviarCola(); });
+  setInterval(() => { if (leerCola().length) enviarCola(); }, 30000);
+  async function refrescarAlumnoSilencioso() {
+    try { await api("/yo", "GET", null, true); } catch { return; }   // sigue sin señal
+    await cargarMiRutina(); cargarMisEvals();
   }
   const thumbURL = (id) => `https://img.youtube.com/vi/${id}/mqdefault.jpg`;
 
   async function entrar(rol) {
+    ROL_ACTUAL = rol;
     showApp(rol);
     const yo = await api("/yo", "GET", null, true);
     if (rol === "profe") {
@@ -1445,9 +1653,14 @@
       if (yo.debe_cambiar) abrirCambioPass(true);
       alSwitchView("sesion");
       cargarMisEvals();       // evaluaciones (en segundo plano: prende el puntito si hay pendientes)
+      cargarMiFoto(yo);       // la foto viaja aparte (no demora la entrada)
       await cargarMiRutina();
+      pintarSinSenal();
+      enviarCola();           // si quedó algo guardado sin señal, lo mandamos
     }
   }
+
+  if ($("offline-pill")) $("offline-pill").onclick = async () => { await enviarCola(); if (ROL_ACTUAL === "alumno") refrescarAlumnoSilencioso(); };
 
   // ---------- CATÁLOGO ----------
   let CATALOGO = [];
@@ -1503,13 +1716,13 @@
     try { if (editandoId) await api("/catalogo/" + editandoId, "PUT", { nombre, video, material }, true); else await api("/catalogo", "POST", { nombre, video, material }, true); $("ex-overlay").classList.remove("on"); await cargarCatalogo(); }
     catch (e) { msg($("ex-msg"), e.message, "error"); } finally { $("ex-guardar").disabled = false; }
   };
-  async function borrarEjercicio(id) { const e = CATALOGO.find((x) => x.id === id); if (!confirm(`¿Borrar "${e.nombre}" del catálogo?`)) return; await api("/catalogo/" + id, "DELETE", null, true); await cargarCatalogo(); }
+  async function borrarEjercicio(id) { const e = CATALOGO.find((x) => x.id === id); if (!await confirmar(`¿Borrar "${e.nombre}" del catálogo?`)) return; await api("/catalogo/" + id, "DELETE", null, true); await cargarCatalogo(); }
 
   // ---------- ALUMNOS + INVITACIONES ----------
   const linkInvitacion = (codigo) => location.origin + location.pathname + "?invita=" + codigo;
   async function copiarTexto(texto, btn) {
     try { await navigator.clipboard.writeText(texto); if (btn) { const t = btn.textContent; btn.textContent = "¡Copiado!"; setTimeout(() => (btn.textContent = t), 1500); } return true; }
-    catch { prompt("Copiá este link:", texto); return false; }
+    catch { aviso("", { titulo: "Copiá este link", copiar: texto }); return false; }
   }
   async function cargarAlumnos() {
     // Invitaciones pendientes
@@ -1520,7 +1733,7 @@
       ? `<div style="font-size:12px;color:var(--muted);margin:2px 0 8px">Invitaciones pendientes (${pend.length})</div>` + pend.map((i) => `<div class="ex"><div class="info"><div class="n">${esc(i.nota || "Invitación")}</div><div class="m">Link sin usar</div></div><button class="btn ghost sm" style="width:auto;padding:0 12px;flex-shrink:0" data-copiar="${i.codigo}">Copiar</button><button class="btn ghost sm" style="width:40px;padding:0;flex-shrink:0" data-cancelar="${i.id}" title="Cancelar">✕</button></div>`).join("")
       : "";
     cp.querySelectorAll("[data-copiar]").forEach((b) => (b.onclick = () => copiarTexto(linkInvitacion(b.dataset.copiar), b)));
-    cp.querySelectorAll("[data-cancelar]").forEach((b) => (b.onclick = async () => { if (!confirm("¿Cancelar esta invitación? El link quedará inválido.")) return; await api("/invitaciones/" + b.dataset.cancelar, "DELETE", null, true); cargarAlumnos(); }));
+    cp.querySelectorAll("[data-cancelar]").forEach((b) => (b.onclick = async () => { if (!await confirmar("¿Cancelar esta invitación?\nEl link va a dejar de funcionar.", { ok: "Cancelar invitación", no: "Volver", peligro: true })) return; await api("/invitaciones/" + b.dataset.cancelar, "DELETE", null, true); cargarAlumnos(); }));
 
     // Alumnos registrados: los cacheamos y delegamos el pintado en renderListaAlumnos,
     // así el buscador filtra en memoria sin volver a pegarle al servidor en cada tecla.
@@ -1561,9 +1774,9 @@
     cont.querySelectorAll("[data-reset-alumno]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); resetAlumno(Number(b.dataset.resetAlumno), b.closest("[data-alumno]").querySelector(".n").textContent); }));
   }
   async function borrarAlumno(id, nombre) {
-    if (!confirm(`¿Borrar a ${nombre}?\n\nSe elimina su cuenta, su rutina y todo su historial de cargas. Esto no se puede deshacer.`)) return;
+    if (!await confirmar(`¿Borrar a ${nombre}?\n\nSe elimina su cuenta, su rutina y todo su historial de cargas. Esto no se puede deshacer.`)) return;
     try { await api("/alumnos/" + id, "DELETE", null, true); cargarAlumnos(); cargarEvalsProfe(); }
-    catch (e) { alert("No se pudo borrar: " + e.message); }
+    catch (e) { aviso("No se pudo borrar: " + e.message); }
   }
   // Buscador de alumnos: filtra en memoria sobre la lista ya cargada (sin request por tecla).
   if ($("al-buscar")) $("al-buscar").oninput = () => renderListaAlumnos();
@@ -1577,9 +1790,9 @@
       const r = await api("/invitaciones", "POST", { nota }, true);
       $("inv-overlay").classList.remove("on");
       const copiado = await copiarTexto(linkInvitacion(r.codigo), null);
-      if (copiado) alert("¡Link copiado! Pegáselo a tu alumno por WhatsApp. Es de un solo uso.");
+      if (copiado) aviso("¡Link copiado! Pegáselo a tu alumno por WhatsApp. Es de un solo uso.");
       await cargarAlumnos();
-    } catch (e) { alert(e.message); } finally { $("inv-generar").disabled = false; }
+    } catch (e) { aviso(e.message); } finally { $("inv-generar").disabled = false; }
   };
 
   // ---------- Helpers de fecha / edad ----------
@@ -1943,12 +2156,12 @@
     let { y, m } = calMes; m += delta;
     if (m < 0) { m = 11; y--; } else if (m > 11) { m = 0; y++; }
     calMes = { y, m };
-    if (!dentroDeRango(y, m)) { try { await cargarRutinaEnRango(y, m); } catch (e) { alert("No se pudo cargar ese mes: " + e.message); } }
+    if (!dentroDeRango(y, m)) { try { await cargarRutinaEnRango(y, m); } catch (e) { aviso("No se pudo cargar ese mes: " + e.message); } }
     renderRutina();
   }
   async function calHoy() {
     calInit();
-    if (!dentroDeRango(calMes.y, calMes.m)) { try { await cargarRutinaEnRango(calMes.y, calMes.m); } catch (e) { alert("No se pudo cargar: " + e.message); } }
+    if (!dentroDeRango(calMes.y, calMes.m)) { try { await cargarRutinaEnRango(calMes.y, calMes.m); } catch (e) { aviso("No se pudo cargar: " + e.message); } }
     renderRutina();
   }
 
@@ -2024,7 +2237,7 @@
     // Sin sesiones guardadas: entro al vacío si existe, o creo uno nuevo.
     if (vacio) { rutNav.diaId = vacio.id; rutNav.bloqueId = null; renderRutina(); return; }
     try { await crearDiaEnBlanco(iso); }
-    catch (e) { alert("No se pudo crear el día: " + e.message); }
+    catch (e) { aviso("No se pudo crear el día: " + e.message); }
   }
 
   // NIVEL 1: calendario mensual (+ guardrail de días sin fecha, si los hubiera)
@@ -2154,7 +2367,7 @@
   }
 
   async function borrarNodo(tipo, id, pregunta) {
-    if (pregunta && !confirm(pregunta)) return;
+    if (pregunta && !await confirmar(pregunta)) return;
     if (tipo === "dias") RUTINA = RUTINA.filter((d) => d.id !== id);
     else if (tipo === "bloques") RUTINA.forEach((d) => { d.bloques = (d.bloques || []).filter((b) => b.id !== id); });
     else if (tipo === "ejercicios") RUTINA.forEach((d) => (d.bloques || []).forEach((b) => { b.ejercicios = (b.ejercicios || []).filter((e) => e.id !== id); }));
@@ -2163,7 +2376,7 @@
       const r = await api("/" + tipo + "/" + id, "DELETE", null, true);
       if (tipo === "dias") aplicarOrigenDesmarcado(r && r.origen);
     }
-    catch (e) { alert("No se pudo borrar: " + e.message); await cargarRutina(); }
+    catch (e) { aviso("No se pudo borrar: " + e.message); await cargarRutina(); }
   }
   // Si al borrar un molde el servidor nos avisa que el día ORIGEN se quedó sin ninguna copia
   // guardada (ver DELETE /dias/:id en el worker), reflejamos el destildado acá: el tilde de
@@ -2217,7 +2430,7 @@
       }
       $("dia-overlay").classList.remove("on");
       renderRutina();
-    } catch (e) { alert(e.message); } finally { btn.disabled = false; }
+    } catch (e) { aviso(e.message); } finally { btn.disabled = false; }
   };
 
   // ============================================================
@@ -2278,7 +2491,7 @@
       } while (dia._cajonSyncPend);  // hubo más toques mientras sincronizábamos: re-evaluamos
     } catch (e) {
       // Algo falló: resincronizamos todo con el server para no quedar en un estado inconsistente.
-      alert("No se pudo actualizar el cajón: " + e.message);
+      aviso("No se pudo actualizar el cajón: " + e.message);
       await cargarRutina();
       renderRutina();
     } finally {
@@ -2325,7 +2538,7 @@
   $("um-inc-inc").onclick = () => pintarIncremento(leerIncremento() + 0.5);
   $("um-guardar").onclick = async () => {
     const iso = $("um-fecha").value;
-    if (!iso) { alert("Elegí una fecha."); return; }
+    if (!iso) { aviso("Elegí una fecha."); return; }
     const n = Math.max(1, Math.min(12, Number($("um-semanas").value) || 1));
     const fechas = [];
     for (let k = 0; k < n; k++) { const d = new Date(iso + "T00:00:00"); d.setDate(d.getDate() + 7 * k); fechas.push(isoLocal(d.getFullYear(), d.getMonth(), d.getDate())); }
@@ -2343,7 +2556,7 @@
       if (r.dias && r.dias.length) { for (const d of r.dias) RUTINA.push(d); ordenarRutina(RUTINA); }
       $("usarmolde-overlay").classList.remove("on");
       if (r.dias && r.dias.length) { rutNav.diaId = r.dias[0].id; rutNav.bloqueId = null; renderRutina(); }
-    } catch (e) { alert("No se pudo agregar: " + e.message); } finally { btn.disabled = false; }
+    } catch (e) { aviso("No se pudo agregar: " + e.message); } finally { btn.disabled = false; }
   };
 
   // ===== ARMAR MES (semana tipo estampable) =====
@@ -2355,7 +2568,7 @@
   function abrirArmarMes() {
     const moldes = moldesDelCajon();
     if (!moldes.length) {
-      alert("Primero guardá al menos una sesión en el cajón: entrá a un día y tocá el ícono de guardar. Después volvés acá y la usás para armar el mes.");
+      aviso("Primero guardá al menos una sesión en el cajón: entrá a un día y tocá el ícono de guardar. Después volvés acá y la usás para armar el mes.");
       return;
     }
     armarMesDias = [{ moldeId: moldes[0].id, fecha: "" }];
@@ -2406,8 +2619,8 @@
   $("am-inc-inc").onclick = () => { const v = parsePeso($("am-incremento").value) || 2.5; $("am-incremento").value = String(Math.round((v + 0.5) * 2) / 2).replace(".", ","); };
   $("am-cancelar").onclick = () => $("armarmes-overlay").classList.remove("on");
   $("am-guardar").onclick = async () => {
-    if (armarMesDias.some((d) => !d.moldeId)) { alert("Elegí una sesión para cada día."); return; }
-    if (armarMesDias.some((d) => !d.fecha)) { alert("Ponele fecha de arranque a cada día."); return; }
+    if (armarMesDias.some((d) => !d.moldeId)) { aviso("Elegí una sesión para cada día."); return; }
+    if (armarMesDias.some((d) => !d.fecha)) { aviso("Ponele fecha de arranque a cada día."); return; }
     const n = Math.max(1, Math.min(12, Number($("am-semanas").value) || 1));
     let progresion = null;
     if (n > 1 && $("am-prog").classList.contains("on")) {
@@ -2431,7 +2644,7 @@
       rutNav.diaId = null; rutNav.bloqueId = null; renderRutina();
       mostrarToast(`✓ Mes armado: ${creados} sesiones creadas`);
     } catch (e) {
-      alert("No se pudo armar el mes: " + e.message);
+      aviso("No se pudo armar el mes: " + e.message);
     } finally { btn.disabled = false; btn.textContent = txt; }
   };
 
@@ -2471,14 +2684,14 @@
     cont.querySelectorAll("[data-del]").forEach((b) => (b.onclick = async (e) => {
       e.stopPropagation();
       const id = Number(b.dataset.del);
-      if (!confirm("¿Borrar esta sesión guardada?")) return;
+      if (!await confirmar("¿Borrar esta sesión guardada?")) return;
       RUTINA = RUTINA.filter((d) => d.id !== id);
       renderNdMoldes();
       try {
         const r = await api("/dias/" + id, "DELETE", null, true);
         aplicarOrigenDesmarcado(r && r.origen);
       }
-      catch (err) { alert("No se pudo borrar: " + err.message); await cargarRutina(); renderNdMoldes(); }
+      catch (err) { aviso("No se pudo borrar: " + err.message); await cargarRutina(); renderNdMoldes(); }
     }));
   }
   $("nd-blanco").onclick = async () => {
@@ -2486,7 +2699,7 @@
     // Si ya había un día vacío en esa fecha, entro a él en vez de crear otro.
     if (nuevoDiaVacioId) { rutNav.diaId = nuevoDiaVacioId; rutNav.bloqueId = null; renderRutina(); return; }
     try { await crearDiaEnBlanco(nuevoDiaISO); }
-    catch (e) { alert("No se pudo crear el día: " + e.message); }
+    catch (e) { aviso("No se pudo crear el día: " + e.message); }
   };
   $("nd-cancelar").onclick = () => $("nuevodia-overlay").classList.remove("on");
   async function traerMoldeAFecha(moldeId, iso, filaEl) {
@@ -2505,7 +2718,7 @@
       }
     } catch (e) {
       if (filaEl) { filaEl.style.opacity = ""; filaEl.style.pointerEvents = ""; }
-      alert("No se pudo traer la sesión: " + e.message);
+      aviso("No se pudo traer la sesión: " + e.message);
     }
   }
 
@@ -2539,7 +2752,7 @@
       }
       $("bloque-overlay").classList.remove("on");
       ctxRender();
-    } catch (e) { alert(e.message); } finally { btn.disabled = false; }
+    } catch (e) { aviso(e.message); } finally { btn.disabled = false; }
   };
 
   // Modal agregar ejercicio (autocomplete sobre el catalogo)
@@ -2709,27 +2922,27 @@
     $("admin-lista").querySelectorAll(".adm-reset").forEach((b) => (b.onclick = () => resetProfe(Number(b.dataset.resetProfe), b.dataset.nombre)));
   }
   async function resetAlumno(id, nombre) {
-    if (!confirm(`¿Resetear la contraseña de ${nombre}?\n\nSe genera una nueva; la actual deja de servir y se cierra su sesión.`)) return;
+    if (!await confirmar(`¿Resetear la contraseña de ${nombre}?\n\nSe genera una nueva; la actual deja de servir y se cierra su sesión.`)) return;
     try {
       const r = await api("/alumnos/" + id + "/reset-password", "POST", {}, true);
       let copiada = false; try { await navigator.clipboard.writeText(r.password); copiada = true; } catch {}
-      alert(`Nueva contraseña de ${nombre}:\n\n${r.password}\n\n${copiada ? "(Ya la copié al portapapeles.) " : ""}Pasásela por WhatsApp; con esa clave va a poder entrar. Al entrar, la app le va a pedir que elija una propia.`);
+      aviso(`${copiada ? "Ya la copié al portapapeles. " : ""}Pasásela por WhatsApp; con esa clave va a poder entrar. Al entrar, la app le va a pedir que elija una propia.`, { titulo: `Nueva contraseña de ${nombre}`, copiar: r.password });
       cargarAlumnos(); refrescarAvisosReset();
-    } catch (e) { alert(e.message); }
+    } catch (e) { aviso(e.message); }
   }
   async function resetProfe(id, nombre) {
-    if (!confirm(`¿Resetear la contraseña de ${nombre}?\n\nSe genera una nueva; la actual deja de servir y se cierra su sesión.`)) return;
+    if (!await confirmar(`¿Resetear la contraseña de ${nombre}?\n\nSe genera una nueva; la actual deja de servir y se cierra su sesión.`)) return;
     try {
       const r = await api("/admin/profesores/" + id + "/reset-password", "POST", {}, true);
       let copiada = false; try { await navigator.clipboard.writeText(r.password); copiada = true; } catch {}
-      alert(`Nueva contraseña de ${nombre}:\n\n${r.password}\n\n${copiada ? "(Ya la copié al portapapeles.) " : ""}Pasásela para que pueda entrar. Al entrar, la app le va a pedir que elija una propia.`);
+      aviso(`${copiada ? "Ya la copié al portapapeles. " : ""}Pasásela para que pueda entrar. Al entrar, la app le va a pedir que elija una propia.`, { titulo: `Nueva contraseña de ${nombre}`, copiar: r.password });
       abrirAdmin(); refrescarAvisosReset();
-    } catch (e) { alert(e.message); }
+    } catch (e) { aviso(e.message); }
   }
   async function borrarProfe(id, nombre) {
-    if (!confirm(`¿Borrar al profe ${nombre}?\n\nQueda deshabilitado y se oculta de la lista. Sus datos se conservan por si hay que recuperarlo.`)) return;
+    if (!await confirmar(`¿Borrar al profe ${nombre}?\n\nQueda deshabilitado y se oculta de la lista. Sus datos se conservan por si hay que recuperarlo.`)) return;
     try { await api("/admin/profesores/" + id, "DELETE", null, true); abrirAdmin(); }
-    catch (e) { alert("No se pudo borrar: " + e.message); }
+    catch (e) { aviso("No se pudo borrar: " + e.message); }
   }
   async function toggleProfe(btn) {
     const id = Number(btn.dataset.id);
@@ -2740,7 +2953,7 @@
     btn.title = nuevo ? "Habilitado" : "En pausa";
     try { await api("/admin/profesores/" + id, "PUT", { habilitado: !!nuevo }, true); }
     catch (e) {
-      alert(e.message);
+      aviso(e.message);
       const revert = nuevo ? 0 : 1; // volver atrás si falló
       btn.dataset.hab = String(revert); btn.classList.toggle("on", !!revert); btn.setAttribute("aria-checked", revert ? "true" : "false");
     }
@@ -2775,6 +2988,11 @@
     try {
       const data = await api("/mi-rutina", "GET", null, true);
       MI_RUTINA = data.dias || [];
+      // Notas del día guardadas sin señal: las mostramos ya.
+      for (const it of leerCola()) if (it.clave && it.clave.startsWith("nota:")) {
+        const d = MI_RUTINA.find((x) => x.id === Number(it.clave.slice(5)));
+        if (d) d.nota_alumno = it.body.nota || "";
+      }
       // Cargas y mejores marcas en paralelo: son dos consultas independientes,
       // no hace falta esperar una para pedir la otra.
       await Promise.all([recargarCargas(), cargarMejoresMarcas()]);
@@ -2788,10 +3006,31 @@
       $("al-sesion").innerHTML = `<div class="empty" style="padding:40px"><p>No pudimos cargar tu rutina.<br>${esc(e.message)}</p></div>`;
     }
   }
+  // Las cargas guardadas sin señal todavía no están en el servidor: las sumamos a la lista
+  // (y sacamos la versión vieja de ese ejercicio ese día, porque el servidor la reemplaza).
+  function aplicarCargasPendientes(lista) {
+    const pend = leerCola().filter((x) => x.path === "/cargas");
+    if (!pend.length) return lista;
+    const ctx = {};
+    for (const d of MI_RUTINA) for (const b of (d.bloques || [])) for (const e of (b.ejercicios || [])) ctx[e.id] = e;
+    let out = lista.slice();
+    for (const it of pend) {
+      const fechaSQL = String(it.body.fecha || new Date(it.t).toISOString()).slice(0, 19).replace("T", " ");
+      const dia = fechaSQL.slice(0, 10);
+      out = out.filter((c) => !(c.ejercicio_id === it.body.ejercicio_id && String(c.fecha || "").slice(0, 10) === dia));
+      const e = ctx[it.body.ejercicio_id] || {};
+      for (const st of (it.body.sets || [])) out.push({
+        ejercicio_id: it.body.ejercicio_id, catalogo_id: e.catalogo_id, ejercicio: e.nombre, fecha: fechaSQL,
+        serie: st.serie ?? null, peso: st.peso ?? null, reps_hechas: st.reps_hechas || null, rpe: st.rpe ?? null,
+        completado: st.completado ? 1 : 0, notas: st.notas || null, _pendiente: true,
+      });
+    }
+    return out.sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
+  }
   async function recargarCargas() {
     HECHOS = {}; CARGAS = []; ULTIMAS = {};
     try {
-      CARGAS = (await api("/mis-cargas", "GET", null, true)) || [];
+      CARGAS = aplicarCargasPendientes((await api("/mis-cargas", "GET", null, true)) || []);
       // CARGAS viene DESC por fecha. Para cada ejercicio me quedo con la ÚLTIMA tanda
       // (la fecha más reciente) y armo sus series en un mapa por número de serie.
       for (const c of CARGAS) {
@@ -2829,6 +3068,16 @@
         const serie = c.serie != null ? c.serie : 1;
         if (u.sets[serie] == null) u.sets[serie] = Number(c.peso);
       }
+    } catch {}
+  }
+  // Foto de perfil: viaja aparte de /yo para que la app arranque más rápido (pesa ~100-300 KB).
+  // Si el worker es viejo y todavía la manda en /yo, la usamos directo.
+  async function cargarMiFoto(yo) {
+    if (!yo || yo.foto !== undefined || !yo.tiene_foto) return;
+    try {
+      const r = await api("/mi-foto", "GET", null, true);
+      if (alYo) alYo.foto = r.foto || null;
+      if ($("al-view-perfil").classList.contains("on")) renderPerfil();
     } catch {}
   }
   // Mejor marca histórica por ejercicio del catálogo (para "Tu mejor marca anterior" y el aviso de PR).
@@ -2951,14 +3200,15 @@
         sv.disabled = true; const t = sv.textContent; sv.textContent = "Guardando...";
         try {
           const val = ta.value.trim();
-          await api("/mi-dia/" + dia.id + "/nota", "PUT", { nota: val || null }, true);
+          const r = await enviarOEncolar("/mi-dia/" + dia.id + "/nota", "PUT", { nota: val || null }, "nota:" + dia.id);
           dia.nota_alumno = val;
           // Persistimos también en el objeto real de MI_RUTINA (dia puede ser un merge efímero).
           const real = MI_RUTINA.find((d) => d.id === dia.id);
           if (real) real.nota_alumno = val;
-          sv.textContent = "Guardada ✓";
+          sv.textContent = r.encolado ? "Guardada en el celu" : "Guardada ✓";
+          if (r.encolado) mostrarToast("Sin señal: la nota quedó en tu celu y se manda sola cuando vuelva la conexión.");
           setTimeout(() => { const b = cont.querySelector("#notadia-save"); if (b) { b.textContent = "Guardar nota"; b.disabled = true; } }, 1500);
-        } catch (e) { alert("No se pudo guardar la nota: " + e.message); sv.textContent = t; sv.disabled = false; }
+        } catch (e) { aviso("No se pudo guardar la nota: " + e.message); sv.textContent = t; sv.disabled = false; }
       };
     }
 
@@ -3199,7 +3449,8 @@
         const kg = resumenKg(sets);
         const hechas = sets.filter((s) => s.completado).length;
         const sub = sets.length > 1 ? `${hechas}/${sets.length} series` : (sets[0] && sets[0].completado ? "✓ hecho" : "");
-        return `<div class="cg-item"><div class="cg-n">${esc(g.nombre || "Ejercicio")}<div class="cg-r">${sub}</div></div><div class="cg-v">${kg}</div></div>`;
+        const pendiente = sets.some((x) => x._pendiente) ? `<span class="cg-pend">por enviar</span>` : "";
+        return `<div class="cg-item"><div class="cg-n">${esc(g.nombre || "Ejercicio")}${pendiente}<div class="cg-r">${sub}</div></div><div class="cg-v">${kg}</div></div>`;
       }).join("");
       return `<div class="cg-day">${esc(fmtFechaLarga(k))}</div>${items}`;
     }).join("");
@@ -3657,7 +3908,17 @@
       // Mejor marca ANTES de guardar (para el aviso de récord superado).
       const mejorAnterior = MEJORES_MARCAS[ej.catalogo_id];
 
-      await api("/cargas", "POST", { ejercicio_id: ej.id, sets }, true);
+      const ahora = new Date().toISOString();
+      const r = await enviarOEncolar("/cargas", "POST", { ejercicio_id: ej.id, sets, fecha: ahora }, "carga:" + ej.id + ":" + ahora.slice(0, 10));
+      if (r.encolado) {
+        await recargarCargas();
+        // La marca la calculamos acá con lo que hay en el celu; el servidor la confirma al enviar.
+        const top = Math.max(...sets.map((x) => x.peso || 0));
+        if (top > 0 && (MEJORES_MARCAS[ej.catalogo_id] == null || top > MEJORES_MARCAS[ej.catalogo_id])) MEJORES_MARCAS[ej.catalogo_id] = top;
+        cerrarDetalle(); renderMiRutina();
+        mostrarToast("Sin señal: quedó guardado en tu celu y se manda solo cuando vuelva la conexión.");
+        return;
+      }
       // Refrescamos cargas Y mejores marcas desde el servidor. La marca es el
       // MAX(peso > 0) real del historial, así que si corregís un peso cargado
       // de más (o lo ponés en cero), la marca BAJA sola. Antes hacíamos Math.max
@@ -3671,7 +3932,7 @@
       if (mejorNueva != null && mejorAnterior != null && mejorNueva > mejorAnterior) {
         mostrarToast(`💪 ¡Superaste tu marca anterior en ${ej.nombre || "este ejercicio"}! ${mejorAnterior}kg → ${mejorNueva}kg`);
       }
-    } catch (e) { alert(e.message); } finally { btn.disabled = false; }
+    } catch (e) { aviso(e.message); } finally { btn.disabled = false; }
   }
 
   // Marcar como hecho un ejercicio SIN registro de carga (toggle apagado):
@@ -3681,11 +3942,13 @@
     const sets = (plan.length ? plan : [{ numero: 1 }]).map((s) => ({ serie: s.numero, peso: null, completado: true }));
     const btn = $("det-accion"); btn.disabled = true;
     try {
-      await api("/cargas", "POST", { ejercicio_id: ej.id, sets }, true);
+      const ahora = new Date().toISOString();
+      const r = await enviarOEncolar("/cargas", "POST", { ejercicio_id: ej.id, sets, fecha: ahora }, "carga:" + ej.id + ":" + ahora.slice(0, 10));
       await recargarCargas();
       cerrarDetalle();
       renderMiRutina();
-    } catch (e) { alert(e.message); } finally { btn.disabled = false; }
+      if (r.encolado) mostrarToast("Sin señal: quedó guardado en tu celu y se manda solo cuando vuelva la conexión.");
+    } catch (e) { aviso(e.message); } finally { btn.disabled = false; }
   }
 
   // ============================================================
@@ -3710,7 +3973,7 @@
   function ctxRender() { if (enPlantilla()) renderPlantilla(); else renderRutina(); }
   async function ctxRecargar() {
     if (!enPlantilla()) return cargarRutina();
-    try { PL_ACTUAL = await api("/plantillas/" + PL_ACTUAL.id, "GET", null, true); } catch (e) { alert(e.message); }
+    try { PL_ACTUAL = await api("/plantillas/" + PL_ACTUAL.id, "GET", null, true); } catch (e) { aviso(e.message); }
     renderPlantilla();
   }
   // Los íconos de seguimiento/progreso/evaluaciones son del alumno: en una planificación no van.
@@ -3767,7 +4030,7 @@
       e.stopPropagation();
       b.disabled = true;
       try { await api("/plantillas/" + b.dataset.dup + "/duplicar", "POST", {}, true); await cargarPlantillas(); mostrarToast("✓ Planificación duplicada"); }
-      catch (err) { alert("No se pudo duplicar: " + err.message); b.disabled = false; }
+      catch (err) { aviso("No se pudo duplicar: " + err.message); b.disabled = false; }
     }));
     cont.querySelectorAll("[data-del]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); borrarPlantilla(Number(b.dataset.del)); }));
   }
@@ -3776,13 +4039,13 @@
 
   async function borrarPlantilla(id) {
     const p = PLANTILLAS.find((x) => x.id === id) || PL_ACTUAL;
-    if (!confirm(`¿Borrar la planificación "${p ? p.nombre : ""}"?\n\nLo que ya asignaste a tus alumnos NO se borra: son copias aparte.`)) return;
+    if (!await confirmar(`¿Borrar la planificación "${p ? p.nombre : ""}"?\n\nLo que ya asignaste a tus alumnos NO se borra: son copias aparte.`)) return;
     try {
       await api("/plantillas/" + id, "DELETE", null, true);
       PLANTILLAS = PLANTILLAS.filter((x) => x.id !== id);
       if (PL_ACTUAL && PL_ACTUAL.id === id) cerrarEditorPlantilla();
       renderPlantillas();
-    } catch (e) { alert("No se pudo borrar: " + e.message); }
+    } catch (e) { aviso("No se pudo borrar: " + e.message); }
   }
 
   // ---- Editor de una planificación (reusa la vista #profe-rutina) ----
@@ -3877,13 +4140,13 @@
     $("rut-add").onclick = () => abrirRej(bloque.id);
   }
   async function plBorrar(tipo, id) {
-    if (tipo === "bloque" && !confirm("¿Borrar el bloque?")) return;
+    if (tipo === "bloque" && !await confirmar("¿Borrar el bloque?")) return;
     const pl = PL_ACTUAL;
     if (tipo === "bloque") pl.bloques = (pl.bloques || []).filter((b) => b.id !== id);
     else (pl.bloques || []).forEach((b) => { b.ejercicios = (b.ejercicios || []).filter((e) => e.id !== id); });
     renderPlantilla();
     try { await api((tipo === "bloque" ? "/plantilla-bloques/" : "/plantilla-ejercicios/") + id, "DELETE", null, true); }
-    catch (e) { alert("No se pudo borrar: " + e.message); await ctxRecargar(); }
+    catch (e) { aviso("No se pudo borrar: " + e.message); await ctxRecargar(); }
   }
 
   // ---- Modal datos de la planificación: nueva / editar / guardar un día como planificación ----
@@ -3949,7 +4212,7 @@
     if (!pl) return;
     asigPl = pl; asigCtx = ctx || {};
     const fijo = !!asigCtx.alumnoId;
-    if (!fijo && !ALUMNOS_PROF.length) { alert("Todavía no tenés alumnos para asignarle esta planificación."); return; }
+    if (!fijo && !ALUMNOS_PROF.length) { aviso("Todavía no tenés alumnos para asignarle esta planificación."); return; }
     $("asig-h3").textContent = "Asignar: " + pl.nombre;
     $("asig-alumno-wrap").style.display = fijo ? "none" : "";
     if (!fijo) {
@@ -4462,7 +4725,7 @@
     finally { btn.disabled = false; }
   };
   $("ev-borrar").onclick = async () => {
-    if (!EVF || !confirm("¿Borrar esta evaluación? No se puede deshacer.")) return;
+    if (!EVF || !await confirmar("¿Borrar esta evaluación? No se puede deshacer.")) return;
     try {
       await api("/evaluaciones/" + EVF.ev.id, "DELETE", null, true);
       $("ev-overlay").classList.remove("on");
@@ -4536,7 +4799,7 @@
   // Pedir evaluación
   let evpSel = new Set(), evpInstrTocado = false;
   function abrirPedirEval(preseleccion) {
-    if (!ALUMNOS_PROF.length) { alert("Todavía no tenés alumnos."); return; }
+    if (!ALUMNOS_PROF.length) { aviso("Todavía no tenés alumnos."); return; }
     evpSel = new Set(preseleccion || []);
     $("evp-tipo").innerHTML = ["Test iniciales", "Evaluaciones físicas"].map((g) =>
       `<optgroup label="${g}">` + TIPOS_ORDEN.filter((t) => TESTS[t].grupo === g).map((t) => `<option value="${t}">${esc(nombreTest(t))}</option>`).join("") + `</optgroup>`).join("");
@@ -4725,7 +4988,14 @@
   $("ra-btn").onclick = async () => { const nombre = $("ra-nombre").value.trim(), email = $("ra-email").value.trim(), pass = $("ra-pass").value, fecha_nac = $("ra-fecha-nac").value || null; if (!nombre || !email || !pass) return msg($("ra-msg"), "Completá nombre, email y contraseña", "error"); if (pass.length < 8) return msg($("ra-msg"), "La contraseña necesita 8 caracteres o más", "error"); if (pass !== $("ra-pass2").value) return msg($("ra-msg"), "Las contraseñas no coinciden", "error"); $("ra-btn").disabled = true; try { const r = await api("/registro/alumno", "POST", { nombre, email, password: pass, codigo_invitacion: codigoInvitacion, fecha_nac }, false); guardarToken(r.token); await entrar("alumno"); } catch (e) { msg($("ra-msg"), e.message, "error"); } finally { $("ra-btn").disabled = false; } };
   $("to-registro-profe").onclick = () => showAuth("s-reg-profe");
   $("to-login-1").onclick = () => showAuth("s-login");
-  const salir = async () => { try { await api("/logout", "POST", null, true); } catch {} borrarToken(); showAuth("s-login"); };
+  const salir = async () => {
+    const pend = ROL_ACTUAL === "alumno" ? leerCola().length : 0;
+    if (pend && !await confirmar(`¿Salir igual?\nTenés ${pend} registro${pend !== 1 ? "s" : ""} guardado${pend !== 1 ? "s" : ""} sin señal que todavía no se enviaron. Si salís, se pierden.`, { ok: "Salir igual", no: "Quedarme", peligro: true })) return;
+    try { await api("/logout", "POST", null, true); } catch {}
+    limpiarDatosOffline();
+    borrarToken(); ROL_ACTUAL = null; SIN_SENAL = false; pintarSinSenal();
+    showAuth("s-login");
+  };
   $("profe-salir").onclick = salir; $("alumno-salir").onclick = salir;
 
   // ---------- OLVIDÉ MI CONTRASEÑA ----------
