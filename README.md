@@ -90,3 +90,4 @@ Se sirve desde **GitHub Pages** (Settings → Pages → branch `main`, root). Se
   - Test iniciales: `ohs` (overhead squat) y `unipodal` (por pierna). El alumno pega el link del video; el profe marca compensaciones y puntaje 0-3.
   - Evaluaciones físicas: `rm` (1RM estimado, Brzycki/Epley), `cmj`, `abalakov`, `sj` (altura en cm o por tiempo de vuelo; potencia de Sayers; % de brazos e índice de elasticidad contra el último CMJ) y `vbt` (perfil carga-velocidad y 1RM estimado).
 - Migración: `npx wrangler d1 execute tuprofe-db --file=migracion-planificaciones-evaluaciones.sql --remote` (solo crea tablas; re-ejecutable).
+- 
