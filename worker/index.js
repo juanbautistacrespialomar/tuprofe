@@ -1054,8 +1054,10 @@ export default {
           return json({ rol: "profe", ...p, habilitado: profeHabilitado ? 1 : 0, es_admin: esAdmin ? 1 : 0,
                         pedidos_reset: { alumnos: pa ? pa.n : 0, profes: profesPend } });
         } else {
+          // La foto NO viaja acá (pesa mucho y /yo se pide en cada arranque): solo avisamos si
+          // tiene, y el front la pide aparte con GET /mi-foto.
           const a = await env.DB.prepare(
-            `SELECT a.id, a.nombre, a.email, a.objetivo, a.observaciones, a.profe_id, a.fecha_nac, a.foto, a.debe_cambiar,
+            `SELECT a.id, a.nombre, a.email, a.objetivo, a.observaciones, a.profe_id, a.fecha_nac, (a.foto IS NOT NULL) AS tiene_foto, a.debe_cambiar,
                     p.nombre AS profe_nombre
              FROM alumnos a LEFT JOIN profesores p ON p.id = a.profe_id
              WHERE a.id = ?`).bind(sesion.id).first();
@@ -1607,8 +1609,16 @@ export default {
         if (!(await ejercicioEsDelAlumno(ejercicio_id, sesion.id, env)))
           return json({ error: "Ese ejercicio no es de tu rutina" }, 403);
         const sets = Array.isArray(body.sets) ? body.sets : null;
-        // Timestamp compartido para toda la tanda (agrupa las series de una misma carga)
-        const fecha = new Date().toISOString().slice(0, 19).replace("T", " ");
+        // Timestamp compartido para toda la tanda (agrupa las series de una misma carga).
+        // Si la carga se guardó SIN SEÑAL y llega más tarde, el celu manda la fecha real en que
+        // entrenó (body.fecha). La aceptamos si es de los últimos 14 días y no es del futuro.
+        let cuando = new Date();
+        if (body.fecha) {
+          const f = new Date(body.fecha);
+          const ahoraMs = Date.now();
+          if (!isNaN(f) && f.getTime() <= ahoraMs + 5 * 60 * 1000 && f.getTime() >= ahoraMs - 14 * 24 * 3600 * 1000) cuando = f;
+        }
+        const fecha = cuando.toISOString().slice(0, 19).replace("T", " ");
         if (sets) {
           try {
             // Reemplazo la tanda de HOY de este ejercicio (evita duplicar si re-guarda el mismo día)
@@ -1688,6 +1698,12 @@ export default {
           return json({ error: "No se pudo guardar la nota (¿falta correr la migración de nota_alumno?)", detalle: String(e) }, 500);
         }
         return json({ ok: true });
+      }
+
+      // Foto de perfil del alumno, aparte de /yo.
+      if (path === "/mi-foto" && method === "GET" && esAlumno) {
+        const r = await env.DB.prepare("SELECT foto FROM alumnos WHERE id = ?").bind(sesion.id).first();
+        return json({ foto: r ? r.foto : null });
       }
 
       // Foto de perfil del alumno (data URL base64, ya comprimida en el cliente)
