@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- tuprofe · v87 -->
+<!-- tuprofe · v88 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
@@ -760,8 +760,8 @@
   body.kb-open .bottomnav { transform: translateY(140%); pointer-events: none; }
   body.kb-open #offline-pill { display: none !important; }
   /* Arriba respetamos la isla/notch del iPhone, así la ventana no queda tapada ni cortada. */
-  body.kb-open .overlay.on { top: var(--vv-top, 0px); bottom: auto; height: var(--vv-h, 100dvh); align-items: flex-start; padding-top: max(14px, env(safe-area-inset-top)); }
-  body.kb-open .overlay.on > .sheet, body.kb-open .detail-scroll { max-height: calc(var(--vv-h, 100dvh) - max(14px, env(safe-area-inset-top)) - 14px); }
+  body.kb-open .overlay.on { top: var(--vv-top, 0px); bottom: auto; height: var(--vv-h, 100dvh); align-items: flex-start; padding-bottom: 14px; }
+  body.kb-open .overlay.on > .sheet, body.kb-open .detail-scroll { max-height: calc(var(--vv-h, 100dvh) - var(--sa-top) - 14px); }
   /* La flecha de volver queda fija arriba mientras escribís (antes se iba con el scroll). */
   body.kb-open .detail-back { position: sticky; top: 0; width: 100%; height: 54px; margin: 0; padding: 0 0 0 12px; border-radius: 0; justify-content: flex-start; background: var(--surface); backdrop-filter: none; -webkit-backdrop-filter: none; border-bottom: 1px solid var(--border); }
   body.kb-open .detail-back svg { width: 36px; height: 36px; padding: 7px; box-sizing: border-box; border-radius: 50%; background: var(--surface-2); }
@@ -789,9 +789,21 @@
   #vid-full-box, #vid-full-box iframe { width: 100%; height: 100%; border: 0; display: block; }
   #vid-full-x { position: absolute; top: calc(env(safe-area-inset-top) + 8px); right: 12px; width: 40px; height: 40px; border-radius: 50%; border: none; background: rgba(255,255,255,.14); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; }
   #vid-full-x svg { width: 20px; height: 20px; }
+
+  /* v88: NADA debajo de la hora/batería. iOS 26 difumina todo lo que queda detrás de esa franja
+     (por eso se veía borroso el video arriba). Mismo arreglo que en Tu Contador:
+     1) las ventanas arrancan debajo de la isla (y terminan arriba de la barrita de inicio);
+     2) una franja fija del color del fondo tapa esa zona, así nunca hay contenido ahí. */
+  :root { --sa-top: max(14px, calc(env(safe-area-inset-top) + 8px)); --sa-bot: max(14px, calc(env(safe-area-inset-bottom) + 8px)); }
+  .overlay { padding-top: var(--sa-top); padding-bottom: var(--sa-bot); }
+  .sheet, .detail-scroll { max-height: calc(100dvh - var(--sa-top) - var(--sa-bot)); }
+  html.sa .sheet, html.sa .detail-scroll { max-height: calc(var(--saH, 100dvh) - var(--sa-top) - var(--sa-bot)); }
+  #dlg { padding-top: var(--sa-top); padding-bottom: var(--sa-bot); }
+  .statusbar-bg { position: fixed; top: 0; left: 0; right: 0; height: env(safe-area-inset-top); background: var(--bg); z-index: 99; pointer-events: none; }
 </style>
 </head>
 <body>
+<div class="statusbar-bg"></div>
 
 <!-- ============ AUTH ============ -->
 <div id="splash">
