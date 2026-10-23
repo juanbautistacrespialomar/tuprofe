@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- tuprofe · v82 -->
+<!-- tuprofe · v83 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
@@ -1569,44 +1569,63 @@
     catch (e) {
       if (!e.sinRed) throw e;
       const cola = leerCola().filter((x) => x.clave !== clave);
-      cola.push({ dueño: dueñoCache(), clave, path, method, body, t: Date.now() });
+      cola.push({ dueño: dueñoCache(), clave, path, method, body, t: Date.now(), diferido: true });
       if (!guardarCola(cola)) throw new Error("No hay conexión y no se pudo guardar en el celu. Probá de nuevo.");
       pintarSinSenal();
       return { ok: false, encolado: true };
     }
   }
-  let _enviandoCola = false;
+  // Manda lo que haya en la cola, en orden. Se usa para TODO guardado de cargas (con o sin
+  // señal): la pantalla se actualiza al instante con lo del celu y esto confirma por detrás.
+  //   - Si no hay señal, el registro queda "diferido" y se reintenta solo.
+  //   - Devuelve { sinRed, enviadosDiferidos, descartados, errores } para que quien llamó avise.
+  let _enviandoCola = false, _colaOtraVez = false;
   async function enviarCola() {
-    if (_enviandoCola || !token() || ROL_ACTUAL !== "alumno") return;
+    const res = { sinRed: false, enviados: 0, enviadosDiferidos: 0, descartados: 0, errores: [] };
+    if (!token() || ROL_ACTUAL !== "alumno") return res;
+    if (_enviandoCola) { _colaOtraVez = true; return res; }   // ya hay un envío en curso: lo nuevo sale en esa misma tanda
     let cola = leerCola();
-    if (!cola.length) { pintarSinSenal(); return; }
+    if (!cola.length) { pintarSinSenal(); return res; }
     _enviandoCola = true;
-    let enviados = 0, descartados = 0;
     try {
-      while (cola.length) {
-        const it = cola[0];
-        try { await api(it.path, it.method, it.body, true); enviados++; }
-        catch (e) {
-          if (e.sinRed) break;                          // sigue sin señal: probamos más tarde
-          if (e.status >= 500) break;                   // problema del servidor: reintentamos después
-          descartados++;                                // 4xx: ya no es válido (ej. el profe borró el ejercicio)
+      do {
+        _colaOtraVez = false;
+        cola = leerCola();
+        while (cola.length) {
+          const it = cola[0];
+          try { await api(it.path, it.method, it.body, true); res.enviados++; if (it.diferido) res.enviadosDiferidos++; }
+          catch (e) {
+            if (e.sinRed || e.status >= 500) {
+              // Sin señal (o el servidor falló): queda esperando y lo marcamos como diferido.
+              res.sinRed = res.sinRed || !!e.sinRed;
+              guardarCola(leerCola().map((x) => (x.clave === it.clave && x.t === it.t ? { ...x, diferido: true } : x)));
+              cola = [];
+              break;
+            }
+            res.descartados++; res.errores.push(e.message);   // 4xx: ya no es válido (ej. el profe borró el ejercicio)
+          }
+          cola = leerCola().filter((x) => !(x.clave === it.clave && x.t === it.t));
+          guardarCola(cola);
         }
-        cola = leerCola().filter((x) => !(x.clave === it.clave && x.t === it.t));
-        guardarCola(cola);
-      }
+      } while (_colaOtraVez && !res.sinRed);
     } finally { _enviandoCola = false; }
     pintarSinSenal();
-    if (enviados || descartados) {
+    if (res.enviados || res.descartados) {
+      // Traemos lo confirmado del servidor por detrás (marcas reales, etc.). Solo repintamos si
+      // algo cambió de verdad respecto de lo que ya se mostraba (diferidos o descartados), así
+      // no interrumpimos al alumno si está escribiendo la nota del día.
       await Promise.all([recargarCargas(), cargarMejoresMarcas()]);
-      renderMiRutina();
-      if (enviados) mostrarToast(`✓ Volvió la señal: se envi${enviados === 1 ? "ó 1 registro guardado" : "aron " + enviados + " registros guardados"}`);
-      if (descartados) aviso("Algunos registros guardados sin señal ya no se pudieron enviar\nPuede que tu profe haya cambiado esos ejercicios mientras tanto.");
+      if (res.enviadosDiferidos || res.descartados) renderMiRutina();
+      if (res.enviadosDiferidos) mostrarToast(`✓ Volvió la señal: se envi${res.enviadosDiferidos === 1 ? "ó 1 registro guardado" : "aron " + res.enviadosDiferidos + " registros guardados"}`);
+      if (res.descartados) aviso("No se pudo guardar un registro\n" + (res.errores[0] || "Puede que tu profe haya cambiado ese ejercicio.") + "\nRevisalo y volvé a cargarlo.");
     }
+    return res;
   }
   function marcarSinSenal(v) { SIN_SENAL = !!v; pintarSinSenal(); }
   function pintarSinSenal() {
     const pill = $("offline-pill"); if (!pill) return;
-    const n = ROL_ACTUAL === "alumno" ? leerCola().length : 0;
+    // Solo lo que quedó esperando por falta de señal (lo que se está mandando en el momento no cuenta).
+    const n = ROL_ACTUAL === "alumno" ? leerCola().filter((x) => x.diferido).length : 0;
     const mostrar = ROL_ACTUAL === "alumno" && (SIN_SENAL || n > 0);
     pill.classList.toggle("on", mostrar);
     document.body.classList.toggle("con-pill", mostrar);
@@ -3022,15 +3041,22 @@
       for (const st of (it.body.sets || [])) out.push({
         ejercicio_id: it.body.ejercicio_id, catalogo_id: e.catalogo_id, ejercicio: e.nombre, fecha: fechaSQL,
         serie: st.serie ?? null, peso: st.peso ?? null, reps_hechas: st.reps_hechas || null, rpe: st.rpe ?? null,
-        completado: st.completado ? 1 : 0, notas: st.notas || null, _pendiente: true,
+        completado: st.completado ? 1 : 0, notas: st.notas || null, _pendiente: !!it.diferido,
       });
     }
     return out.sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
   }
+  // Última lista de cargas confirmada por el servidor. El estado que ve el alumno (CARGAS,
+  // HECHOS, ULTIMAS) se arma con esto + lo que está en la cola, sin volver a pedir nada.
+  let CARGAS_SERVIDOR = [];
   async function recargarCargas() {
+    try { CARGAS_SERVIDOR = (await api("/mis-cargas", "GET", null, true)) || []; } catch {}
+    reconstruirCargas();
+  }
+  function reconstruirCargas() {
     HECHOS = {}; CARGAS = []; ULTIMAS = {};
     try {
-      CARGAS = aplicarCargasPendientes((await api("/mis-cargas", "GET", null, true)) || []);
+      CARGAS = aplicarCargasPendientes(CARGAS_SERVIDOR);
       // CARGAS viene DESC por fecha. Para cada ejercicio me quedo con la ÚLTIMA tanda
       // (la fecha más reciente) y armo sus series en un mapa por número de serie.
       for (const c of CARGAS) {
@@ -3903,36 +3929,44 @@
       sets.push({ serie, peso, rpe, completado: true });  // el mismo RPE va en todas las series
     });
     if (!sets.length) return;
-    const btn = $("det-accion"); btn.disabled = true;
-    try {
-      // Mejor marca ANTES de guardar (para el aviso de récord superado).
-      const mejorAnterior = MEJORES_MARCAS[ej.catalogo_id];
+    // Mejor marca ANTES de guardar (para el aviso de récord superado).
+    const mejorAnterior = MEJORES_MARCAS[ej.catalogo_id];
+    const top = Math.max(0, ...sets.map((x) => x.peso || 0));
+    // Récord provisorio con lo del celu (el servidor lo confirma al traer las marcas reales,
+    // y si corregiste un peso para abajo la marca baja sola ahí).
+    if (top > 0 && (mejorAnterior == null || top > mejorAnterior)) MEJORES_MARCAS[ej.catalogo_id] = top;
+    await registrarCarga(ej, sets);
+    if (mejorAnterior != null && top > mejorAnterior) {
+      mostrarToast(`💪 ¡Superaste tu marca anterior en ${ej.nombre || "este ejercicio"}! ${mejorAnterior}kg → ${top}kg`);
+    }
+  }
 
-      const ahora = new Date().toISOString();
-      const r = await enviarOEncolar("/cargas", "POST", { ejercicio_id: ej.id, sets, fecha: ahora }, "carga:" + ej.id + ":" + ahora.slice(0, 10));
-      if (r.encolado) {
-        await recargarCargas();
-        // La marca la calculamos acá con lo que hay en el celu; el servidor la confirma al enviar.
-        const top = Math.max(...sets.map((x) => x.peso || 0));
-        if (top > 0 && (MEJORES_MARCAS[ej.catalogo_id] == null || top > MEJORES_MARCAS[ej.catalogo_id])) MEJORES_MARCAS[ej.catalogo_id] = top;
-        cerrarDetalle(); renderMiRutina();
+  // Guardado INSTANTÁNEO: la carga entra en la cola del celu, la pantalla se actualiza y se
+  // cierra en el momento, y el envío al servidor sale por detrás (con o sin señal es el mismo
+  // camino). Antes la pantalla esperaba 3 pedidos seguidos al servidor antes de cerrarse.
+  async function registrarCarga(ej, sets) {
+    const ahora = new Date().toISOString();
+    const clave = "carga:" + ej.id + ":" + ahora.slice(0, 10);
+    const cola = leerCola().filter((x) => x.clave !== clave);
+    cola.push({ dueño: dueñoCache(), clave, path: "/cargas", method: "POST", body: { ejercicio_id: ej.id, sets, fecha: ahora }, t: Date.now(), diferido: false });
+    if (!guardarCola(cola)) {
+      // El celu no deja guardar (modo privado / sin espacio): mandamos directo y esperamos.
+      const btn = $("det-accion"); btn.disabled = true;
+      try { await api("/cargas", "POST", { ejercicio_id: ej.id, sets, fecha: ahora }, true); await recargarCargas(); cerrarDetalle(); renderMiRutina(); }
+      catch (e) { aviso(e.message); } finally { btn.disabled = false; }
+      return;
+    }
+    reconstruirCargas();
+    cerrarDetalle();
+    renderMiRutina();
+    // Confirmación en segundo plano.
+    enviarCola().then((res) => {
+      if (res && res.sinRed && leerCola().some((x) => x.clave === clave)) {
+        reconstruirCargas();   // ahora figura como "por enviar"
+        if ($("al-view-cargas").classList.contains("on")) renderCargas();
         mostrarToast("Sin señal: quedó guardado en tu celu y se manda solo cuando vuelva la conexión.");
-        return;
       }
-      // Refrescamos cargas Y mejores marcas desde el servidor. La marca es el
-      // MAX(peso > 0) real del historial, así que si corregís un peso cargado
-      // de más (o lo ponés en cero), la marca BAJA sola. Antes hacíamos Math.max
-      // acá mismo y por eso nunca podía bajar: ese era el bug.
-      await Promise.all([recargarCargas(), cargarMejoresMarcas()]);
-      cerrarDetalle();
-      renderMiRutina();
-
-      // ¿Superó su marca anterior? Comparamos el récord ya recalculado contra el previo.
-      const mejorNueva = MEJORES_MARCAS[ej.catalogo_id];
-      if (mejorNueva != null && mejorAnterior != null && mejorNueva > mejorAnterior) {
-        mostrarToast(`💪 ¡Superaste tu marca anterior en ${ej.nombre || "este ejercicio"}! ${mejorAnterior}kg → ${mejorNueva}kg`);
-      }
-    } catch (e) { aviso(e.message); } finally { btn.disabled = false; }
+    });
   }
 
   // Marcar como hecho un ejercicio SIN registro de carga (toggle apagado):
@@ -3940,15 +3974,7 @@
   async function marcarHechoSinCarga(ej) {
     const plan = planDe(ej);
     const sets = (plan.length ? plan : [{ numero: 1 }]).map((s) => ({ serie: s.numero, peso: null, completado: true }));
-    const btn = $("det-accion"); btn.disabled = true;
-    try {
-      const ahora = new Date().toISOString();
-      const r = await enviarOEncolar("/cargas", "POST", { ejercicio_id: ej.id, sets, fecha: ahora }, "carga:" + ej.id + ":" + ahora.slice(0, 10));
-      await recargarCargas();
-      cerrarDetalle();
-      renderMiRutina();
-      if (r.encolado) mostrarToast("Sin señal: quedó guardado en tu celu y se manda solo cuando vuelva la conexión.");
-    } catch (e) { aviso(e.message); } finally { btn.disabled = false; }
+    await registrarCarga(ej, sets);
   }
 
   // ============================================================
