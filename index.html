@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- tuprofe · v89 -->
+<!-- tuprofe · v90 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
@@ -804,6 +804,10 @@
   html.sa .sheet { max-height: calc(var(--saH, 100dvh) - var(--sa-top) - var(--sa-bot)); }
   #dlg { padding-top: var(--sa-top); padding-bottom: var(--sa-bot); }
   .statusbar-bg { position: fixed; top: 0; left: 0; right: 0; height: env(safe-area-inset-top); background: var(--bg); z-index: 99; pointer-events: none; }
+
+  /* v90: en las ventanas largas (evaluaciones, listas) el encabezado con la flecha de volver
+     queda fijo arriba al scrollear, igual que en el detalle del ejercicio. */
+  .ovl-scroll > .ovl-head { position: sticky; top: -22px; z-index: 3; background: var(--surface); margin: -22px -20px 14px; padding: 22px 20px 12px; border-bottom: 1px solid transparent; }
 </style>
 </head>
 <body>
@@ -1225,7 +1229,7 @@
 </div>
 
 <div class="overlay" id="prog-overlay">
-  <div class="sheet ovl-scroll" style="max-height:88vh;overflow-y:auto">
+  <div class="sheet ovl-scroll">
     <div class="ovl-head"><button class="ovl-back" id="prog-cerrar" title="Volver">‹</button><h3 id="prog-nombre" style="margin:0">Progreso</h3></div>
     <div id="prog-info"></div>
     <div id="prog-lista"></div>
@@ -1233,7 +1237,7 @@
 </div>
 
 <div class="overlay" id="seg-overlay">
-  <div class="sheet" style="max-height:90vh">
+  <div class="sheet">
     <div class="ovl-head"><button class="ovl-back" id="seg-cerrar" title="Volver">‹</button><h3 id="seg-nombre" style="margin:0">Seguimiento</h3></div>
     <div id="seg-lista"></div>
   </div>
@@ -1297,7 +1301,7 @@
 
 <!-- ============ MODAL evaluación (detalle: profe revisa / alumno carga) ============ -->
 <div class="overlay" id="ev-overlay">
-  <div class="sheet ovl-scroll" style="max-height:92dvh;overflow-y:auto">
+  <div class="sheet ovl-scroll">
     <div class="ovl-head"><button class="ovl-back" id="ev-cerrar" title="Volver">‹</button><div style="min-width:0"><h3 id="ev-h3" style="margin:0">Evaluación</h3><div class="hint" id="ev-sub" style="margin:2px 0 0"></div></div></div>
     <div class="msg" id="ev-msg"></div>
     <div id="ev-cuerpo"></div>
@@ -1308,7 +1312,7 @@
 
 <!-- ============ MODAL evaluaciones de UN alumno (profe) ============ -->
 <div class="overlay" id="eval-al-overlay">
-  <div class="sheet ovl-scroll" style="max-height:90vh;overflow-y:auto">
+  <div class="sheet ovl-scroll">
     <div class="ovl-head"><button class="ovl-back" id="eval-al-cerrar" title="Volver">‹</button><h3 id="eval-al-h3" style="margin:0">Evaluaciones</h3></div>
     <button class="btn sm" id="eval-al-pedir" style="margin-bottom:14px">+ Pedir evaluación</button>
     <div id="eval-al-lista"></div>
