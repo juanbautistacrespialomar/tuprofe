@@ -84,6 +84,32 @@ async function crearSesion(rol, usuarioId, env) {
     .bind(token, rol, usuarioId).run();
   return token;
 }
+// Sesión + estado de habilitación en UNA sola consulta (antes eran dos viajes por pedido).
+//   Profe: su `habilitado` y `es_admin`.   Alumno: el `habilitado` de su profe.
+// Devuelve { sesion, perfilProfe, profeDelAlumnoHabilitado } o null si el token no vale.
+async function resolverSesionCompleta(request, env) {
+  const token = (request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
+  if (!token) return null;
+  let r;
+  try {
+    r = await env.DB.prepare(
+      `SELECT s.rol, s.usuario_id, pp.id AS p_id, pp.habilitado AS p_hab, pp.es_admin AS p_admin, pa.habilitado AS a_prof_hab
+         FROM sesiones s
+         LEFT JOIN profesores pp ON s.rol = 'profe' AND pp.id = s.usuario_id
+         LEFT JOIN alumnos a ON s.rol = 'alumno' AND a.id = s.usuario_id
+         LEFT JOIN profesores pa ON pa.id = a.profe_id
+        WHERE s.token = ?`).bind(token).first();
+  } catch (e) {
+    // Base sin las columnas de admin (instalación muy vieja): camino anterior.
+    const s = await resolverSesion(request, env);
+    return s ? { sesion: s, perfilProfe: s.rol === "profe" ? { habilitado: 1, es_admin: 0 } : null, profeDelAlumnoHabilitado: true } : null;
+  }
+  if (!r) return null;
+  const sesion = { rol: r.rol, id: r.usuario_id };
+  const perfilProfe = r.rol === "profe" && r.p_id != null ? { habilitado: r.p_hab, es_admin: r.p_admin } : null;
+  const profeDelAlumnoHabilitado = r.rol === "alumno" && r.a_prof_hab != null ? r.a_prof_hab !== 0 : true;
+  return { sesion, perfilProfe, profeDelAlumnoHabilitado };
+}
 async function resolverSesion(request, env) {
   const token = (request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
   if (!token) return null;
@@ -196,6 +222,14 @@ const COLUMNAS_NECESARIAS = {
 let ESQUEMA_OK = false;
 async function asegurarEsquema(env) {
   if (ESQUEMA_OK) return;
+  // Chequeo rápido: UN solo viaje a la base. Si todas las columnas ya existen (lo normal),
+  // listo. Solo si falta alguna hacemos la revisión completa de abajo.
+  try {
+    await env.DB.batch(Object.keys(COLUMNAS_NECESARIAS).map((t) =>
+      env.DB.prepare(`SELECT ${COLUMNAS_NECESARIAS[t].map((c) => c[0]).join(", ")} FROM ${t} LIMIT 0`)));
+    ESQUEMA_OK = true;
+    return;
+  } catch (e) { /* falta algo: lo agregamos abajo */ }
   try {
     await env.DB.prepare(`CREATE TABLE IF NOT EXISTS series_plan (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -993,21 +1027,15 @@ export default {
       }
 
       // ================= REQUIERE TOKEN =================
-      const sesion = await resolverSesion(request, env);
-      if (!sesion) return json({ error: "No autorizado" }, 401);
-      await asegurarEsquema(env);   // agrega columnas faltantes, una sola vez por instancia
+      // Sesión + permisos (1 viaje) en paralelo con el chequeo de columnas (1 viaje, solo en instancias nuevas).
+      const [auth] = await Promise.all([resolverSesionCompleta(request, env), asegurarEsquema(env)]);
+      if (!auth) return json({ error: "No autorizado" }, 401);
+      const sesion = auth.sesion;
       const esProfe = sesion.rol === "profe";
       const esAlumno = sesion.rol === "alumno";
 
       // Estado del profe (habilitado / admin) para el control de acceso.
-      // Si la migración de admin todavía no corrió, degradamos sin romper.
-      let perfilProfe = null;
-      if (esProfe) {
-        try {
-          perfilProfe = await env.DB.prepare(
-            "SELECT habilitado, es_admin FROM profesores WHERE id = ?").bind(sesion.id).first();
-        } catch { perfilProfe = { habilitado: 1, es_admin: 0 }; }
-      }
+      const perfilProfe = esProfe ? auth.perfilProfe : null;
       const esAdmin = !!(perfilProfe && perfilProfe.es_admin);
       const profeHabilitado = !perfilProfe || perfilProfe.habilitado !== 0;
 
@@ -1020,15 +1048,7 @@ export default {
       // el alumno también queda en pausa. Borrar un profe ya deja habilitado = 0,
       // así que con chequear `habilitado` alcanza para cubrir ambos casos.
       // Ante un error de lectura degradamos sin bloquear (fail-open), igual que arriba.
-      let profeDelAlumnoHabilitado = true;
-      if (esAlumno) {
-        try {
-          const pa = await env.DB.prepare(
-            "SELECT p.habilitado FROM alumnos a JOIN profesores p ON p.id = a.profe_id WHERE a.id = ?"
-          ).bind(sesion.id).first();
-          if (pa) profeDelAlumnoHabilitado = pa.habilitado !== 0;
-        } catch { profeDelAlumnoHabilitado = true; }
-      }
+      const profeDelAlumnoHabilitado = esAlumno ? auth.profeDelAlumnoHabilitado : true;
 
       // Alumno cuyo profe está en pausa: solo puede consultar /yo y salir.
       if (esAlumno && !profeDelAlumnoHabilitado && path !== "/yo" && path !== "/logout" && path !== "/mi-password") {
@@ -1622,16 +1642,17 @@ export default {
         if (sets) {
           try {
             // Reemplazo la tanda de HOY de este ejercicio (evita duplicar si re-guarda el mismo día)
-            const hoy = fecha.slice(0, 10);
-            await env.DB.prepare(
+            // Borrar la tanda de ese día + insertar la nueva en UN solo viaje y de forma atómica
+            // (si algo falla no queda el día sin datos).
+            const dia = fecha.slice(0, 10);
+            const stmts = [env.DB.prepare(
               "DELETE FROM cargas WHERE ejercicio_id = ? AND alumno_id = ? AND substr(fecha,1,10) = ?"
-            ).bind(ejercicio_id, sesion.id, hoy).run();
-            const stmts = sets.map((s) => env.DB.prepare(
+            ).bind(ejercicio_id, sesion.id, dia)].concat(sets.map((s) => env.DB.prepare(
               `INSERT INTO cargas (ejercicio_id, alumno_id, fecha, serie, peso, reps_hechas, rpe, completado, notas)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-            ).bind(ejercicio_id, sesion.id, fecha, s.serie ?? null, s.peso ?? null, s.reps_hechas || null, s.rpe ?? null, s.completado ? 1 : 0, s.notas || null));
-            if (stmts.length) await env.DB.batch(stmts);
-            return json({ ok: true, n: stmts.length }, 201);
+            ).bind(ejercicio_id, sesion.id, fecha, s.serie ?? null, s.peso ?? null, s.reps_hechas || null, s.rpe ?? null, s.completado ? 1 : 0, s.notas || null)));
+            await env.DB.batch(stmts);
+            return json({ ok: true, n: sets.length }, 201);
           } catch (e) {
             // La columna `serie` no existe (migración sin correr): caigo a legacy.
           }
