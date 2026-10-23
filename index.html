@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- tuprofe · v85 -->
+<!-- tuprofe · v87 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
@@ -759,8 +759,12 @@
   .bottomnav { transition: transform .22s ease; }
   body.kb-open .bottomnav { transform: translateY(140%); pointer-events: none; }
   body.kb-open #offline-pill { display: none !important; }
-  body.kb-open .overlay.on { top: var(--vv-top, 0px); bottom: auto; height: var(--vv-h, 100dvh); align-items: flex-start; }
-  body.kb-open .overlay.on > .sheet, body.kb-open .detail-scroll { max-height: calc(var(--vv-h, 100dvh) - 28px); }
+  /* Arriba respetamos la isla/notch del iPhone, así la ventana no queda tapada ni cortada. */
+  body.kb-open .overlay.on { top: var(--vv-top, 0px); bottom: auto; height: var(--vv-h, 100dvh); align-items: flex-start; padding-top: max(14px, env(safe-area-inset-top)); }
+  body.kb-open .overlay.on > .sheet, body.kb-open .detail-scroll { max-height: calc(var(--vv-h, 100dvh) - max(14px, env(safe-area-inset-top)) - 14px); }
+  /* La flecha de volver queda fija arriba mientras escribís (antes se iba con el scroll). */
+  body.kb-open .detail-back { position: sticky; top: 0; width: 100%; height: 54px; margin: 0; padding: 0 0 0 12px; border-radius: 0; justify-content: flex-start; background: var(--surface); backdrop-filter: none; -webkit-backdrop-filter: none; border-bottom: 1px solid var(--border); }
+  body.kb-open .detail-back svg { width: 36px; height: 36px; padding: 7px; box-sizing: border-box; border-radius: 50%; background: var(--surface-2); }
   body.kb-open #det-accion { position: sticky; bottom: 10px; z-index: 2; box-shadow: 0 -10px 24px 6px var(--surface); }
 
   /* 5) Pantallas vacías: ícono, título, explicación y (si corresponde) el botón para arrancar. */
@@ -776,6 +780,15 @@
   .vacio.chico .vacio-ic { width: 52px; height: 52px; margin-bottom: 12px; }
   .vacio.chico .vacio-ic svg { width: 23px; height: 23px; }
   .vacio.chico .vacio-t { font-size: 15.5px; }
+
+  /* v87: botón propio para ver el video en pantalla completa (arriba a la derecha del video). */
+  .vid-grande { position: absolute; top: 12px; right: 12px; z-index: 3; width: 36px; height: 36px; border-radius: 50%; border: none; background: rgba(0,0,0,.55); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .vid-grande svg { width: 18px; height: 18px; }
+  #vid-full { position: fixed; inset: 0; z-index: 94; background: #000; display: none; padding: calc(env(safe-area-inset-top) + 56px) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+  #vid-full.on { display: block; animation: fadein .18s ease; }
+  #vid-full-box, #vid-full-box iframe { width: 100%; height: 100%; border: 0; display: block; }
+  #vid-full-x { position: absolute; top: calc(env(safe-area-inset-top) + 8px); right: 12px; width: 40px; height: 40px; border-radius: 50%; border: none; background: rgba(255,255,255,.14); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  #vid-full-x svg { width: 20px; height: 20px; }
 </style>
 </head>
 <body>
@@ -1350,7 +1363,18 @@
     }
     function centrar(el) {
       if (!el || document.activeElement !== el) return;
-      try { el.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (_) { el.scrollIntoView(); }
+      // Lo movemos lo justo para que el campo quede visible CON aire: 64px arriba (la flecha de
+      // volver) y 100px abajo (el botón Guardar pegado arriba del teclado). Lo calculamos a mano
+      // sobre el contenedor que scrollea porque scrollIntoView no respeta el botón pegado.
+      let sc = el.parentElement;
+      while (sc && !(/(auto|scroll)/.test(getComputedStyle(sc).overflowY) && sc.scrollHeight > sc.clientHeight)) sc = sc.parentElement;
+      if (!sc) { try { el.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (_) { el.scrollIntoView(); } return; }
+      const c = sc.getBoundingClientRect(), r = el.getBoundingClientRect();
+      const arriba = 64, abajo = document.body.classList.contains("kb-open") ? 100 : 24;
+      let d = 0;
+      if (r.bottom + abajo > c.bottom) d = r.bottom + abajo - c.bottom;
+      else if (r.top - arriba < c.top) d = r.top - arriba - c.top;
+      if (d) sc.scrollBy({ top: d, behavior: "smooth" });
     }
     vv.addEventListener("resize", () => { medir(); clearTimeout(timer); timer = setTimeout(() => centrar(document.activeElement), 120); });
     vv.addEventListener("scroll", medir);
@@ -1942,6 +1966,35 @@
 
   // ---------- Helpers compartidos: navegación + video ----------
   const embedURL = (id) => `https://www.youtube-nocookie.com/embed/${id}?rel=0&modestbranding=1&playsinline=1`;
+  // v87: el botón de pantalla completa de YouTube a veces no aparece (lo decide YouTube según el
+  // video y el celu: pasa sobre todo con Shorts en iPhone). Sumamos uno propio que SIEMPRE está:
+  // abre el video ocupando toda la pantalla.
+  const IFRAME_ALLOW = 'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen" allowfullscreen';
+  function videoEmbedHTML(id, titulo) {
+    return `<iframe src="${embedURL(id)}" title="${esc(titulo || "Video")}" ${IFRAME_ALLOW} loading="lazy"></iframe>` +
+      `<button type="button" class="vid-grande" data-vid-grande="${esc(id)}" title="Ver en pantalla completa" aria-label="Ver en pantalla completa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>`;
+  }
+  function abrirVideoGrande(id) {
+    let v = $("vid-full");
+    if (!v) {
+      v = document.createElement("div"); v.id = "vid-full";
+      v.innerHTML = `<button type="button" id="vid-full-x" aria-label="Cerrar video"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button><div id="vid-full-box"></div>`;
+      document.body.appendChild(v);
+      $("vid-full-x").onclick = cerrarVideoGrande;
+    }
+    // Pausamos el video chico (recargándolo) para que no sigan sonando los dos.
+    document.querySelectorAll(`.video-embed iframe`).forEach((f) => { if (f.src.includes(id)) f.src = f.src; });
+    $("vid-full-box").innerHTML = `<iframe src="${embedURL(id)}&autoplay=1" title="Video" ${IFRAME_ALLOW}></iframe>`;
+    v.classList.add("on");
+  }
+  function cerrarVideoGrande() {
+    const v = $("vid-full"); if (!v) return;
+    v.classList.remove("on"); $("vid-full-box").innerHTML = "";
+  }
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-vid-grande]");
+    if (b) { e.preventDefault(); e.stopPropagation(); abrirVideoGrande(b.dataset.vidGrande); }
+  });
   const findDia = (arr, id) => (arr || []).find((d) => d.id === id) || null;
   const findBloque = (dia, id) => dia ? (dia.bloques || []).find((b) => b.id === id) || null : null;
   const findEj = (bloque, id) => bloque ? (bloque.ejercicios || []).find((e) => e.id === id) || null : null;
@@ -3914,7 +3967,7 @@
     const vid = $("det-video");
     if (ej.video_id) {
       vid.className = "video-embed";
-      vid.innerHTML = `<iframe src="${embedURL(ej.video_id)}" title="${esc(ej.nombre)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe>`;
+      vid.innerHTML = videoEmbedHTML(ej.video_id, ej.nombre);
     } else {
       vid.className = "video-embed ph";
       vid.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M8 5v14l11-7z"/></svg>`;
@@ -4828,7 +4881,7 @@
     let h = "";
     if (ev.estado === "revisada" && ev.devolucion && rol === "alumno") h += `<div class="ev-lbl">Devolución de tu profe</div><div class="ev-box acento">${esc(ev.devolucion)}</div>`;
     if (rol === "alumno") {
-      if (ev.video_id) h += `<div class="video-embed" style="border-radius:12px;overflow:hidden;margin-bottom:14px"><iframe src="${embedURL(ev.video_id)}" title="Explicación" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe></div>`;
+      if (ev.video_id) h += `<div class="video-embed" style="border-radius:12px;overflow:hidden;margin-bottom:14px">${videoEmbedHTML(ev.video_id, "Explicación")}</div>`;
       if (ev.fecha_limite && ev.estado === "pendiente") h += `<div class="hint" style="color:${evVencida(ev) ? "var(--danger)" : "var(--accent)"}">Hacelo antes del ${esc(fmtFechaLarga(ev.fecha_limite))}</div>`;
       if (ev.instrucciones) h += `<div class="ev-lbl">Cómo hacerlo</div><div class="ev-box">${esc(ev.instrucciones)}</div>`;
       h += `<div class="ev-lbl" style="margin-top:6px">${ev.estado === "revisada" ? "Lo que cargaste" : "Tus resultados"}</div>`;
