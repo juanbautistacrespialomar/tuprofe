@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- tuprofe · v84 -->
+<!-- tuprofe · v85 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
@@ -11,11 +11,13 @@
 <link rel="apple-touch-icon" href="icon-192.png" />
 <link rel="manifest" href="manifest.json" />
 <title>Tu Profe</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<!-- Letras guardadas en la app (carpeta fonts/): se ven igual sin conexión y no dependen de Google Fonts. -->
+<link rel="preload" href="fonts/inter.woff2" as="font" type="font/woff2" crossorigin />
+<link rel="preload" href="fonts/anton.woff2" as="font" type="font/woff2" crossorigin />
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
+  @font-face { font-family: "Inter"; src: url("fonts/inter.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
+  @font-face { font-family: "Anton"; src: url("fonts/anton.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
   :root {
     --bg: #0a0a0a; --surface: #161616; --surface-2: #1e1e1e; --border: #262626;
     --accent: #c4f000; --accent-ink: #1a2200;
@@ -38,10 +40,12 @@
     background: var(--bg); color: var(--text);
     font-family: "Inter", system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
+    /* Todos los dígitos del mismo ancho: kilos, reps y tablas quedan en columna. */
+    font-variant-numeric: tabular-nums;
     /* pan-y: iOS solo permite gesto vertical -> mata el arrastre lateral. */
     touch-action: pan-y;
   }
-  input, select, button, textarea { font-family: inherit; }
+  input, select, button, textarea { font-family: inherit; font-variant-numeric: inherit; }
 
   .wrap { height: 100dvh; overflow: hidden; overscroll-behavior: none; display: flex; flex-direction: column; justify-content: safe center; max-width: 440px; width: 100%; margin: 0 auto; padding: 32px 22px calc(32px + env(safe-area-inset-bottom)); touch-action: pan-y; }
   /* En login queda 100% bloqueado. En los registros (más campos + teclado) habilitamos SOLO scroll vertical. */
@@ -734,6 +738,44 @@
 .g-divisor::before, .g-divisor::after { content:""; flex:1; height:1px; background:currentColor; opacity:.3; }
 .g-divisor span { white-space:nowrap; }
 .g-btn { display:flex; justify-content:center; min-height:44px; }
+
+  /* ================= v85: ESTÉTICA ================= */
+  /* 2) Animación al cambiar de pestaña / pantalla. La animación arranca sola cada vez
+     que la vista pasa de oculta a visible, así que no hay que tocar la navegación. */
+  @keyframes viewin { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  @keyframes tabpop { 0% { transform: scale(1); } 45% { transform: scale(1.16); } 100% { transform: scale(1); } }
+  @keyframes sheetin { from { opacity: 0; transform: translateY(18px) scale(.985); } to { opacity: 1; transform: none; } }
+  @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+  .tabview.on, .alview.on, #profe-rutina, .screen.active { animation: viewin .28s ease both; }
+  .navtab.active svg { animation: tabpop .35s ease; }
+  .overlay.on { animation: fadein .18s ease; }
+  .overlay.on > .sheet { animation: sheetin .24s cubic-bezier(.2,.8,.2,1); }
+  @media (prefers-reduced-motion: reduce) {
+    .tabview.on, .alview.on, #profe-rutina, .screen.active, .navtab.active svg, .overlay.on, .overlay.on > .sheet { animation: none; }
+  }
+
+  /* 4) Teclado del iPhone: con el teclado abierto escondemos la barra de abajo, la ventana
+     ocupa solo lo que se ve (arriba del teclado) y el botón de guardar queda a la vista. */
+  .bottomnav { transition: transform .22s ease; }
+  body.kb-open .bottomnav { transform: translateY(140%); pointer-events: none; }
+  body.kb-open #offline-pill { display: none !important; }
+  body.kb-open .overlay.on { top: var(--vv-top, 0px); bottom: auto; height: var(--vv-h, 100dvh); align-items: flex-start; }
+  body.kb-open .overlay.on > .sheet, body.kb-open .detail-scroll { max-height: calc(var(--vv-h, 100dvh) - 28px); }
+  body.kb-open #det-accion { position: sticky; bottom: 10px; z-index: 2; box-shadow: 0 -10px 24px 6px var(--surface); }
+
+  /* 5) Pantallas vacías: ícono, título, explicación y (si corresponde) el botón para arrancar. */
+  .vacio { text-align: center; padding: 38px 22px 30px; }
+  .vacio-ic { width: 64px; height: 64px; border-radius: 50%; background: rgba(196,240,0,.10); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
+  .vacio-ic svg { width: 28px; height: 28px; stroke: var(--accent); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .vacio-t { font-size: 17px; font-weight: 600; color: var(--text); margin-bottom: 7px; letter-spacing: -.1px; }
+  .vacio-s { font-size: 13.5px; color: var(--muted); line-height: 1.5; max-width: 290px; margin: 0 auto; }
+  .vacio-s small { display: block; margin-top: 10px; font-size: 12px; opacity: .85; }
+  .vacio .btn { width: auto; display: inline-flex; align-items: center; justify-content: center; padding: 0 22px; margin-top: 20px; }
+  .vacio .rest-cta { margin-top: 18px; }
+  .vacio.chico { padding: 26px 20px 20px; }
+  .vacio.chico .vacio-ic { width: 52px; height: 52px; margin-bottom: 12px; }
+  .vacio.chico .vacio-ic svg { width: 23px; height: 23px; }
+  .vacio.chico .vacio-t { font-size: 15.5px; }
 </style>
 </head>
 <body>
@@ -1267,6 +1309,55 @@
   const GOOGLE_CLIENT_ID = "470393235359-fmaqhamksf7o30b3kgv7rcq2d7bjclqf.apps.googleusercontent.com";
   const TOKEN_KEY = "tuprofe_token";
   const $ = (id) => document.getElementById(id);
+
+  // ===== v85: pantallas vacías =====
+  const IC_VACIO = {
+    pesa: '<path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/>',
+    alumnos: '<circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.4 3-5.3 6.5-5.3s6.5 1.9 6.5 5.3"/><path d="M16.5 5.5a3.2 3.2 0 0 1 0 6.4M21.5 20c0-2.7-1.6-4.4-3.9-5"/>',
+    planilla: '<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3"/>',
+    reloj: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M10 2h4M12 2v3"/>',
+    barras: '<path d="M18 20V10M12 20V4M6 20v-6"/>',
+    luna: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
+    capas: '<path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/>',
+    lista: '<path d="M8 6h12M8 12h12M8 18h8M4 6h.01M4 12h.01M4 18h.01"/>',
+    calendario: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+  };
+  function vacioHTML(icono, titulo, texto, extra, chico) {
+    return `<div class="vacio${chico ? " chico" : ""}"><div class="vacio-ic"><svg viewBox="0 0 24 24">${IC_VACIO[icono] || ""}</svg></div>` +
+      `<div class="vacio-t">${titulo}</div>${texto ? `<div class="vacio-s">${texto}</div>` : ""}${extra || ""}</div>`;
+  }
+  // Botón de una pantalla vacía que "toca" el botón real de la barra (ej: + Invitar alumno).
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-clic]");
+    if (b && document.getElementById(b.dataset.clic)) document.getElementById(b.dataset.clic).click();
+  });
+
+  // ===== v85: teclado del iPhone =====
+  // iOS no achica la página cuando abre el teclado: lo superpone. Medimos lo que realmente
+  // se ve (visualViewport) y lo pasamos al CSS: con eso escondemos la barra de abajo, la
+  // ventana abierta se acomoda arriba del teclado y el campo tocado queda centrado.
+  (function tecladoIOS() {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    let foco = false, timer = null;
+    const esCampo = (el) => el && el.matches && el.matches('input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=button]), textarea');
+    function medir() {
+      const kb = Math.max(0, window.innerHeight - vv.height);
+      const r = document.documentElement.style;
+      r.setProperty("--vv-top", vv.offsetTop + "px");
+      r.setProperty("--vv-h", vv.height + "px");
+      document.body.classList.toggle("kb-open", foco && kb > 120);
+    }
+    function centrar(el) {
+      if (!el || document.activeElement !== el) return;
+      try { el.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (_) { el.scrollIntoView(); }
+    }
+    vv.addEventListener("resize", () => { medir(); clearTimeout(timer); timer = setTimeout(() => centrar(document.activeElement), 120); });
+    vv.addEventListener("scroll", medir);
+    document.addEventListener("focusin", (e) => { if (esCampo(e.target)) { foco = true; setTimeout(() => { medir(); centrar(e.target); }, 320); } });
+    document.addEventListener("focusout", () => { foco = false; setTimeout(() => { if (!esCampo(document.activeElement)) medir(); }, 120); });
+  })();
+
   // ---------- Ventanas (overlays) apiladas ----------
   // Todas las ventanas comparten el mismo z-index, así que sin esto gana la que está más abajo
   // en el HTML, no la que se abrió último (ej.: "Pedir evaluación" quedaba detrás de las
@@ -1697,7 +1788,7 @@
     const lista = q ? CATALOGO.filter((e) => e.nombre.toLowerCase().includes(q)) : CATALOGO;
     const cont = $("cat-lista");
     if (CATALOGO.length === 0) {
-      cont.innerHTML = `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M4 7h16M4 12h16M4 17h10"/></svg><p>Todavía no tenés ejercicios.<br>Cargá tu biblioteca para armar rutinas.</p><button class="btn" id="cat-importar">Cargar ejercicios base</button></div>`;
+      cont.innerHTML = vacioHTML("pesa", "Tu biblioteca está vacía", "Cargá los ejercicios base para empezar a armar rutinas. Después sumás los tuyos con su video.", `<button class="btn" id="cat-importar">Cargar ejercicios base</button>`);
       $("cat-importar").onclick = (e) => importarBase(e.currentTarget); return;
     }
     if (lista.length === 0) { cont.innerHTML = `<div class="empty"><p>Ningún ejercicio coincide con "${esc(q)}".</p></div>`; return; }
@@ -1785,7 +1876,7 @@
     if (wrap) wrap.style.display = total > 3 ? "" : "none";
     if (total === 0) {
       // Si hay invitaciones pendientes no metemos el cartel de "vacío" (ya se ven arriba).
-      cont.innerHTML = HAY_PENDIENTES ? "" : `<div class="empty"><p>Todavía no tenés alumnos.<br>Tocá "Invitar alumno" para sumar el primero.</p></div>`;
+      cont.innerHTML = HAY_PENDIENTES ? "" : vacioHTML("alumnos", "Todavía no tenés alumnos", "Invitalo con tu código y empezá a armarle la rutina.", `<button class="btn" data-clic="al-invitar">Invitar alumno</button>`);
       return;
     }
     const q = normaliza(($("al-buscar") && $("al-buscar").value) || "");
@@ -1965,7 +2056,7 @@
       const conPeso = new Set();
       cargas.forEach((c) => { if (c.peso != null) conPeso.add(c.ejercicio_id + "|" + dia(c)); });
       const cargasVisibles = cargas.filter((c) => conPeso.has(c.ejercicio_id + "|" + dia(c)));
-      if (!cargasVisibles.length) { $("prog-lista").innerHTML = `<div class="empty"><p>${esc(alumnoActual.nombre)} todavía no registró ninguna carga.</p></div>`; return; }
+      if (!cargasVisibles.length) { $("prog-lista").innerHTML = vacioHTML("barras", "Sin cargas todavía", `Cuando ${esc(alumnoActual.nombre)} registre sus kilos, acá vas a ver cómo progresa.`, "", true); return; }
       $("prog-lista").innerHTML = renderProgresoPorEjercicio(cargasVisibles);
       // Acordeón: al tocar la tarjeta se despliega/pliega el historial de ese ejercicio.
       $("prog-lista").querySelectorAll("[data-ej-card]").forEach((el) => {
@@ -2078,7 +2169,7 @@
       const data = await api("/alumnos/" + alumnoActual.id + "/diario", "GET", null, true);
       SEG_DIAS = (data && data.dias) || [];   // ya viene ordenado del más reciente al más viejo
       segIdx = 0;
-      if (!SEG_DIAS.length) { $("seg-lista").innerHTML = `<div class="empty"><p>${esc(alumnoActual.nombre)} todavía no registró entrenamientos.</p></div>`; return; }
+      if (!SEG_DIAS.length) { $("seg-lista").innerHTML = vacioHTML("calendario", "Sin entrenamientos registrados", `Cuando ${esc(alumnoActual.nombre)} marque ejercicios como hechos, los vas a ver día por día.`, "", true); return; }
       renderSeguimientoDia();
     } catch (e) {
       $("seg-lista").innerHTML = `<div class="empty"><p>${esc(e.message)}</p></div>`;
@@ -2354,7 +2445,7 @@
     const notaRO = (!esMolde && dia.nota_alumno)
       ? `<div class="notadia-ro"><div class="notadia-label">Nota del alumno</div><div class="detail-notas">${esc(dia.nota_alumno)}</div></div>`
       : "";
-    cont.innerHTML = diaBar + (dia.bloques && dia.bloques.length ? cards : `<div class="empty"><p>Este dia no tiene bloques.<br>Agrega el primero.</p></div>`) +
+    cont.innerHTML = diaBar + (dia.bloques && dia.bloques.length ? cards : vacioHTML("capas", "Día sin bloques", "Agregá el primero (por ejemplo: Entrada en calor, Fuerza, Accesorios).", "", true)) +
       `<button class="btn sm" id="rut-add" style="margin-top:6px">+ Agregar bloque</button>` + notaRO;
     // Handlers de la barra del día
     const be = cont.querySelector("[data-dia-edit]"); if (be) be.onclick = () => abrirDia("editar", dia);
@@ -2385,7 +2476,7 @@
         </div>
       </div>`;
     }).join("");
-    cont.innerHTML = (bloque.ejercicios && bloque.ejercicios.length ? rows : `<div class="empty"><p>Bloque sin ejercicios.<br>Suma el primero desde tu catalogo.</p></div>`) +
+    cont.innerHTML = (bloque.ejercicios && bloque.ejercicios.length ? rows : vacioHTML("lista", "Bloque sin ejercicios", "Sumá el primero desde tu biblioteca.", "", true)) +
       `<button class="btn sm" id="rut-add" style="margin-top:6px">+ Agregar ejercicio</button>`;
     cont.querySelectorAll("[data-ej]").forEach((row) => (row.onclick = () => abrirDetalleEj(findEj(bloque, Number(row.dataset.ej)), "profe")));
     cont.querySelectorAll("[data-edit]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); abrirEdej(findEj(bloque, Number(b.dataset.edit))); }));
@@ -2931,7 +3022,7 @@
     });
   }
   function renderAdmin(profes) {
-    if (!profes.length) { $("admin-lista").innerHTML = `<div class="empty" style="padding:24px"><p>Todavía no hay profes.</p></div>`; return; }
+    if (!profes.length) { $("admin-lista").innerHTML = vacioHTML("alumnos", "Todavía no hay profes", "", "", true); return; }
     $("admin-lista").innerHTML = profes.map((p) => {
       const badge = p.es_admin ? `<span class="adm-badge">admin</span>` : "";
       const ctrl = p.es_admin
@@ -3396,7 +3487,7 @@
         const cuando = esHoy(diaISO(prox.fecha)) ? "hoy" : `${c.dow} ${c.num}`;
         cta = `<button class="rest-cta" data-fecha="${diaISO(prox.fecha)}">Ver tu próximo entreno · ${esc(cuando)}</button>`;
       }
-      return `<div class="empty" style="padding:34px 20px"><p>Día de descanso.<br>No hay bloques cargados para este día.</p>${cta}</div>`;
+      return vacioHTML("luna", "Día de descanso", "No hay nada cargado para este día. Recuperar también es entrenar.", cta);
     }
     const pal = ['#c4f000', '#33c4e8', '#9d7bff', '#ffa31a', '#ff5d5d'];
     return bloques.map((b, i) => {
@@ -3462,7 +3553,7 @@
     // El día que se registre un kg en un ejercicio, vuelve a aparecer solo (y si se borra, se va).
     const tieneCarga = (c) => c.peso != null;
     if (!CARGAS.some(tieneCarga)) {
-      cont.innerHTML = `<div class="empty" style="padding:50px 20px"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M18 20V10M12 20V4M6 20v-6"/></svg><p>Todavía no registraste cargas.<br>Cuando entrenes van a aparecer acá.</p></div>`;
+      cont.innerHTML = vacioHTML("barras", "Todavía no registraste cargas", "Cuando anotes los kilos de un ejercicio, acá vas a ver tu progreso y tus mejores marcas.");
       return;
     }
     const groups = {};
@@ -3792,6 +3883,8 @@
     } catch (err) { msg($("pf-msg"), (err && err.message) || "No pudimos guardar la foto", "error"); }
   }
 
+
+
   // ===== Navegación de tabs (barra inferior) =====
   function alSwitchView(v) {
     document.querySelectorAll("#app-alumno .navtab").forEach((t) => t.classList.toggle("active", t.dataset.view === v));
@@ -4079,7 +4172,7 @@
     $("pl-etiquetas").innerHTML = etiquetas.map((e) => `<option value="${esc(e)}">`).join("");
 
     if (!PLANTILLAS.length) {
-      cont.innerHTML = `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 10h6M9 14h6M9 18h3"/></svg><p>Todavía no tenés planificaciones.<br>Armá una base y asignásela a cualquier alumno.<br><br><small>También podés entrar a un día de un alumno y tocar el ícono de capas para guardarlo como planificación.</small></p></div>`;
+      cont.innerHTML = vacioHTML("planilla", "Todavía no tenés planificaciones", "Armá una base y asignásela a cualquier alumno.<small>También podés entrar a un día de un alumno y tocar el ícono de capas para guardarlo como planificación.</small>", `<button class="btn" data-clic="pl-nueva">Nueva planificación</button>`);
       return;
     }
     const q = normaliza($("pl-buscar").value || "");
@@ -4175,7 +4268,7 @@
       </div>`;
     }).join("");
     cont.innerHTML = bar + notas +
-      ((pl.bloques || []).length ? cards : `<div class="empty"><p>Planificación vacía.<br>Agregá el primer bloque.</p></div>`) +
+      ((pl.bloques || []).length ? cards : vacioHTML("capas", "Planificación vacía", "Agregá el primer bloque.", "", true)) +
       `<button class="btn sm" id="rut-add" style="margin-top:6px">+ Agregar bloque</button>` +
       (total ? `<button class="btn ghost sm" id="pl-asignar-big" style="margin-top:10px">Asignar a un alumno</button>` : "");
     cont.querySelector("[data-pl-asig]").onclick = () => abrirAsignar(pl);
@@ -4204,7 +4297,7 @@
       </div>`;
     }).join("");
     cont.innerHTML = `<div class="hint" style="margin-bottom:10px"><span class="modo-pl">Planificación</span> &nbsp;${esc(pl.nombre)}</div>` +
-      ((bloque.ejercicios || []).length ? rows : `<div class="empty"><p>Bloque sin ejercicios.<br>Sumá el primero desde tu catálogo.</p></div>`) +
+      ((bloque.ejercicios || []).length ? rows : vacioHTML("lista", "Bloque sin ejercicios", "Sumá el primero desde tu biblioteca.", "", true)) +
       `<button class="btn sm" id="rut-add" style="margin-top:6px">+ Agregar ejercicio</button>`;
     cont.querySelectorAll("[data-ej]").forEach((row) => (row.onclick = () => abrirDetalleEj(findEj(bloque, Number(row.dataset.ej)), "profe")));
     cont.querySelectorAll("[data-edit]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); abrirEdej(findEj(bloque, Number(b.dataset.edit))); }));
@@ -4832,7 +4925,7 @@
     $("ev-chips").innerHTML = chips.map(([k, t]) => `<button class="chip${evChip === k ? " on" : ""}" data-evc="${k}">${t}${k !== "todas" && cnt[k] ? `<b>${cnt[k]}</b>` : ""}</button>`).join("");
     $("ev-chips").querySelectorAll("[data-evc]").forEach((b) => (b.onclick = () => { evChip = b.dataset.evc; evChipManual = true; renderEvalsProfe(); }));
     if (!EVALS_PROF.length) {
-      cont.innerHTML = `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M10 2h4"/></svg><p>Todavía no pediste evaluaciones.<br>Pedí la batería inicial (overhead squat + unipodal) a tus alumnos nuevos, o un test físico cuando quieras medir.</p></div>`;
+      cont.innerHTML = vacioHTML("reloj", "Todavía no pediste evaluaciones", "Pedí la batería inicial (overhead squat + unipodal) a tus alumnos nuevos, o un test físico cuando quieras medir.", `<button class="btn" data-clic="ev-pedir">Pedir evaluación</button>`);
       return;
     }
     const lista = EVALS_PROF.filter((e) => evChip === "todas" || e.estado === evChip);
@@ -4855,7 +4948,7 @@
     const cont = $("eval-al-lista");
     if (EVALS_ERR) { cont.innerHTML = `<div class="empty"><p>${esc(EVALS_ERR)}</p></div>`; return; }
     const evs = EVALS_PROF.filter((e) => e.alumno_id === alumnoActual.id);
-    if (!evs.length) { cont.innerHTML = `<div class="empty"><p>Todavía no le pediste ninguna evaluación.</p></div>`; return; }
+    if (!evs.length) { cont.innerHTML = vacioHTML("reloj", "Sin evaluaciones", "Todavía no le pediste ninguna.", "", true); return; }
     const grupo = (t, arr) => (arr.length ? `<div class="ev-grupo">${t}</div>` + arr.map((e) => evCardHTML(e, false, false)).join("") : "");
     cont.innerHTML = grupo("Para revisar", evs.filter((e) => e.estado === "realizada")) +
       grupo("Pendientes", evs.filter((e) => e.estado === "pendiente")) +
@@ -4957,7 +5050,7 @@
     const cont = $("al-evals");
     if (MIS_EVALS_ERR) { cont.innerHTML = `<div class="empty"><p>${esc(MIS_EVALS_ERR)}</p></div>`; return; }
     if (!MIS_EVALS.length) {
-      cont.innerHTML = `<div class="empty" style="padding:50px 20px"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M10 2h4"/></svg><p>Todavía no tenés evaluaciones.<br>Cuando tu profe te pida un test, te aparece acá.</p></div>`;
+      cont.innerHTML = vacioHTML("reloj", "Todavía no tenés evaluaciones", "Cuando tu profe te pida un test, te aparece acá con las instrucciones.");
       return;
     }
     const pend = MIS_EVALS.filter((e) => e.estado === "pendiente");

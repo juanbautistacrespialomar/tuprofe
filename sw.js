@@ -8,11 +8,12 @@
 //
 // Para publicar: subí el número de CACHE (v23 -> v24 -> ...).
 
-const CACHE = "tuprofe-v84";
+const CACHE = "tuprofe-v85";
 // Caché SEPARADO para las miniaturas de YouTube. Persiste entre versiones (no se
 // borra al actualizar), así lo que el alumno vio con internet lo sigue viendo offline.
 const THUMBS = "tuprofe-thumbs";
-const SHELL = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
+// v85: las letras (carpeta fonts/) van guardadas con la app, así se ven bien sin conexión.
+const SHELL = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png", "./fonts/inter.woff2", "./fonts/anton.woff2"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)));
