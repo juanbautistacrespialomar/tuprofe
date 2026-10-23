@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- tuprofe · v83 -->
+<!-- tuprofe · v84 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
@@ -597,6 +597,14 @@
   .cp-scale { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; }
   .cp-btn { aspect-ratio: 1; min-width: 0; padding: 0; border: 1px solid var(--border); background: var(--surface-2); color: var(--muted); border-radius: 9px; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
   .cp-btn.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; }
+  /* Esfuerzo de la vez anterior: el número queda marcado con borde punteado en la escala */
+  .cp-btn.prev:not(.on) { border-style: dashed; border-color: var(--muted); color: var(--text); }
+  .cp-prev { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; font-size: 13px; }
+  .cp-prev .cpp-l { color: var(--muted); }
+  .cp-prev .cpp-l small { display: block; font-size: 11px; margin-top: 1px; }
+  .cp-prev .cpp-v { flex: 0 0 auto; text-align: right; }
+  .cp-prev .cpp-v b { font-family: "Anton", sans-serif; font-weight: 400; font-size: 20px; color: var(--accent); }
+  .cp-prev .cpp-v span { display: block; font-size: 11px; color: var(--muted); }
   .cp-ro { display: flex; align-items: center; justify-content: space-between; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin: 6px 0 12px; font-size: 13px; }
   .cp-ro b { color: var(--accent); font-size: 16px; }
   .rpe-obj-chip { font-size: 10px; font-weight: 400; color: var(--muted); text-transform: none; letter-spacing: 0; margin-left: 6px; }
@@ -3878,7 +3886,7 @@
     if (modo === "alumno") {
       if (pideCarga) {
         // Escala 1-10 de carga percibida (una por ejercicio), con el valor ya registrado marcado.
-        renderCargaPercibida("det-done-wrap", rpeHecho);
+        renderCargaPercibida("det-done-wrap", rpeHecho, ultimoEsfuerzo(ej));
         $("det-accion").textContent = done ? "Actualizar carga" : "Guardar carga";
         $("det-accion").onclick = () => guardarCargaSeries(ej);
       } else {
@@ -3899,12 +3907,50 @@
   }
   // Escala 1-10 de carga percibida (RPE del alumno, por ejercicio). Guarda en cpSeleccionado.
   let cpSeleccionado = null;
-  function renderCargaPercibida(contId, valor) {
+  // Esfuerzo (carga percibida) de la VEZ ANTERIOR que hizo este ejercicio.
+  // Se busca por ejercicio del catálogo (no por la asignación puntual), así sirve aunque el
+  // profe haya rearmado la rutina. Se saltea el registro de hoy de este mismo ejercicio:
+  // ese ya aparece marcado en la escala y no es "la vez anterior".
+  function ultimoEsfuerzo(ej) {
+    // El registro de HOY de este mismo ejercicio no cuenta como "la vez anterior"
+    // (ya aparece elegido en la escala). Uno de otro día sí.
+    const actual = HECHOS[ej.id];
+    const actualEsDeHoy = !!(actual && diaLocalDeCarga(actual.fecha) === hoyISO());
+    for (const c of CARGAS) {   // CARGAS viene de la más nueva a la más vieja
+      if (c.rpe == null || c.rpe === "") continue;
+      if (ej.catalogo_id != null ? c.catalogo_id !== ej.catalogo_id : c.ejercicio_id !== ej.id) continue;
+      if (actualEsDeHoy && c.ejercicio_id === ej.id && c.fecha === actual.fecha) continue;
+      const n = Math.round(Number(c.rpe));
+      if (!(n >= 1 && n <= 10)) continue;
+      return { rpe: n, fecha: c.fecha, peso: pesoTopDeTanda(c) };
+    }
+    return null;
+  }
+  // Kilo más alto de la tanda de esa carga (para mostrar "con X kg" al lado del esfuerzo).
+  function pesoTopDeTanda(c) {
+    const pesos = CARGAS.filter((x) => x.ejercicio_id === c.ejercicio_id && x.fecha === c.fecha && x.peso != null && Number(x.peso) > 0).map((x) => Number(x.peso));
+    return pesos.length ? Math.max(...pesos) : null;
+  }
+  // Escala de Borg/RPE en palabras: solo describe, la decisión la toma el alumno (o el profe).
+  const palabraEsfuerzo = (n) => (n <= 2 ? "muy liviano" : n <= 4 ? "liviano" : n <= 6 ? "moderado" : n <= 8 ? "exigente" : "al límite");
+  // Las cargas se guardan en hora UTC: este es el día en la hora del celu (YYYY-MM-DD).
+  function diaLocalDeCarga(f) {
+    const d = new Date(String(f || "").replace(" ", "T") + "Z");
+    return isNaN(d) ? "" : d.toLocaleDateString("en-CA");
+  }
+  function fechaCargaCorta(f) {
+    const d = new Date(String(f || "").replace(" ", "T") + "Z");
+    return isNaN(d) ? "" : d.toLocaleDateString("es-AR", { weekday: "short", day: "numeric", month: "short" }).replace(/\./g, "");
+  }
+  function renderCargaPercibida(contId, valor, previo) {
     cpSeleccionado = (valor != null && valor !== "") ? Math.round(Number(valor)) : null;
     const cont = $(contId);
     const btns = [];
-    for (let n = 1; n <= 10; n++) btns.push(`<button type="button" class="cp-btn${cpSeleccionado === n ? " on" : ""}" data-cp="${n}">${n}</button>`);
-    cont.innerHTML = `<div class="cp-wrap"><div class="cp-label">Carga percibida</div><div class="cp-scale">${btns.join("")}</div></div>`;
+    for (let n = 1; n <= 10; n++) btns.push(`<button type="button" class="cp-btn${cpSeleccionado === n ? " on" : ""}${previo && previo.rpe === n ? " prev" : ""}" data-cp="${n}"${previo && previo.rpe === n ? ' title="La vez anterior"' : ""}>${n}</button>`);
+    const prevHTML = previo
+      ? `<div class="cp-prev"><div class="cpp-l">La vez anterior<small>${esc(cap(fechaCargaCorta(previo.fecha)))}${previo.peso != null ? " · con " + esc(String(previo.peso).replace(".", ",")) + " kg" : ""}</small></div><div class="cpp-v"><b>${previo.rpe}/10</b><span>${palabraEsfuerzo(previo.rpe)}</span></div></div>`
+      : "";
+    cont.innerHTML = `<div class="cp-wrap"><div class="cp-label">Carga percibida</div>${prevHTML}<div class="cp-scale">${btns.join("")}</div></div>`;
     cont.querySelectorAll("[data-cp]").forEach((b) => (b.onclick = () => {
       const v = Number(b.dataset.cp);
       cpSeleccionado = (cpSeleccionado === v) ? null : v;  // volver a tocar el mismo lo deselecciona
