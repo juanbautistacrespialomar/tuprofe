@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- tuprofe · v90 -->
+<!-- tuprofe · v91 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
@@ -807,6 +807,16 @@
 
   /* v90: en las ventanas largas (evaluaciones, listas) el encabezado con la flecha de volver
      queda fijo arriba al scrollear, igual que en el detalle del ejercicio. */
+  /* v91: detalle del ejercicio sin trabas al cargar los kilos.
+     - overflow-x hidden: si la tabla (#, Reps, Obj, Últ., Kg) quedaba más ancha que la ventana, el
+       detalle también scrolleaba de costado y el gesto para bajar se "enganchaba" de lado.
+     - overscroll-behavior contain: al llegar al fondo, el arrastre ya no se pasa a la página de atrás
+       (con el teclado abierto eso movía la pantalla entera y parecía que no bajaba).
+     - Con el teclado abierto el video no se lleva el dedo: arrastrar encima también scrollea. */
+  .detail-scroll { overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+  .overlay { overscroll-behavior: contain; }
+  body.kb-open #det-video iframe { pointer-events: none; }
+  .plan-tbl td:not(:last-child) { overflow-wrap: anywhere; }
   .ovl-scroll > .ovl-head { position: sticky; top: -22px; z-index: 3; background: var(--surface); margin: -22px -20px 14px; padding: 22px 20px 12px; border-bottom: 1px solid transparent; }
 </style>
 </head>
@@ -1399,7 +1409,25 @@
     vv.addEventListener("resize", () => { medir(); clearTimeout(timer); timer = setTimeout(() => centrar(document.activeElement), 120); });
     vv.addEventListener("scroll", medir);
     document.addEventListener("focusin", (e) => { if (esCampo(e.target)) { foco = true; setTimeout(() => { medir(); centrar(e.target); }, 320); } });
-    document.addEventListener("focusout", () => { foco = false; setTimeout(() => { if (!esCampo(document.activeElement)) medir(); }, 120); });
+    document.addEventListener("focusout", () => {
+      foco = false;
+      setTimeout(() => {
+        if (esCampo(document.activeElement)) return;
+        medir();
+        // v91: iOS a veces deja la página "corrida para arriba" al cerrar el teclado. Como html/body
+        // no scrollean, el usuario no la puede volver a mano y queda trabada: la volvemos nosotros.
+        if (window.scrollY || document.documentElement.scrollTop || document.body.scrollTop) {
+          window.scrollTo(0, 0); document.documentElement.scrollTop = 0; document.body.scrollTop = 0;
+        }
+      }, 150);
+    });
+    // v91: el teclado numérico del iPhone no tiene botón para cerrarse y tocar "afuera" no lo cierra.
+    // Un toque (no un arrastre) en cualquier parte que no sea un campo o un botón lo cierra.
+    document.addEventListener("click", (e) => {
+      const a = document.activeElement;
+      if (!esCampo(a) || esCampo(e.target) || e.target.closest("button, select, label, a")) return;
+      a.blur();
+    }, true);
   })();
 
   // ---------- Ventanas (overlays) apiladas ----------
@@ -2125,7 +2153,7 @@
       // peso) no aportan al progreso y ensucian la lista. Criterio por ejercicio+día: si ninguna
       // serie de ese ejercicio ese día tiene peso, no aparece. No persistimos nada: se recalcula
       // solo, así que el día que se le registre un kg reaparece (aunque antes estuviera oculto).
-      const dia = (c) => (c.fecha || "").slice(0, 10);
+      const dia = (c) => diaC(c.fecha);
       const conPeso = new Set();
       cargas.forEach((c) => { if (c.peso != null) conPeso.add(c.ejercicio_id + "|" + dia(c)); });
       const cargasVisibles = cargas.filter((c) => conPeso.has(c.ejercicio_id + "|" + dia(c)));
@@ -2161,7 +2189,8 @@
     return `<span class="tr eq">= igual</span>`;
   }
   // Resumen de kg de una sesión: "10kg ×3" si son todos iguales, "8·10·10kg" si varían.
-  function resumenKg(pesos) {
+  // v91: antes se llamaba resumenKg igual que la de Cargas y la pisaba: en Progreso salía "—".
+  function resumenPesos(pesos) {
     if (!pesos.length) return "—";
     const same = pesos.every((p) => p === pesos[0]);
     return same ? `${pesos[0]}kg${pesos.length > 1 ? " ×" + pesos.length : ""}` : pesos.join("·") + "kg";
@@ -2178,7 +2207,7 @@
     cargas.forEach((c) => {
       const k = keyEj(c);
       const g = (porEj[k] = porEj[k] || { nombre: c.ejercicio, dias: {} });
-      const d = (c.fecha || "").slice(0, 10);
+      const d = diaC(c.fecha);
       (g.dias[d] = g.dias[d] || []).push(c);
     });
     // Para cada ejercicio armo sus sesiones (una por día) en orden cronológico.
@@ -2209,13 +2238,13 @@
       const hist = e.sesiones.slice().reverse().map((s) => {
         const reps = s.sets.map((x) => x.reps_hechas).filter(Boolean).join("/");
         const marca = s.top >= e.pr ? ` <span class="ph-pr">PR</span>` : "";
-        return `<div class="ph-row"><span class="ph-f">${fechaDia(s.fecha)}</span><span class="ph-k">${resumenKg(s.pesos)}${reps ? ` · ${esc(reps)} reps` : ""}${marca}</span></div>`;
+        return `<div class="ph-row"><span class="ph-f">${fechaDia(s.fecha)}</span><span class="ph-k">${resumenPesos(s.pesos)}${reps ? ` · ${esc(reps)} reps` : ""}${marca}</span></div>`;
       }).join("");
       return `<div class="ej-card" data-ej-card>
         <div class="ej-head">
           <div class="ej-main">
             <div class="ej-nombre">${esc(e.nombre)}${esPR ? ` <span class="ph-pr">PR</span>` : ""}</div>
-            <div class="ej-sub">Última: <b>${resumenKg(e.ultima.pesos)}</b> · ${fechaDia(e.ultima.fecha)} ${badgeTendencia(e.ultima.top, e.previoTop)}</div>
+            <div class="ej-sub">Última: <b>${resumenPesos(e.ultima.pesos)}</b> · ${fechaDia(e.ultima.fecha)} ${badgeTendencia(e.ultima.top, e.previoTop)}</div>
           </div>
           <div class="ej-side">
             ${sparkline(tops)}
@@ -2239,7 +2268,7 @@
     $("seg-lista").innerHTML = `<div class="empty"><p>Cargando...</p></div>`;
     $("seg-overlay").classList.add("on");
     try {
-      const data = await api("/alumnos/" + alumnoActual.id + "/diario", "GET", null, true);
+      const data = await api("/alumnos/" + alumnoActual.id + "/diario?tz=" + new Date().getTimezoneOffset(), "GET", null, true);
       SEG_DIAS = (data && data.dias) || [];   // ya viene ordenado del más reciente al más viejo
       segIdx = 0;
       if (!SEG_DIAS.length) { $("seg-lista").innerHTML = vacioHTML("calendario", "Sin entrenamientos registrados", `Cuando ${esc(alumnoActual.nombre)} marque ejercicios como hechos, los vas a ver día por día.`, "", true); return; }
@@ -3207,8 +3236,8 @@
     let out = lista.slice();
     for (const it of pend) {
       const fechaSQL = String(it.body.fecha || new Date(it.t).toISOString()).slice(0, 19).replace("T", " ");
-      const dia = fechaSQL.slice(0, 10);
-      out = out.filter((c) => !(c.ejercicio_id === it.body.ejercicio_id && String(c.fecha || "").slice(0, 10) === dia));
+      const dia = diaC(fechaSQL);
+      out = out.filter((c) => !(c.ejercicio_id === it.body.ejercicio_id && diaC(c.fecha) === dia));
       const e = ctx[it.body.ejercicio_id] || {};
       for (const st of (it.body.sets || [])) out.push({
         ejercicio_id: it.body.ejercicio_id, catalogo_id: e.catalogo_id, ejercicio: e.nombre, fecha: fechaSQL,
@@ -3432,7 +3461,7 @@
     const hoy = new Date();
     const hoyKey = hoy.toLocaleDateString("en-CA");
     const porDiaSet = {};
-    CARGAS.forEach((c) => { const f = (c.fecha || "").slice(0, 10); if (f) (porDiaSet[f] = porDiaSet[f] || new Set()).add(c.ejercicio_id); });
+    CARGAS.forEach((c) => { const f = diaC(c.fecha); if (f) (porDiaSet[f] = porDiaSet[f] || new Set()).add(c.ejercicio_id); });
     const porDia = {}; for (const k in porDiaSet) porDia[k] = porDiaSet[k].size;
     const cols = [];
     let max = 1;
@@ -3630,7 +3659,7 @@
       return;
     }
     const groups = {};
-    CARGAS.forEach((c) => { const f = (c.fecha || "").slice(0, 10); (groups[f] = groups[f] || []).push(c); });
+    CARGAS.forEach((c) => { const f = diaC(c.fecha); (groups[f] = groups[f] || []).push(c); });
     const keys = Object.keys(groups).sort((a, b) => (a < b ? 1 : -1)); // más reciente primero
     cont.innerHTML = keys.map((k) => {
       // Dentro del día, agrupo por ejercicio y colapso las series en una fila con resumen de kg.
@@ -3669,7 +3698,7 @@
       if (c.peso == null) return;
       const clave = c.catalogo_id != null ? "c" + c.catalogo_id : "n" + normaliza(c.ejercicio || "");
       const e = idx[clave] || (idx[clave] = { nombre: c.ejercicio || "Ejercicio", cat: c.catalogo_id, dias: {} });
-      const f = (c.fecha || "").slice(0, 10);
+      const f = diaC(c.fecha);
       (e.dias[f] = e.dias[f] || []).push(c);
     });
 
@@ -3708,7 +3737,7 @@
     const inicial = nombre.trim().charAt(0).toUpperCase() || "?";
     const totalEj = MI_RUTINA.reduce((a, d) => a + contarEj(d, HECHOS).total, 0);
     // Cargas registradas = sesiones de ejercicio distintas (ejercicio + día), no cada serie
-    const nCargas = new Set(CARGAS.map((c) => c.ejercicio_id + "|" + (c.fecha || "").slice(0, 10))).size;
+    const nCargas = new Set(CARGAS.map((c) => c.ejercicio_id + "|" + diaC(c.fecha))).size;
     const edad = alYo && alYo.fecha_nac ? edadDesde(alYo.fecha_nac) : null;
     const sub = [edad != null ? edad + " años" : null, alYo && alYo.profe_nombre ? "Profe: " + alYo.profe_nombre : null].filter(Boolean).join("  ·  ");
     const avatar = alYo && alYo.foto
@@ -3852,7 +3881,7 @@
       const info = ctx[c.ejercicio_id] || {};
       return {
         fecha: c.fecha || null,
-        fecha_dia: (c.fecha || "").slice(0, 10) || null,
+        fecha_dia: diaC(c.fecha) || null,
         ejercicio_id: c.ejercicio_id,
         ejercicio: c.ejercicio || info.ejercicio_nombre || null,
         catalogo_id: info.catalogo_id != null ? info.catalogo_id : null,
@@ -4036,7 +4065,7 @@
         }
         if (pideCarga) {
           tds += (modo === "alumno")
-            ? `<td><input type="text" class="plkg" data-serie="${s.numero}" inputmode="decimal" enterkeyhint="done" placeholder="—" value="${kgVal}" oninput="this.value=this.value.replace(/[^0-9.,]/g,'')" /></td>`
+            ? `<td><input type="text" class="plkg" data-serie="${s.numero}" inputmode="decimal" enterkeyhint="done" placeholder="—" value="${kgVal}" oninput="const v=this.value.replace(/[^0-9.,]/g,'');if(v!==this.value)this.value=v" /></td>`
             : `<td><span class="plkg-ro">${set && set.peso != null ? esc(String(set.peso)) + "kg" : "—"}</span></td>`;
         } else {
           tds += `<td>${s.pausa ? esc(s.pausa) : "—"}</td>`;
@@ -4049,6 +4078,12 @@
       $("det-meta").innerHTML = "";
     }
     $("det-notas-wrap").innerHTML = ej.notas ? `<div class="detail-notas">${esc(ej.notas)}</div>` : "";
+    const kgs = Array.from($("det-meta").querySelectorAll(".plkg"));
+    kgs.forEach((el, i) => (el.onkeydown = (e) => {
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+      if (kgs[i + 1]) kgs[i + 1].focus(); else el.blur();
+    }));
     if (modo === "alumno") {
       if (pideCarga) {
         // Escala 1-10 de carga percibida (una por ejercicio), con el valor ya registrado marcado.
@@ -4100,6 +4135,8 @@
   // Escala de Borg/RPE en palabras: solo describe, la decisión la toma el alumno (o el profe).
   const palabraEsfuerzo = (n) => (n <= 2 ? "muy liviano" : n <= 4 ? "liviano" : n <= 6 ? "moderado" : n <= 8 ? "exigente" : "al límite");
   // Las cargas se guardan en hora UTC: este es el día en la hora del celu (YYYY-MM-DD).
+  // Día local de una carga, con respaldo al texto crudo si la fecha no se puede leer.
+  function diaC(f) { return diaLocalDeCarga(f) || String(f || "").slice(0, 10); }
   function diaLocalDeCarga(f) {
     const d = new Date(String(f || "").replace(" ", "T") + "Z");
     return isNaN(d) ? "" : d.toLocaleDateString("en-CA");
@@ -4123,7 +4160,13 @@
       cont.querySelectorAll("[data-cp]").forEach((x) => x.classList.toggle("on", Number(x.dataset.cp) === cpSeleccionado));
     }));
   }
-  function cerrarDetalle() { $("det-overlay").classList.remove("on"); $("det-video").innerHTML = ""; }
+  function cerrarDetalle() {
+    // v91: si se cierra con el teclado abierto, soltamos el foco. Si no, en iOS el campo escondido
+    // quedaba "activo" y la app seguía creyendo que había teclado (ventanas achicadas).
+    const a = document.activeElement;
+    if (a && $("det-overlay").contains(a)) a.blur();
+    $("det-overlay").classList.remove("on"); $("det-video").innerHTML = "";
+  }
   $("det-atras").onclick = cerrarDetalle;
   $("det-overlay").onclick = (e) => { if (e.target === $("det-overlay")) cerrarDetalle(); };
 
@@ -4132,14 +4175,17 @@
     const inputs = document.querySelectorAll("#det-meta .plkg");
     const rpe = cpSeleccionado != null ? String(cpSeleccionado) : null;  // una carga percibida por ejercicio
     const sets = [];
+    let malo = null;
     inputs.forEach((el) => {
       const serie = Number(el.dataset.serie);
       // Aceptamos coma (teclado es-AR) o punto: normalizamos antes de Number().
       const raw = (el.value || "").trim().replace(",", ".");
       const num = raw !== "" ? Number(raw) : null;
-      const peso = num != null && !isNaN(num) ? num : null;
-      sets.push({ serie, peso, rpe, completado: true });  // el mismo RPE va en todas las series
+      if (raw !== "" && (isNaN(num) || num < 0 || num > 1000)) { if (!malo) malo = { el, serie }; return; }
+      sets.push({ serie, peso: num, rpe, completado: true });  // el mismo RPE va en todas las series
     });
+    // v91: antes un kilo mal tipeado ("22,5,5") se guardaba vacío sin avisar.
+    if (malo) { await aviso(`Revisá el peso de la serie ${malo.serie}\nEscribilo solo con números, por ejemplo 22,5.`); malo.el.focus(); return; }
     if (!sets.length) return;
     // Mejor marca ANTES de guardar (para el aviso de récord superado).
     const mejorAnterior = MEJORES_MARCAS[ej.catalogo_id];
@@ -4158,13 +4204,14 @@
   // camino). Antes la pantalla esperaba 3 pedidos seguidos al servidor antes de cerrarse.
   async function registrarCarga(ej, sets) {
     const ahora = new Date().toISOString();
-    const clave = "carga:" + ej.id + ":" + ahora.slice(0, 10);
+    const clave = "carga:" + ej.id + ":" + hoyISO();   // v91: día local, no UTC
+    const tz = new Date().getTimezoneOffset();          // minutos (Argentina = 180)
     const cola = leerCola().filter((x) => x.clave !== clave);
-    cola.push({ dueño: dueñoCache(), clave, path: "/cargas", method: "POST", body: { ejercicio_id: ej.id, sets, fecha: ahora }, t: Date.now(), diferido: false });
+    cola.push({ dueño: dueñoCache(), clave, path: "/cargas", method: "POST", body: { ejercicio_id: ej.id, sets, fecha: ahora, tz }, t: Date.now(), diferido: false });
     if (!guardarCola(cola)) {
       // El celu no deja guardar (modo privado / sin espacio): mandamos directo y esperamos.
       const btn = $("det-accion"); btn.disabled = true;
-      try { await api("/cargas", "POST", { ejercicio_id: ej.id, sets, fecha: ahora }, true); await recargarCargas(); cerrarDetalle(); renderMiRutina(); }
+      try { await api("/cargas", "POST", { ejercicio_id: ej.id, sets, fecha: ahora, tz }, true); await recargarCargas(); cerrarDetalle(); renderMiRutina(); }
       catch (e) { aviso(e.message); } finally { btn.disabled = false; }
       return;
     }
