@@ -218,6 +218,30 @@ const COLUMNAS_NECESARIAS = {
   ejercicios:  [["registrar_carga", "INTEGER NOT NULL DEFAULT 1"]],
   series_plan: [["peso", "REAL"], ["rpe", "TEXT"]],
   cargas:      [["serie", "INTEGER"], ["rpe", "TEXT"]],
+  profesores:  [["tope_alumnos", "INTEGER"]],   // NULL = sin límite de alumnos
+};
+// Tablas que se fueron sumando (wellness, códigos de recuperación). Solo CREATE IF NOT EXISTS.
+const TABLAS_NUEVAS = {
+  wellness: `CREATE TABLE IF NOT EXISTS wellness (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      alumno_id INTEGER NOT NULL REFERENCES alumnos(id) ON DELETE CASCADE,
+      fecha TEXT NOT NULL,
+      dia_id INTEGER,
+      sueno INTEGER NOT NULL, estres INTEGER NOT NULL, fatiga INTEGER NOT NULL, dolor INTEGER NOT NULL,
+      zona TEXT,
+      creado TEXT DEFAULT (datetime('now')),
+      actualizado TEXT DEFAULT (datetime('now')),
+      UNIQUE (alumno_id, fecha))`,
+  codigos_reset: `CREATE TABLE IF NOT EXISTS codigos_reset (
+      rol TEXT NOT NULL,
+      usuario_id INTEGER NOT NULL,
+      codigo_hash TEXT NOT NULL,
+      vence INTEGER NOT NULL,
+      intentos INTEGER NOT NULL DEFAULT 0,
+      enviado INTEGER NOT NULL,
+      dia TEXT,
+      envios_dia INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (rol, usuario_id))`,
 };
 let ESQUEMA_OK = false;
 async function asegurarEsquema(env) {
@@ -226,7 +250,8 @@ async function asegurarEsquema(env) {
   // listo. Solo si falta alguna hacemos la revisión completa de abajo.
   try {
     await env.DB.batch(Object.keys(COLUMNAS_NECESARIAS).map((t) =>
-      env.DB.prepare(`SELECT ${COLUMNAS_NECESARIAS[t].map((c) => c[0]).join(", ")} FROM ${t} LIMIT 0`)));
+      env.DB.prepare(`SELECT ${COLUMNAS_NECESARIAS[t].map((c) => c[0]).join(", ")} FROM ${t} LIMIT 0`))
+      .concat(Object.keys(TABLAS_NUEVAS).map((t) => env.DB.prepare(`SELECT 1 FROM ${t} LIMIT 0`))));
     ESQUEMA_OK = true;
     return;
   } catch (e) { /* falta algo: lo agregamos abajo */ }
@@ -236,6 +261,7 @@ async function asegurarEsquema(env) {
       ejercicio_id INTEGER NOT NULL REFERENCES ejercicios(id) ON DELETE CASCADE,
       numero INTEGER NOT NULL, reps TEXT, pausa TEXT)`).run();
     await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_series_plan_ej ON series_plan(ejercicio_id)").run();
+    for (const t in TABLAS_NUEVAS) await env.DB.prepare(TABLAS_NUEVAS[t]).run();
     for (const tabla in COLUMNAS_NECESARIAS) {
       const existentes = new Set((await env.DB.prepare(`PRAGMA table_info(${tabla})`).all()).results.map((c) => c.name));
       for (const [col, tipo] of COLUMNAS_NECESARIAS[tabla]) {
@@ -884,6 +910,77 @@ async function rutasPlanEvalInterno(request, env, url, path, method, seg, sesion
   return null;
 }
 
+// ------------------------------------------------------------
+//  TOPE DE ALUMNOS POR PROFE
+// ------------------------------------------------------------
+//  `profesores.tope_alumnos`: NULL = sin límite. Lo define el admin desde su panel.
+//  Los administradores nunca tienen tope. Si el tope queda por debajo de los alumnos
+//  que el profe ya tiene, nadie pierde nada: simplemente no puede sumar más.
+async function cupoProfe(profeId, env) {
+  try {
+    const r = await env.DB.prepare(
+      `SELECT p.tope_alumnos AS tope, p.es_admin,
+              (SELECT COUNT(*) FROM alumnos a WHERE a.profe_id = p.id) AS alumnos,
+              (SELECT COUNT(*) FROM invitaciones i WHERE i.profe_id = p.id AND i.usada = 0) AS pendientes
+         FROM profesores p WHERE p.id = ?`).bind(profeId).first();
+    if (!r) return { tope: null, alumnos: 0, pendientes: 0 };
+    return { tope: r.es_admin || r.tope == null ? null : Number(r.tope), alumnos: r.alumnos || 0, pendientes: r.pendientes || 0 };
+  } catch (e) {
+    return { tope: null, alumnos: 0, pendientes: 0 };   // base sin la columna: sin límite
+  }
+}
+const MSG_TOPE_ALUMNO = "Tu profe llegó al máximo de alumnos que puede tener en la app. Avisale; cuando lo resuelva vas a poder registrarte con este mismo link.";
+
+// ------------------------------------------------------------
+//  WELLNESS (cuestionario de bienestar, escala 1 a 7)
+// ------------------------------------------------------------
+//  4 preguntas (sueño, estrés, fatiga, dolor muscular). 1 = lo mejor, 7 = lo peor.
+//  Total = suma (4 a 28): cuanto más bajo, mejor. Una respuesta por alumno y por día.
+const WL_ITEMS = ["sueno", "estres", "fatiga", "dolor"];
+const wlTotal = (w) => WL_ITEMS.reduce((t, k) => t + (Number(w[k]) || 0), 0);
+const isoMenosDias = (n) => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
+
+// ------------------------------------------------------------
+//  RECUPERAR CONTRASEÑA POR MAIL (código de 6 dígitos)
+// ------------------------------------------------------------
+//  Solo se activa si el Worker tiene configurado MAIL_URL (un "puente" que manda el mail;
+//  ver apps-script-mail.gs). Sin eso, todo sigue como antes: el pedido le llega al profe/admin.
+const mailActivo = (env) => !!(env && env.MAIL_URL);
+const RESET_MIN = 15;          // minutos de vida del código
+const RESET_INTENTOS = 5;      // intentos por código
+const RESET_ESPERA = 60;       // segundos entre un mail y el siguiente
+const RESET_POR_DIA = 6;       // mails por persona por día
+async function sha256Hex(txt) {
+  return bufToHex(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(txt)));
+}
+function genCodigoNum() {
+  const a = crypto.getRandomValues(new Uint32Array(1))[0] % 1000000;
+  return String(a).padStart(6, "0");
+}
+async function enviarMail(env, para, asunto, texto, html) {
+  try {
+    const resp = await fetch(env.MAIL_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clave: env.MAIL_CLAVE || "", para, asunto, texto, html, nombre: "Tu Profe" }),
+      signal: AbortSignal.timeout(12000),
+    });
+    if (!resp.ok) return false;
+    const d = await resp.json().catch(() => null);
+    return !!(d && d.ok === true);
+  } catch (e) {
+    console.log("enviarMail:", String(e));
+    return false;
+  }
+}
+// Busca la cuenta (profe no borrado o alumno) por mail. Devuelve { rol, id, nombre } o null.
+async function cuentaPorMail(email, env) {
+  const p = await env.DB.prepare("SELECT id, nombre FROM profesores WHERE lower(email) = lower(?) AND borrado = 0").bind(email).first();
+  if (p) return { rol: "profe", id: p.id, nombre: p.nombre };
+  const a = await env.DB.prepare("SELECT id, nombre FROM alumnos WHERE lower(email) = lower(?)").bind(email).first();
+  return a ? { rol: "alumno", id: a.id, nombre: a.nombre } : null;
+}
+
 // ============================================================
 //  ROUTER
 // ============================================================
@@ -930,6 +1027,9 @@ export default {
         if (!inv) return json({ error: "Link de invitación inválido" }, 400);
         if (inv.usada) return json({ error: "Este link de invitación ya fue usado" }, 409);
         if (await emailEnUso(email, env)) return json({ error: "Ese email ya está registrado" }, 409);
+        await asegurarEsquema(env);
+        const cupo = await cupoProfe(inv.profe_id, env);
+        if (cupo.tope != null && cupo.alumnos >= cupo.tope) return json({ error: MSG_TOPE_ALUMNO }, 403);
 
         const { hash, salt } = await hashPassword(password);
         const r = await env.DB.prepare(
@@ -988,6 +1088,9 @@ export default {
             .bind(body.codigo_invitacion).first();
           if (!inv) return json({ error: "Link de invitación inválido" }, 400);
           if (inv.usada) return json({ error: "Este link de invitación ya fue usado" }, 409);
+          await asegurarEsquema(env);
+          const cupo = await cupoProfe(inv.profe_id, env);
+          if (cupo.tope != null && cupo.alumnos >= cupo.tope) return json({ error: MSG_TOPE_ALUMNO }, 403);
           const r = await env.DB.prepare(
             `INSERT INTO alumnos (profe_id, nombre, email, password_hash, password_salt) VALUES (?, ?, ?, ?, ?)`
           ).bind(inv.profe_id, g.nombre, g.email, hash, salt).run();
@@ -1005,25 +1108,95 @@ export default {
         return json({ error: "No hay ninguna cuenta con " + g.email + ". Si sos alumno, entrá con el link que te pasó tu profe; si sos profe, tocá \"Crear cuenta\"." }, 404);
       }
 
-      // Olvidé mi contraseña (público). No manda mails: deja un PEDIDO que ve el admin
-      // (si es un profe) o su profe (si es un alumno), que le resetea la clave con un toque.
-      // Responde SIEMPRE lo mismo, exista o no el mail, para no revelar quién está registrado.
-      // INSERT OR IGNORE + PK (rol, usuario_id): un solo pedido pendiente por persona, no se puede spamear.
+      // Olvidé mi contraseña (público).
+      //   - Con mail configurado (MAIL_URL): le mandamos un código de 6 dígitos y la persona elige
+      //     su clave nueva sola, sin molestar a nadie. Responde { via: "mail" }.
+      //   - Sin mail (o si el envío falla): deja un PEDIDO que ve el admin (si es un profe) o su
+      //     profe (si es un alumno), que le resetea la clave con un toque. Responde { via: "pedido" }.
+      // Responde lo mismo exista o no el mail, para no revelar quién está registrado.
       if (path === "/olvide-password" && method === "POST") {
         const { email } = await request.json().catch(() => ({}));
         if (!emailOk(email)) return json({ error: "Poné un email válido" }, 400);
-        let rol = "profe";
-        let u = await env.DB.prepare("SELECT id FROM profesores WHERE lower(email) = lower(?) AND borrado = 0")
-          .bind(email).first();
-        if (!u) {
-          rol = "alumno";
-          u = await env.DB.prepare("SELECT id FROM alumnos WHERE lower(email) = lower(?)").bind(email).first();
+        await asegurarEsquema(env);
+        const u = await cuentaPorMail(String(email).trim(), env);
+        const dejarPedido = async () => {
+          if (u) await env.DB.prepare("INSERT OR IGNORE INTO pedidos_reset (rol, usuario_id) VALUES (?, ?)").bind(u.rol, u.id).run();
+        };
+        if (!mailActivo(env)) { await dejarPedido(); return json({ ok: true, via: "pedido" }); }
+        if (!u) return json({ ok: true, via: "mail" });
+
+        const ahora = Math.floor(Date.now() / 1000);
+        const hoy = new Date().toISOString().slice(0, 10);
+        let previo = null;
+        try {
+          previo = await env.DB.prepare("SELECT vence, enviado, dia, envios_dia FROM codigos_reset WHERE rol = ? AND usuario_id = ?").bind(u.rol, u.id).first();
+        } catch (e) { await dejarPedido(); return json({ ok: true, via: "pedido" }); }
+        const enviosHoy = previo && previo.dia === hoy ? previo.envios_dia : 0;
+        // Recién le mandamos uno (o ya pidió demasiados hoy): no mandamos otro, el anterior sigue sirviendo.
+        if (previo && previo.vence > ahora && (ahora - previo.enviado < RESET_ESPERA || enviosHoy >= RESET_POR_DIA))
+          return json({ ok: true, via: "mail" });
+        if (enviosHoy >= RESET_POR_DIA) { await dejarPedido(); return json({ ok: true, via: "pedido" }); }
+
+        const codigo = genCodigoNum();
+        const hash = await sha256Hex(`${codigo}:${u.rol}:${u.id}`);
+        await env.DB.prepare(
+          `INSERT INTO codigos_reset (rol, usuario_id, codigo_hash, vence, intentos, enviado, dia, envios_dia)
+           VALUES (?, ?, ?, ?, 0, ?, ?, ?)
+           ON CONFLICT(rol, usuario_id) DO UPDATE SET codigo_hash = excluded.codigo_hash, vence = excluded.vence,
+             intentos = 0, enviado = excluded.enviado, dia = excluded.dia, envios_dia = excluded.envios_dia`
+        ).bind(u.rol, u.id, hash, ahora + RESET_MIN * 60, ahora, hoy, enviosHoy + 1).run();
+
+        const nombre = String(u.nombre || "").split(" ")[0] || "";
+        const texto = `Hola${nombre ? " " + nombre : ""}:\n\nTu código para elegir una contraseña nueva en Tu Profe es:\n\n${codigo}\n\nVence en ${RESET_MIN} minutos. Si no lo pediste vos, ignorá este mail: tu contraseña sigue igual.`;
+        const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#111;max-width:420px">
+<p>Hola${nombre ? " " + nombre.replace(/[<>&]/g, "") : ""}:</p>
+<p>Tu código para elegir una contraseña nueva en <b>Tu Profe</b> es:</p>
+<p style="font-size:32px;font-weight:bold;letter-spacing:6px;margin:18px 0">${codigo}</p>
+<p>Vence en ${RESET_MIN} minutos.</p>
+<p style="color:#666;font-size:13px">Si no lo pediste vos, ignorá este mail: tu contraseña sigue igual.</p></div>`;
+        const ok = await enviarMail(env, String(email).trim(), `${codigo} es tu código de Tu Profe`, texto, html);
+        if (!ok) {
+          // No salió el mail: no dejamos a la persona colgada, cae al camino de siempre.
+          await env.DB.prepare("DELETE FROM codigos_reset WHERE rol = ? AND usuario_id = ?").bind(u.rol, u.id).run();
+          await dejarPedido();
+          return json({ ok: true, via: "pedido" });
         }
-        if (u) {
-          await env.DB.prepare("INSERT OR IGNORE INTO pedidos_reset (rol, usuario_id) VALUES (?, ?)")
-            .bind(rol, u.id).run();
+        return json({ ok: true, via: "mail" });
+      }
+
+      // Elegir contraseña nueva con el código que llegó por mail (público). body: { email, codigo, nueva }
+      // Si está bien: cambia la clave, cierra las sesiones viejas y devuelve una sesión nueva (entra directo).
+      if (path === "/reset-password" && method === "POST") {
+        const body = await request.json().catch(() => ({}));
+        const email = String(body.email || "").trim();
+        const codigo = String(body.codigo || "").replace(/\D/g, "");
+        const nueva = String(body.nueva || "");
+        if (!emailOk(email)) return json({ error: "Poné un email válido" }, 400);
+        if (nueva.length < 8) return json({ error: "La contraseña nueva necesita 8 caracteres o más" }, 400);
+        const MAL = "El código no es correcto o ya venció. Revisalo o pedí uno nuevo.";
+        if (codigo.length !== 6) return json({ error: MAL }, 400);
+        await asegurarEsquema(env);
+        const u = await cuentaPorMail(email, env);
+        if (!u) return json({ error: MAL }, 400);
+        const fila = await env.DB.prepare("SELECT codigo_hash, vence, intentos FROM codigos_reset WHERE rol = ? AND usuario_id = ?").bind(u.rol, u.id).first();
+        const ahora = Math.floor(Date.now() / 1000);
+        if (!fila || fila.vence < ahora) return json({ error: MAL }, 400);
+        if (fila.intentos >= RESET_INTENTOS)
+          return json({ error: "Demasiados intentos con ese código. Pedí uno nuevo." }, 429);
+        if ((await sha256Hex(`${codigo}:${u.rol}:${u.id}`)) !== fila.codigo_hash) {
+          await env.DB.prepare("UPDATE codigos_reset SET intentos = intentos + 1 WHERE rol = ? AND usuario_id = ?").bind(u.rol, u.id).run();
+          return json({ error: MAL }, 400);
         }
-        return json({ ok: true });
+        const tabla = u.rol === "profe" ? "profesores" : "alumnos";   // nombre fijo, nunca viene del cliente
+        const { hash, salt } = await hashPassword(nueva);
+        await env.DB.batch([
+          env.DB.prepare(`UPDATE ${tabla} SET password_hash = ?, password_salt = ?, debe_cambiar = 0 WHERE id = ?`).bind(hash, salt, u.id),
+          env.DB.prepare("DELETE FROM sesiones WHERE rol = ? AND usuario_id = ?").bind(u.rol, u.id),
+          env.DB.prepare("DELETE FROM codigos_reset WHERE rol = ? AND usuario_id = ?").bind(u.rol, u.id),
+          env.DB.prepare("DELETE FROM pedidos_reset WHERE rol = ? AND usuario_id = ?").bind(u.rol, u.id),
+        ]);
+        const token = await crearSesion(u.rol, u.id, env);
+        return json({ token, rol: u.rol, id: u.id });
       }
 
       // ================= REQUIERE TOKEN =================
@@ -1071,7 +1244,9 @@ export default {
                WHERE pr.rol = 'profe' AND x.borrado = 0`).first();
             profesPend = pp ? pp.n : 0;
           }
+          const cupo = await cupoProfe(sesion.id, env);
           return json({ rol: "profe", ...p, habilitado: profeHabilitado ? 1 : 0, es_admin: esAdmin ? 1 : 0,
+                        tope_alumnos: cupo.tope,
                         pedidos_reset: { alumnos: pa ? pa.n : 0, profes: profesPend } });
         } else {
           // La foto NO viaja acá (pesa mucho y /yo se pide en cada arranque): solo avisamos si
@@ -1123,6 +1298,11 @@ export default {
       // Generar una invitación de un solo uso
       if (path === "/invitaciones" && method === "POST" && esProfe) {
         const { nota } = await request.json().catch(() => ({}));
+        const cupo = await cupoProfe(sesion.id, env);
+        if (cupo.tope != null && cupo.alumnos >= cupo.tope)
+          return json({ error: `Llegaste al tope de ${cupo.tope} alumno${cupo.tope !== 1 ? "s" : ""} de tu cuenta. Para sumar más, escribile al administrador.` }, 403);
+        if (cupo.tope != null && cupo.alumnos + cupo.pendientes >= cupo.tope)
+          return json({ error: `Tu tope es de ${cupo.tope} alumno${cupo.tope !== 1 ? "s" : ""} y entre los que ya tenés (${cupo.alumnos}) y las invitaciones sin usar (${cupo.pendientes}) ya lo cubrís. Cancelá una invitación que no vayas a usar o escribile al administrador.` }, 403);
         const codigo = genCodigo("INV");
         const r = await env.DB.prepare("INSERT INTO invitaciones (profe_id, codigo, nota) VALUES (?, ?, ?)")
           .bind(sesion.id, codigo, nota || null).run();
@@ -1198,6 +1378,28 @@ export default {
                   EXISTS (SELECT 1 FROM pedidos_reset pr WHERE pr.rol = 'alumno' AND pr.usuario_id = alumnos.id) AS pide_reset
            FROM alumnos WHERE profe_id = ? ORDER BY nombre`
         ).bind(sesion.id).all();
+        // Último wellness de cada alumno + su promedio de las 4 semanas anteriores (para el semáforo).
+        try {
+          const wl = (await env.DB.prepare(
+            `SELECT w.alumno_id, w.fecha, w.sueno, w.estres, w.fatiga, w.dolor, w.zona
+               FROM wellness w JOIN alumnos a ON a.id = w.alumno_id
+              WHERE a.profe_id = ? AND w.fecha >= ? ORDER BY w.fecha DESC`
+          ).bind(sesion.id, isoMenosDias(45)).all()).results;
+          const porAlumno = new Map();
+          for (const w of wl) { if (!porAlumno.has(w.alumno_id)) porAlumno.set(w.alumno_id, []); porAlumno.get(w.alumno_id).push(w); }
+          for (const a of results) {
+            const filas = porAlumno.get(a.id);
+            if (!filas) { a.wellness = null; continue; }
+            const u = filas[0];
+            const desde = new Date(new Date(u.fecha + "T00:00:00Z").getTime() - 28 * 86400000).toISOString().slice(0, 10);
+            const previos = filas.slice(1).filter((x) => x.fecha >= desde);
+            a.wellness = {
+              fecha: u.fecha, sueno: u.sueno, estres: u.estres, fatiga: u.fatiga, dolor: u.dolor, zona: u.zona || null,
+              total: wlTotal(u), n: previos.length,
+              prom: previos.length ? Math.round(previos.reduce((t, x) => t + wlTotal(x), 0) / previos.length * 10) / 10 : null,
+            };
+          }
+        } catch (e) { /* base sin la tabla wellness: la lista sale igual, sin semáforo */ }
         return json(results);
       }
       if (seg[0] === "alumnos" && seg.length === 2 && method === "GET" && esProfe) {
@@ -1312,7 +1514,14 @@ export default {
           // Ejercicios en el orden de la rutina (bloque, luego ejercicio), no en el que se cargaron.
           ejercicios: [...g.ej.values()].sort((a, b) => a._ord - b._ord).map((x) => ({ nombre: x.nombre, rpe: x.rpe })),
         }));
-        return json({ dias });
+        // Wellness del alumno (últimos 6 meses, del más nuevo al más viejo). El front lo cruza por fecha.
+        let wellness = [];
+        try {
+          wellness = (await env.DB.prepare(
+            "SELECT fecha, sueno, estres, fatiga, dolor, zona FROM wellness WHERE alumno_id = ? AND fecha >= ? ORDER BY fecha DESC"
+          ).bind(alumnoId, isoMenosDias(185)).all()).results;
+        } catch (e) { /* base sin la tabla */ }
+        return json({ dias, wellness });
       }
       if (seg[0] === "alumnos" && seg.length === 3 && seg[2] === "reset-password" && method === "POST" && esProfe) {
         const alumnoId = Number(seg[1]);
@@ -1707,6 +1916,42 @@ export default {
         return json(results);
       }
 
+      // WELLNESS del alumno. Una respuesta por día (la fecha es la del celu del alumno, YYYY-MM-DD).
+      if (path === "/mi-wellness" && method === "GET" && esAlumno) {
+        const { results } = await env.DB.prepare(
+          "SELECT fecha, dia_id, sueno, estres, fatiga, dolor, zona FROM wellness WHERE alumno_id = ? AND fecha >= ? ORDER BY fecha DESC"
+        ).bind(sesion.id, isoMenosDias(185)).all();
+        return json(results);
+      }
+      // Guardar / corregir el wellness de un día. body: { fecha, sueno, estres, fatiga, dolor, zona?, dia_id? }
+      // Si ya había uno de ese día, lo pisa (por eso sirve también si llega tarde desde la cola sin señal).
+      if (path === "/mi-wellness" && method === "PUT" && esAlumno) {
+        const b = await request.json().catch(() => ({}));
+        const fecha = String(b.fecha || "");
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha) || isNaN(new Date(fecha + "T00:00:00Z")))
+          return json({ error: "Fecha no válida" }, 400);
+        // Aceptamos hasta 15 días para atrás (cola sin señal) y 1 para adelante (diferencia horaria).
+        const manana = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+        if (fecha > manana || fecha < isoMenosDias(15)) return json({ error: "Esa fecha ya no se puede cargar" }, 400);
+        const v = {};
+        for (const k of WL_ITEMS) {
+          const n = Number(b[k]);
+          if (!Number.isInteger(n) || n < 1 || n > 7) return json({ error: "Respondé las 4 preguntas con un valor del 1 al 7" }, 400);
+          v[k] = n;
+        }
+        const zona = b.zona ? String(b.zona).trim().slice(0, 120) || null : null;
+        let diaId = Number(b.dia_id) || null;
+        if (diaId && !(await diaEsDelAlumno(diaId, sesion.id, env))) diaId = null;
+        await env.DB.prepare(
+          `INSERT INTO wellness (alumno_id, fecha, dia_id, sueno, estres, fatiga, dolor, zona)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT(alumno_id, fecha) DO UPDATE SET dia_id = excluded.dia_id, sueno = excluded.sueno,
+             estres = excluded.estres, fatiga = excluded.fatiga, dolor = excluded.dolor, zona = excluded.zona,
+             actualizado = datetime('now')`
+        ).bind(sesion.id, fecha, diaId, v.sueno, v.estres, v.fatiga, v.dolor, zona).run();
+        return json({ ok: true });
+      }
+
       // Nota del alumno para el entrenador (una por día de entrenamiento).
       if (seg[0] === "mi-dia" && seg.length === 3 && seg[2] === "nota" && method === "PUT" && esAlumno) {
         const diaId = Number(seg[1]);
@@ -1793,7 +2038,7 @@ export default {
 
       if (path === "/admin/profesores" && method === "GET" && esAdmin) {
         const { results } = await env.DB.prepare(
-          `SELECT p.id, p.nombre, p.email, p.habilitado, p.es_admin, p.creado,
+          `SELECT p.id, p.nombre, p.email, p.habilitado, p.es_admin, p.creado, p.tope_alumnos,
                   (SELECT COUNT(*) FROM alumnos a WHERE a.profe_id = p.id) AS alumnos,
                   EXISTS (SELECT 1 FROM pedidos_reset pr WHERE pr.rol = 'profe' AND pr.usuario_id = p.id) AS pide_reset
            FROM profesores p
@@ -1805,10 +2050,24 @@ export default {
 
       if (seg[0] === "admin" && seg[1] === "profesores" && seg.length === 3 && method === "PUT" && esAdmin) {
         const pid = Number(seg[2]);
-        const { habilitado } = await request.json();
-        if (pid === sesion.id) return json({ error: "No podés deshabilitarte a vos mismo." }, 400);
+        const cuerpo = await request.json().catch(() => ({}));
+        const { habilitado } = cuerpo;
         const target = await env.DB.prepare("SELECT es_admin FROM profesores WHERE id = ?").bind(pid).first();
         if (!target) return json({ error: "Profe no encontrado" }, 404);
+        // Tope de alumnos: null = sin límite; si no, un número entero (0 = no puede sumar a nadie).
+        if (cuerpo.tope_alumnos !== undefined) {
+          if (target.es_admin) return json({ error: "Los administradores no tienen tope de alumnos." }, 400);
+          let tope = null;
+          if (cuerpo.tope_alumnos !== null && cuerpo.tope_alumnos !== "") {
+            tope = Number(cuerpo.tope_alumnos);
+            if (!Number.isInteger(tope) || tope < 0 || tope > 100000)
+              return json({ error: "El tope tiene que ser un número entero (o sin límite)." }, 400);
+          }
+          await env.DB.prepare("UPDATE profesores SET tope_alumnos = ? WHERE id = ?").bind(tope, pid).run();
+          if (habilitado === undefined) return json({ ok: true, tope_alumnos: tope });
+        }
+        if (habilitado === undefined) return json({ error: "Nada para cambiar" }, 400);
+        if (pid === sesion.id) return json({ error: "No podés deshabilitarte a vos mismo." }, 400);
         if (target.es_admin) return json({ error: "No podés deshabilitar a otro administrador." }, 400);
         await env.DB.prepare("UPDATE profesores SET habilitado = ? WHERE id = ?").bind(habilitado ? 1 : 0, pid).run();
         return json({ ok: true });
