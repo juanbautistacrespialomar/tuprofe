@@ -1390,6 +1390,85 @@ export default {
       }
 
       // --- ALUMNOS ---
+      // INICIO del profe: lo que necesita para la pantalla "Tu día" en un solo pedido.
+      //   ?hoy=YYYY-MM-DD (día del celu del profe)  &tz=minutos de diferencia con UTC (getTimezoneOffset)
+      // Devuelve:
+      //   hoy:     alumnos que tienen un día cargado para hoy o que ya registraron algo hoy
+      //   alumnos: por alumno, cuántos días tiene, su último día con fecha y su última carga
+      //   notas:   últimas notas que dejaron los alumnos (14 días)
+      // Solo lee. El wellness y las evaluaciones ya viajan en /alumnos y /evaluaciones.
+      if (path === "/inicio" && method === "GET" && esProfe) {
+        const hoy = /^\d{4}-\d{2}-\d{2}$/.test(url.searchParams.get("hoy") || "") ? url.searchParams.get("hoy") : new Date().toISOString().slice(0, 10);
+        let tz = Number(url.searchParams.get("tz"));
+        if (!Number.isFinite(tz) || Math.abs(tz) > 900) tz = 0;
+        const aSql = (ms) => new Date(ms).toISOString().slice(0, 19).replace("T", " ");
+        const ini = new Date(hoy + "T00:00:00Z").getTime() + tz * 60000;   // 00:00 del profe, en UTC
+        const desde = aSql(ini), hasta = aSql(ini + 86400000), desdeNotas = aSql(ini - 14 * 86400000);
+        const nEj = "(SELECT COUNT(*) FROM ejercicios e2 JOIN bloques b2 ON b2.id = e2.bloque_id WHERE b2.dia_id = d.id)";
+        const [plan, hechos, alus, notasC, notasD] = await env.DB.batch([
+          env.DB.prepare(
+            `SELECT d.id AS dia_id, d.nombre AS dia, d.alumno_id, a.nombre, ${nEj} AS total
+               FROM dias d JOIN alumnos a ON a.id = d.alumno_id
+              WHERE a.profe_id = ? AND d.fecha = ? AND COALESCE(d.es_molde, 0) = 0 ORDER BY d.orden, d.id`).bind(sesion.id, hoy),
+          env.DB.prepare(
+            `SELECT c.alumno_id, a.nombre, d.id AS dia_id, d.nombre AS dia, COUNT(DISTINCT c.ejercicio_id) AS hechos, MAX(c.fecha) AS ultima, ${nEj} AS total
+               FROM cargas c JOIN ejercicios e ON e.id = c.ejercicio_id JOIN bloques b ON b.id = e.bloque_id
+               JOIN dias d ON d.id = b.dia_id JOIN alumnos a ON a.id = c.alumno_id
+              WHERE a.profe_id = ? AND c.fecha >= ? AND c.fecha < ? GROUP BY c.alumno_id, d.id`).bind(sesion.id, desde, hasta),
+          env.DB.prepare(
+            `SELECT a.id, a.nombre, a.creado,
+                    (SELECT COUNT(*) FROM dias d WHERE d.alumno_id = a.id AND COALESCE(d.es_molde, 0) = 0) AS n_dias,
+                    (SELECT MAX(d.fecha) FROM dias d WHERE d.alumno_id = a.id AND COALESCE(d.es_molde, 0) = 0 AND d.fecha IS NOT NULL AND d.fecha <> '') AS ult_dia,
+                    (SELECT MAX(c.fecha) FROM cargas c WHERE c.alumno_id = a.id) AS ult_carga
+               FROM alumnos a WHERE a.profe_id = ? ORDER BY a.nombre`).bind(sesion.id),
+          env.DB.prepare(
+            `SELECT c.alumno_id, a.nombre, c.notas AS texto, c.fecha, ce.nombre AS donde
+               FROM cargas c JOIN alumnos a ON a.id = c.alumno_id JOIN ejercicios e ON e.id = c.ejercicio_id
+               JOIN catalogo_ejercicios ce ON ce.id = e.catalogo_id
+              WHERE a.profe_id = ? AND c.fecha >= ? AND c.notas IS NOT NULL AND trim(c.notas) <> ''
+              ORDER BY c.fecha DESC LIMIT 60`).bind(sesion.id, desdeNotas),
+          env.DB.prepare(
+            `SELECT d.alumno_id, a.nombre, d.nota_alumno AS texto, d.nombre AS donde, d.fecha AS dia_fecha,
+                    (SELECT MAX(c.fecha) FROM cargas c JOIN ejercicios e ON e.id = c.ejercicio_id JOIN bloques b ON b.id = e.bloque_id WHERE b.dia_id = d.id) AS fecha_carga
+               FROM dias d JOIN alumnos a ON a.id = d.alumno_id
+              WHERE a.profe_id = ? AND COALESCE(d.es_molde, 0) = 0 AND d.nota_alumno IS NOT NULL AND trim(d.nota_alumno) <> ''`).bind(sesion.id),
+        ]);
+        // --- Hoy: junto lo planificado para hoy con lo que efectivamente registraron hoy ---
+        const porAlumno = new Map();
+        const entrada = (id, nombre) => {
+          if (!porAlumno.has(id)) porAlumno.set(id, { alumno_id: id, nombre, dias: new Map(), ultima: null });
+          return porAlumno.get(id);
+        };
+        for (const r of plan.results) if (r.total > 0) entrada(r.alumno_id, r.nombre).dias.set(r.dia_id, { dia: r.dia, total: r.total, hechos: 0 });
+        for (const r of hechos.results) {
+          const en = entrada(r.alumno_id, r.nombre);
+          const d = en.dias.get(r.dia_id) || { dia: r.dia, total: r.total, hechos: 0 };
+          d.hechos = Math.min(r.hechos, d.total || r.hechos);
+          en.dias.set(r.dia_id, d);
+          if (!en.ultima || r.ultima > en.ultima) en.ultima = r.ultima;
+        }
+        const hoyLista = [...porAlumno.values()].map((en) => {
+          const ds = [...en.dias.values()];
+          return { alumno_id: en.alumno_id, nombre: en.nombre, dia: ds.map((d) => d.dia).filter(Boolean).join(" + "),
+                   total: ds.reduce((t, d) => t + d.total, 0), hechos: ds.reduce((t, d) => t + d.hechos, 0), ultima: en.ultima };
+        }).sort((a, b) => String(a.nombre).localeCompare(String(b.nombre)));
+        // --- Notas: las de un ejercicio (con su hora) + las "notas para el entrenador" del día ---
+        const notas = [], vistas = new Set();
+        const sumar = (n) => {
+          const k = n.alumno_id + "|" + String(n.fecha).slice(0, 10) + "|" + n.texto;
+          if (vistas.has(k)) return;
+          vistas.add(k); notas.push(n);
+        };
+        for (const r of notasC.results) sumar({ alumno_id: r.alumno_id, nombre: r.nombre, texto: String(r.texto).trim(), fecha: r.fecha, donde: r.donde || "" });
+        for (const r of notasD.results) {
+          const fecha = r.fecha_carga || (r.dia_fecha ? r.dia_fecha + " 12:00:00" : null);
+          if (!fecha || fecha < desdeNotas || fecha >= hasta) continue;
+          sumar({ alumno_id: r.alumno_id, nombre: r.nombre, texto: String(r.texto).trim(), fecha, donde: r.donde || "", sin_hora: r.fecha_carga ? 0 : 1 });
+        }
+        notas.sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
+        return json({ hoy: hoyLista, alumnos: alus.results, notas: notas.slice(0, 6) });
+      }
+
       if (path === "/alumnos" && method === "GET" && esProfe) {
         const { results } = await env.DB.prepare(
           `SELECT id, nombre, email, fecha_nac, objetivo, creado,
