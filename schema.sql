@@ -13,6 +13,8 @@
 --          sesión persistente por token.
 -- ============================================================
 
+DROP TABLE IF EXISTS codigos_reset;
+DROP TABLE IF EXISTS wellness;
 DROP TABLE IF EXISTS evaluaciones;
 DROP TABLE IF EXISTS plantilla_ejercicios;
 DROP TABLE IF EXISTS plantilla_bloques;
@@ -42,6 +44,7 @@ CREATE TABLE profesores (
   es_admin           INTEGER NOT NULL DEFAULT 0,  -- 1 = creador/administrador de la plataforma
   borrado            INTEGER NOT NULL DEFAULT 0,  -- 1 = borrado (soft delete): oculto y sin acceso, datos preservados
   debe_cambiar       INTEGER NOT NULL DEFAULT 0,  -- 1 = clave temporal (reseteo): obliga a elegir una propia
+  tope_alumnos       INTEGER,                     -- máximo de alumnos que puede tener (NULL = sin límite); lo define el admin
   creado             TEXT DEFAULT (datetime('now'))
 );
 
@@ -250,3 +253,42 @@ CREATE TABLE IF NOT EXISTS evaluaciones (
 
 CREATE INDEX IF NOT EXISTS idx_eval_alumno ON evaluaciones(alumno_id, estado);
 CREATE INDEX IF NOT EXISTS idx_eval_profe  ON evaluaciones(profe_id, estado);
+
+-- ------------------------------------------------------------
+-- WELLNESS (cuestionario de bienestar del alumno, escala 1 a 7)
+--   Lo responde al terminar el entrenamiento. 1 = lo mejor, 7 = lo peor.
+--   Total = suma de los 4 ítems (4 a 28): cuanto más bajo, mejor.
+--   Una respuesta por alumno y por día (fecha local del alumno).
+--   El worker crea esta tabla solo si no existe: no hace falta migración manual.
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS wellness (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  alumno_id    INTEGER NOT NULL REFERENCES alumnos(id) ON DELETE CASCADE,
+  fecha        TEXT NOT NULL,               -- YYYY-MM-DD
+  dia_id       INTEGER,                     -- día de la rutina que entrenó (informativo)
+  sueno        INTEGER NOT NULL,
+  estres       INTEGER NOT NULL,
+  fatiga       INTEGER NOT NULL,
+  dolor        INTEGER NOT NULL,
+  zona         TEXT,                        -- dónde le duele (solo si dolor >= 5)
+  creado       TEXT DEFAULT (datetime('now')),
+  actualizado  TEXT DEFAULT (datetime('now')),
+  UNIQUE (alumno_id, fecha)
+);
+
+-- ------------------------------------------------------------
+-- CÓDIGOS DE RECUPERACIÓN (olvidé mi contraseña por mail)
+--   Un código de 6 dígitos vigente por persona, guardado hasheado.
+--   El worker crea esta tabla solo si no existe.
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS codigos_reset (
+  rol          TEXT NOT NULL,
+  usuario_id   INTEGER NOT NULL,
+  codigo_hash  TEXT NOT NULL,
+  vence        INTEGER NOT NULL,            -- epoch en segundos
+  intentos     INTEGER NOT NULL DEFAULT 0,
+  enviado      INTEGER NOT NULL,            -- epoch del último mail
+  dia          TEXT,                        -- YYYY-MM-DD del último mail
+  envios_dia   INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (rol, usuario_id)
+);

@@ -63,7 +63,7 @@ Se sirve desde **GitHub Pages** (Settings → Pages → branch `main`, root). Se
 
 ## Endpoints de la API
 
-**Público:** `POST /registro/profe`, `POST /registro/alumno`, `POST /login`, `POST /olvide-password`
+**Público:** `POST /registro/profe`, `POST /registro/alumno`, `POST /login`, `POST /auth/google`, `POST /olvide-password`, `POST /reset-password`
 
 **Con token:** `GET /yo`, `POST /logout`, `PUT /mi-password`
 
@@ -73,9 +73,9 @@ Se sirve desde **GitHub Pages** (Settings → Pages → branch `main`, root). Se
 
 **Profe · Evaluaciones:** `GET /evaluaciones` (`?alumno_id=`), `POST /evaluaciones` (`{ alumno_ids, tipo, ... }`), `GET/PUT/DELETE /evaluaciones/:id`
 
-**Alumno:** `GET /mis-evaluaciones`, `PUT /mis-evaluaciones/:id`, `GET /mi-rutina`, `POST /cargas`, `GET /mis-cargas`, `GET /mis-mejores-marcas`, `PUT /mi-perfil` (foto, objetivo, observaciones)
+**Alumno:** `GET/PUT /mi-wellness`, `GET /mis-evaluaciones`, `PUT /mis-evaluaciones/:id`, `GET /mi-rutina`, `POST /cargas`, `GET /mis-cargas`, `GET /mis-mejores-marcas`, `PUT /mi-perfil` (foto, objetivo, observaciones)
 
-**Admin:** `GET /admin/profesores`, `PUT/DELETE /admin/profesores/:id`, `POST /admin/profesores/:id/reset-password`
+**Admin:** `GET /admin/profesores`, `PUT/DELETE /admin/profesores/:id` (`{ habilitado }` y/o `{ tope_alumnos }`), `POST /admin/profesores/:id/reset-password`
 
 ## Versionado y auto-update
 
@@ -90,4 +90,18 @@ Se sirve desde **GitHub Pages** (Settings → Pages → branch `main`, root). Se
   - Test iniciales: `ohs` (overhead squat) y `unipodal` (por pierna). El alumno pega el link del video; el profe marca compensaciones y puntaje 0-3.
   - Evaluaciones físicas: `rm` (1RM estimado, Brzycki/Epley), `cmj`, `abalakov`, `sj` (altura en cm o por tiempo de vuelo; potencia de Sayers; % de brazos e índice de elasticidad contra el último CMJ) y `vbt` (perfil carga-velocidad y 1RM estimado).
 - Migración: `npx wrangler d1 execute tuprofe-db --file=migracion-planificaciones-evaluaciones.sql --remote` (solo crea tablas; re-ejecutable).
-- 
+
+## Wellness, tope de alumnos y recuperación por mail (v92)
+
+No hace falta correr ninguna migración: el worker agrega solo la columna `profesores.tope_alumnos` y crea las tablas `wellness` y `codigos_reset` la primera vez que arranca (solo suma, no toca datos).
+
+- **Wellness:** cuestionario de 4 preguntas (sueño, estrés, fatiga, dolor muscular), del 1 (lo mejor) al 7 (lo peor). Total de 4 a 28: más bajo, mejor.
+  - Alumno: se le abre solo cuando marca el último ejercicio del día. Si lo saltea, queda una tarjeta en el día para responderlo. Una respuesta por día; funciona sin señal (cola). Si el dolor es 5 o más, pregunta dónde.
+  - Profe: semáforo en la lista de alumnos (respuestas de los últimos 3 días) y, en Seguimiento, el detalle de cada día + la tendencia de 4 semanas.
+  - Semáforo: **rojo** si algún ítem es 6-7, el total es 20 o más, o está 4+ puntos arriba de su promedio; **amarillo** si algún ítem es 5, el total es 16 o más, o está 2+ puntos arriba. El promedio es el de sus 4 semanas previas y solo cuenta con 3 respuestas o más.
+  - El export (JSON y CSV) incluye el wellness; en el CSV va en las columnas `wl_*` de cada fila.
+- **Tope de alumnos:** en el panel de admin, tocar la cantidad de alumnos de un profe y elegir "Sin límite" o un número. Con el tope alcanzado el profe no puede generar invitaciones y los links pendientes no dejan registrarse (no se queman). Nunca se borra a nadie.
+- **Olvidé mi contraseña:** tres caminos.
+  1. Botón de Google en esa pantalla (si el mail es de Google, entra sin clave).
+  2. Código de 6 dígitos por mail: se activa cargando en el Worker los secretos `MAIL_URL` y `MAIL_CLAVE` (ver `apps-script-mail.gs`). Vence a los 15 minutos, 5 intentos, y al usarlo entra directo.
+  3. Sin esos secretos (o si el envío falla) sigue el camino de siempre: el pedido le aparece al profe o al admin.
