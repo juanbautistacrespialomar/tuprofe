@@ -1148,12 +1148,30 @@ export default {
 
         const nombre = String(u.nombre || "").split(" ")[0] || "";
         const texto = `Hola${nombre ? " " + nombre : ""}:\n\nTu código para elegir una contraseña nueva en Tu Profe es:\n\n${codigo}\n\nVence en ${RESET_MIN} minutos. Si no lo pediste vos, ignorá este mail: tu contraseña sigue igual.`;
-        const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#111;max-width:420px">
-<p>Hola${nombre ? " " + nombre.replace(/[<>&]/g, "") : ""}:</p>
-<p>Tu código para elegir una contraseña nueva en <b>Tu Profe</b> es:</p>
-<p style="font-size:32px;font-weight:bold;letter-spacing:6px;margin:18px 0">${codigo}</p>
-<p>Vence en ${RESET_MIN} minutos.</p>
-<p style="color:#666;font-size:13px">Si no lo pediste vos, ignorá este mail: tu contraseña sigue igual.</p></div>`;
+        // Mail con la estética de la app (fondo oscuro, verde lima). Va armado con tablas y estilos
+        // en línea porque es lo único que respetan todos los correos (Gmail, Outlook, el del celu).
+        const nomHtml = nombre.replace(/[<>&"]/g, "");
+        const F = "font-family:Arial,Helvetica,sans-serif;";
+        const html = `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark"></head>
+<body style="margin:0;padding:0;background-color:#0a0a0a;">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#0a0a0a;">Tu código para elegir una contraseña nueva. Vence en ${RESET_MIN} minutos.</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#0a0a0a" style="background-color:#0a0a0a;">
+<tr><td align="center" style="padding:32px 16px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:440px;">
+<tr><td align="center" style="padding:0 0 22px;${F}font-size:30px;line-height:34px;font-weight:900;letter-spacing:1px;color:#ffffff;">TU <span style="color:#c4f000;">PROFE</span></td></tr>
+<tr><td bgcolor="#161616" style="background-color:#161616;border:1px solid #262626;border-radius:22px;padding:28px 24px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+<tr><td style="${F}font-size:11px;line-height:16px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#c4f000;padding:0 0 10px;">Recuperá tu acceso</td></tr>
+<tr><td style="${F}font-size:20px;line-height:26px;font-weight:700;color:#ffffff;padding:0 0 8px;">Hola${nomHtml ? " " + nomHtml : ""}</td></tr>
+<tr><td style="${F}font-size:15px;line-height:22px;color:#b5b5b5;padding:0 0 20px;">Este es tu código para elegir una contraseña nueva:</td></tr>
+<tr><td align="center" bgcolor="#1e1e1e" style="background-color:#1e1e1e;border:1px solid #c4f000;border-radius:14px;padding:18px 10px;${F}font-size:36px;line-height:40px;font-weight:700;letter-spacing:8px;color:#c4f000;">${codigo}</td></tr>
+<tr><td align="center" style="${F}font-size:13px;line-height:20px;color:#8a8a8a;padding:14px 0 0;">Vence en ${RESET_MIN} minutos · Escribilo en la app</td></tr>
+</table>
+</td></tr>
+<tr><td align="center" style="${F}font-size:12px;line-height:18px;color:#8a8a8a;padding:20px 12px 0;">Si no lo pediste vos, ignorá este mail: tu contraseña sigue igual.</td></tr>
+</table>
+</td></tr></table>
+</body></html>`;
         const ok = await enviarMail(env, String(email).trim(), `${codigo} es tu código de Tu Profe`, texto, html);
         if (!ok) {
           // No salió el mail: no dejamos a la persona colgada, cae al camino de siempre.
