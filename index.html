@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- tuprofe · v91 -->
+<!-- tuprofe · v92 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
@@ -645,6 +645,46 @@
   .ovl-back { width: 38px; height: 38px; border-radius: 11px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); font-size: 22px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
   .ovl-back:active { transform: scale(.94); }
   .ovl-scroll { scrollbar-gutter: stable; }
+  /* ===== Wellness (cuestionario de bienestar, 1 a 7) ===== */
+  .wl-card { margin-top: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px 14px 15px; }
+  .wl-card.pend { border-color: rgba(196,240,0,.5); background: rgba(196,240,0,.06); }
+  .wl-k { font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 9px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .wl-k small { font-weight: 400; color: var(--muted); text-transform: none; letter-spacing: 0; font-size: 11.5px; }
+  .wl-t { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+  .wl-s { font-size: 13px; color: var(--muted); line-height: 1.45; margin-bottom: 12px; }
+  .wl-chips { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .wl-chip { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: var(--surface-2); border: 1px solid var(--border); border-left: 3px solid var(--wc, var(--border)); border-radius: 9px; padding: 7px 10px; font-size: 12.5px; color: var(--muted); min-width: 0; }
+  .wl-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .wl-chip b { color: var(--text); font-size: 14px; flex: 0 0 auto; }
+  .wl-tot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; font-size: 13px; color: var(--muted); }
+  .wl-tot b { font-family: "Anton", sans-serif; font-weight: 400; font-size: 20px; color: var(--text); margin-right: 4px; }
+  .wl-zona { font-size: 12.5px; color: var(--muted); margin-top: 8px; line-height: 1.4; }
+  .wl-zona b { color: var(--text); font-weight: 500; }
+  .wl-link { background: none; border: none; color: var(--accent); font-size: 13px; font-weight: 600; cursor: pointer; padding: 4px 0; }
+  .wl-niv { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 700; padding: 1px 8px; border-radius: 999px; border: 1px solid; white-space: nowrap; vertical-align: 1px; }
+  .wl-niv::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: 0 0 auto; }
+  .wl-niv.verde { color: #4ccb6a; border-color: rgba(76,203,106,.45); background: rgba(76,203,106,.08); }
+  .wl-niv.amarillo { color: #ffc233; border-color: rgba(255,194,51,.45); background: rgba(255,194,51,.08); }
+  .wl-niv.rojo { color: #ff6b6b; border-color: rgba(255,93,93,.5); background: rgba(255,93,93,.1); }
+  .wl-q { margin-bottom: 18px; }
+  .wl-q-t { font-size: 15px; font-weight: 600; }
+  .wl-q-s { font-size: 12.5px; color: var(--muted); margin: 2px 0 9px; }
+  .wl-scale { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+  .wl-btn { height: 46px; min-width: 0; padding: 0; border-radius: 10px; border: 1px solid var(--border); border-bottom: 4px solid var(--wc); background: var(--surface-2); color: var(--text); font-size: 15px; font-weight: 600; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .wl-btn.on { background: var(--wc); border-color: var(--wc); color: var(--wi, #111); }
+  .wl-ends { display: flex; justify-content: space-between; gap: 10px; font-size: 11px; color: var(--muted); margin-top: 6px; }
+  .wl-trend { background: var(--surface-2); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; margin-bottom: 12px; }
+  .wl-trend-h { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+  .wl-trend-h span { font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .6px; }
+  .wl-trend-h small { font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+  .wl-trend svg { width: 100%; height: auto; display: block; }
+  .wl-trend-f { font-size: 12.5px; color: var(--muted); margin-top: 8px; line-height: 1.5; }
+  .wl-trend-f b { color: var(--text); }
+  .seg-wl { border-top: 1px solid var(--border); margin-top: 12px; padding-top: 12px; }
+  .seg-wl .wl-k { margin-bottom: 8px; }
+  .seg-scroll.con-wl { height: 40vh; }
+  .adm-tope { background: none; border: none; padding: 0; font: inherit; color: var(--accent); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+  .adm-tope.lleno { color: #ffc233; }
   /* ===== Planificaciones (plantillas generales) ===== */
   .chips { display: flex; gap: 6px; overflow-x: auto; margin: 0 -18px 12px; padding: 0 18px 2px; scrollbar-width: none; touch-action: pan-x; }
   .chips::-webkit-scrollbar { display: none; }
@@ -887,9 +927,22 @@
   <div class="screen" id="s-olvide">
     <div class="card">
       <div class="msg" id="ol-msg"></div>
-      <p class="hint">Poné el mail con el que entrás. Le avisamos a tu profe (o al administrador, si sos profe) para que te genere una clave nueva y te la pase.</p>
-      <div class="field"><label>Email</label><div class="input-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 7l9 6 9-6"/><rect x="3" y="5" width="18" height="14" rx="2"/></svg><input type="email" id="ol-email" placeholder="nombre@mail.com" autocomplete="email" /></div></div>
-      <button class="btn" id="ol-btn">Pedir clave nueva</button>
+      <div id="ol-paso1">
+        <p class="hint">Poné el mail con el que entrás y te ayudamos a elegir una contraseña nueva.</p>
+        <div class="field"><label>Email</label><div class="input-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 7l9 6 9-6"/><rect x="3" y="5" width="18" height="14" rx="2"/></svg><input type="email" id="ol-email" placeholder="nombre@mail.com" autocomplete="email" /></div></div>
+        <button class="btn" id="ol-btn">Continuar</button>
+        <div class="g-divisor"><span>o entrá sin contraseña</span></div>
+        <div id="g-btn-ol" class="g-btn"></div>
+        <p class="hint" style="text-align:center;margin:12px 0 0">Si tu mail es de Google (Gmail), con este botón entrás directo, sin clave.</p>
+      </div>
+      <div id="ol-paso2" style="display:none">
+        <p class="hint">Si <b id="ol-mail-txt" style="color:var(--text)"></b> tiene cuenta, le mandamos un código de 6 dígitos. Puede tardar un minuto; si no lo ves, revisá Spam.</p>
+        <div class="field"><label>Código que te llegó por mail</label><input type="text" id="ol-codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="123456" style="letter-spacing:4px;font-size:18px;text-align:center" /></div>
+        <div class="field"><label>Contraseña nueva</label><div class="input-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><input type="password" id="ol-pass" class="haseye" placeholder="mínimo 8 caracteres" autocomplete="new-password" /><button type="button" class="eye" data-eye="ol-pass" aria-label="Mostrar contraseña"></button></div></div>
+        <div class="field"><label>Repetir contraseña nueva</label><div class="input-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><input type="password" id="ol-pass2" class="haseye" placeholder="repetí la contraseña" autocomplete="new-password" /><button type="button" class="eye" data-eye="ol-pass2" aria-label="Mostrar contraseña"></button></div></div>
+        <button class="btn" id="ol-cambiar">Guardar y entrar</button>
+        <a class="link-olvide" id="ol-reenviar" style="text-align:center;margin:16px 0 0">No me llegó: mandar otro código</a>
+      </div>
     </div>
     <div class="switch">¿Te acordaste? <a id="to-login-2">Entrar</a></div>
   </div>
@@ -1051,9 +1104,22 @@
 <div class="overlay" id="admin-overlay">
   <div class="sheet">
     <h3>Profes de la plataforma</h3>
-    <p class="hint">Habilitá o pausá el acceso de cada profe. Un profe en pausa no puede entrar a la app.</p>
+    <p class="hint">Habilitá o pausá el acceso de cada profe. Un profe en pausa no puede entrar a la app. Tocá la cantidad de alumnos para ponerle un tope.</p>
     <div id="admin-lista"></div>
     <button class="btn ghost sm" id="admin-cerrar" style="margin-top:14px">Cerrar</button>
+  </div>
+</div>
+
+<!-- ============ MODAL tope de alumnos de un profe (admin) ============ -->
+<div class="overlay" id="tope-overlay">
+  <div class="sheet">
+    <h3 id="tope-h3">Tope de alumnos</h3>
+    <p class="hint" id="tope-sub"></p>
+    <div class="msg" id="tope-msg"></div>
+    <div class="seg2"><button type="button" id="tope-sin">Sin límite</button><button type="button" id="tope-con">Con tope</button></div>
+    <div class="field" id="tope-num-wrap"><label>Cantidad máxima de alumnos</label><input type="number" id="tope-num" inputmode="numeric" min="0" step="1" placeholder="Ej: 20" /></div>
+    <button class="btn" id="tope-guardar">Guardar</button>
+    <button class="btn ghost sm" id="tope-cancelar" style="margin-top:10px">Cancelar</button>
   </div>
 </div>
 
@@ -1326,6 +1392,19 @@
     <div class="ovl-head"><button class="ovl-back" id="eval-al-cerrar" title="Volver">‹</button><h3 id="eval-al-h3" style="margin:0">Evaluaciones</h3></div>
     <button class="btn sm" id="eval-al-pedir" style="margin-bottom:14px">+ Pedir evaluación</button>
     <div id="eval-al-lista"></div>
+  </div>
+</div>
+
+<!-- ============ MODAL wellness (alumno, al terminar el entrenamiento) ============ -->
+<div class="overlay" id="wl-overlay">
+  <div class="sheet ovl-scroll">
+    <div class="ovl-head"><button class="ovl-back" id="wl-cerrar" title="Volver">‹</button><h3 id="wl-h3" style="margin:0">¿Cómo terminaste hoy?</h3></div>
+    <p class="hint" id="wl-sub">Marcá del 1 al 7 cómo estás. Son 4 preguntas y tu profe las usa para ajustar tus cargas.</p>
+    <div class="msg" id="wl-msg"></div>
+    <div id="wl-preguntas"></div>
+    <div class="field" id="wl-zona-wrap" style="display:none"><label>¿Dónde te duele? <small style="color:var(--muted)">(opcional)</small></label><input type="text" id="wl-zona" maxlength="120" placeholder="Ej: isquios, zona lumbar..." /></div>
+    <button class="btn" id="wl-guardar" disabled>Guardar</button>
+    <button class="btn ghost sm" id="wl-nomas" style="margin-top:10px">Ahora no</button>
   </div>
 </div>
 
@@ -1690,7 +1769,7 @@
   //  mismo celu, no ve nada del anterior.
   // ============================================================
   const CACHE_PREF = "tuprofe_cache:", COLA_KEY = "tuprofe_cola";
-  const LECTURAS_ALUMNO = ["/yo", "/mi-rutina", "/mis-cargas", "/mis-mejores-marcas", "/mis-evaluaciones", "/mi-foto"];
+  const LECTURAS_ALUMNO = ["/yo", "/mi-rutina", "/mis-cargas", "/mis-mejores-marcas", "/mis-evaluaciones", "/mi-foto", "/mi-wellness"];
   const lsLeer = (k, def) => { try { const v = localStorage.getItem(k); return v == null ? def : JSON.parse(v); } catch { return def; } };
   const lsGuardar = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } };
   const lsBorrar = (k) => { try { localStorage.removeItem(k); } catch {} };
@@ -1821,6 +1900,7 @@
     if (rol === "profe") {
       $("profe-nombre").textContent = yo.nombre || "Profe";
       adminYoId = yo.id;
+      PROFE_TOPE = yo.tope_alumnos != null ? Number(yo.tope_alumnos) : null;
       $("profe-admin").style.display = yo.es_admin ? "" : "none";
       // Profe deshabilitado (y no admin): mostramos bloqueo y no cargamos la app.
       if (!yo.es_admin && yo.habilitado === 0) { mostrarBloqueo(); return; }
@@ -1935,10 +2015,11 @@
   // Cache de alumnos + estado de invitaciones, para el buscador.
   let ALUMNOS_PROF = [];
   let HAY_PENDIENTES = false;
+  let PROFE_TOPE = null;   // tope de alumnos que le puso el admin (null = sin límite)
   // Normaliza para buscar sin importar mayúsculas ni tildes (María == maria, Muñoz == munoz).
   const normaliza = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   function itemAlumnoHTML(a) {
-    return `<div class="ex click" data-alumno="${a.id}"><div class="thumb ph" style="width:44px;height:44px;border-radius:50%"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div><div class="info"><div class="n">${esc(a.nombre)}</div><div class="m">${a.pide_reset ? '<span class="tag-reset" style="margin:0 6px 0 0">Pidió clave nueva</span>' : ""}${evalsParaRevisar(a.id) ? `<span class="tag-eval">${evalsParaRevisar(a.id)} eval. para revisar</span>` : ""}${edadDesde(a.fecha_nac) != null ? edadDesde(a.fecha_nac) + " años" : esc(a.objetivo || "Sin datos")}</div></div><div class="acts"><button class="reset-al${a.pide_reset ? ' pide-reset' : ''}" data-reset-alumno="${a.id}" title="${a.pide_reset ? 'Pidió clave nueva: tocá para generarla' : 'Resetear contraseña'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M17 6l2 2M15 8l2 2"/></svg></button><button class="del-al" data-del-alumno="${a.id}" title="Borrar alumno"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button></div></div>`;
+    return `<div class="ex click" data-alumno="${a.id}"><div class="thumb ph" style="width:44px;height:44px;border-radius:50%"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div><div class="info"><div class="n">${esc(a.nombre)}</div><div class="m">${a.pide_reset ? '<span class="tag-reset" style="margin:0 6px 0 0">Pidió clave nueva</span>' : ""}${evalsParaRevisar(a.id) ? `<span class="tag-eval">${evalsParaRevisar(a.id)} eval. para revisar</span>` : ""}${tagWellnessHTML(a)}${edadDesde(a.fecha_nac) != null ? edadDesde(a.fecha_nac) + " años" : esc(a.objetivo || "Sin datos")}</div></div><div class="acts"><button class="reset-al${a.pide_reset ? ' pide-reset' : ''}" data-reset-alumno="${a.id}" title="${a.pide_reset ? 'Pidió clave nueva: tocá para generarla' : 'Resetear contraseña'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M17 6l2 2M15 8l2 2"/></svg></button><button class="del-al" data-del-alumno="${a.id}" title="Borrar alumno"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button></div></div>`;
   }
   function renderListaAlumnos() {
     const cont = $("al-lista");
@@ -1953,7 +2034,8 @@
     }
     const q = normaliza(($("al-buscar") && $("al-buscar").value) || "");
     const lista = q ? ALUMNOS_PROF.filter((a) => normaliza(a.nombre).includes(q)) : ALUMNOS_PROF;
-    const encabezado = `<div style="font-size:12px;color:var(--muted);margin:16px 0 8px">Tus alumnos (${q ? lista.length + " de " + total : total})</div>`;
+    const topeTxt = PROFE_TOPE != null ? ` · tope de tu cuenta: ${PROFE_TOPE}` : "";
+    const encabezado = `<div style="font-size:12px;color:var(--muted);margin:16px 0 8px">Tus alumnos (${q ? lista.length + " de " + total : total})${topeTxt}</div>`;
     if (!lista.length) {
       cont.innerHTML = encabezado + `<div class="empty"><p>Ningún alumno coincide con la búsqueda.</p></div>`;
       return;
@@ -2259,9 +2341,104 @@
   $("rut-progreso").onclick = abrirProgreso;
   $("prog-cerrar").onclick = () => $("prog-overlay").classList.remove("on");
 
+  // ============================================================
+  //  WELLNESS (cuestionario de bienestar, escala 1 a 7)
+  //  ------------------------------------------------------------
+  //  4 preguntas. 1 = lo mejor, 7 = lo peor. Total = suma (4 a 28): más bajo, mejor.
+  //  El alumno lo responde al terminar el entrenamiento; el profe lo ve en la lista
+  //  de alumnos (semáforo) y en Seguimiento (día por día + tendencia).
+  // ============================================================
+  const WL_PREG = [
+    { k: "sueno",  t: "Sueño",          q: "¿Cómo dormiste anoche?",        a: "Muy, muy bueno", b: "Muy, muy malo" },
+    { k: "estres", t: "Estrés",         q: "¿Cuánto estrés sentís hoy?",    a: "Muy, muy bajo",  b: "Muy, muy alto" },
+    { k: "fatiga", t: "Fatiga",         q: "¿Qué tan cansado/a estás?",     a: "Muy, muy baja",  b: "Muy, muy alta" },
+    { k: "dolor",  t: "Dolor muscular", q: "¿Cuánto dolor muscular tenés?", a: "Muy, muy bajo",  b: "Muy, muy alto" },
+  ];
+  const WL_COL = ["#8e5bd9", "#4f8fe6", "#3fbf5a", "#f2e23a", "#ffc233", "#ff8a2b", "#ff4d4d"];
+  const WL_INK = ["#fff", "#fff", "#07210d", "#2a2600", "#2b1e00", "#2b1200", "#fff"];
+  const wlTotal = (w) => WL_PREG.reduce((t, p) => t + (Number(w[p.k]) || 0), 0);
+  const wlNum = (n) => String(Math.round(n * 10) / 10).replace(".", ",");
+  // Semáforo. Mira tres cosas: un ítem muy alto, el total, y cuánto se alejó de SU promedio
+  // (el promedio solo cuenta con 3 respuestas previas o más: antes no dice nada).
+  function wlNivel(w, prom, n) {
+    const max = Math.max(...WL_PREG.map((p) => Number(w[p.k]) || 0)), tot = wlTotal(w);
+    const sobre = prom != null && n >= 3 ? tot - prom : null;
+    if (max >= 6 || tot >= 20 || (sobre != null && sobre >= 4)) return "rojo";
+    if (max >= 5 || tot >= 16 || (sobre != null && sobre >= 2)) return "amarillo";
+    return "verde";
+  }
+  const WL_NIV_TXT = { verde: "Bien", amarillo: "Atención", rojo: "Alerta" };
+  // Por qué dio amarillo o rojo, en palabras (para el profe).
+  function wlMotivo(w, prom, n) {
+    const partes = WL_PREG.filter((p) => Number(w[p.k]) >= 5).map((p) => `${p.t.toLowerCase()} ${w[p.k]}`);
+    const sobre = prom != null && n >= 3 ? wlTotal(w) - prom : null;
+    if (sobre != null && sobre >= 2) partes.push(`${wlNum(sobre)} puntos arriba de su promedio`);
+    return partes.join(" · ");
+  }
+  const wlDiasDesde = (fecha) => Math.round((new Date(hoyISO() + "T00:00:00") - new Date(fecha + "T00:00:00")) / 86400000);
+  function wlCuando(fecha) { const d = wlDiasDesde(fecha); return d <= 0 ? "hoy" : d === 1 ? "ayer" : fmtFecha(fecha).replace(/\./g, ""); }
+  function wlChipsHTML(w) {
+    return `<div class="wl-chips">` + WL_PREG.map((p) => {
+      const n = Number(w[p.k]) || 0;
+      return `<div class="wl-chip" style="--wc:${WL_COL[n - 1] || "var(--border)"}"><span>${p.t}</span><b>${n || "—"}</b></div>`;
+    }).join("") + `</div>`;
+  }
+  // Etiqueta del semáforo en la lista de alumnos (solo si respondió en los últimos 3 días).
+  function tagWellnessHTML(a) {
+    const w = a && a.wellness;
+    if (!w || !w.fecha || wlDiasDesde(w.fecha) > 3) return "";
+    const niv = wlNivel(w, w.prom, w.n);
+    return `<span class="wl-niv ${niv}" style="margin-right:6px">Wellness ${wlTotal(w)} · ${esc(wlCuando(w.fecha))}</span>`;
+  }
+  // Promedio de las 4 semanas ANTERIORES a una respuesta (lista: más nueva primero).
+  function wlPromedioPrevio(lista, w) {
+    const desde = isoDe(new Date(new Date(w.fecha + "T00:00:00").getTime() - 28 * 86400000));
+    const prev = lista.filter((x) => x.fecha < w.fecha && x.fecha >= desde);
+    return { n: prev.length, prom: prev.length ? prev.reduce((t, x) => t + wlTotal(x), 0) / prev.length : null };
+  }
+  // Tendencia de las últimas 4 semanas (profe). `lista` viene de la más nueva a la más vieja.
+  function wlTendenciaHTML(lista) {
+    if (!lista || !lista.length) return "";
+    const ult = lista[0];
+    const { n, prom } = wlPromedioPrevio(lista, ult);
+    const niv = wlNivel(ult, prom, n);
+    const motivo = niv === "verde" ? "" : wlMotivo(ult, prom, n);
+    const DIAS = 28, W = 300, H = 62, px = 8, py = 8;
+    const hoy = new Date(hoyISO() + "T00:00:00");
+    const pts = lista.map((w) => ({ w, d: DIAS - 1 - Math.round((hoy - new Date(w.fecha + "T00:00:00")) / 86400000) }))
+      .filter((x) => x.d >= 0 && x.d < DIAS).reverse();
+    const X = (d) => px + (d / (DIAS - 1)) * (W - px * 2);
+    const Y = (t) => py + ((28 - t) / 24) * (H - py * 2);   // 4 abajo (mejor), 28 arriba (peor)
+    let g = "";
+    if (prom != null) g += `<line x1="${px}" y1="${Y(prom).toFixed(1)}" x2="${W - px}" y2="${Y(prom).toFixed(1)}" stroke="var(--muted)" stroke-width="1" stroke-dasharray="4 4" opacity=".7"/>`;
+    if (pts.length > 1) g += `<polyline points="${pts.map((x) => X(x.d).toFixed(1) + "," + Y(wlTotal(x.w)).toFixed(1)).join(" ")}" fill="none" stroke="var(--text)" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity=".55"/>`;
+    const colNiv = { verde: "#4ccb6a", amarillo: "#ffc233", rojo: "#ff5d5d" };
+    pts.forEach((x) => { g += `<circle cx="${X(x.d).toFixed(1)}" cy="${Y(wlTotal(x.w)).toFixed(1)}" r="3.6" fill="${colNiv[wlNivel(x.w, null, 0)]}"/>`; });
+    const chart = pts.length ? `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolución del wellness">${g}</svg>` : "";
+    return `<div class="wl-trend">
+      <div class="wl-trend-h"><span>Wellness · 4 semanas</span><small>más alto = peor</small></div>
+      ${chart}
+      <div class="wl-trend-f">Último (${esc(wlCuando(ult.fecha))}): <b>${wlTotal(ult)}/28</b> <span class="wl-niv ${niv}">${WL_NIV_TXT[niv]}</span>${prom != null ? ` · promedio previo <b>${wlNum(prom)}</b>` : ""}${motivo ? `<br>${esc(cap(motivo))}` : ""}</div>
+    </div>`;
+  }
+  // Bloque de wellness dentro de un día del Seguimiento (profe).
+  function wlSeguimientoHTML(w, lista) {
+    if (!w) return "";
+    const { n, prom } = wlPromedioPrevio(lista, w);
+    const niv = wlNivel(w, prom, n);
+    return `<div class="seg-wl">
+      <div class="wl-k"><span>Wellness al terminar</span><span class="wl-niv ${niv}">${wlTotal(w)}/28 · ${WL_NIV_TXT[niv]}</span></div>
+      ${wlChipsHTML(w)}
+      ${w.zona ? `<div class="wl-zona">Le duele: <b>${esc(w.zona)}</b></div>` : ""}
+    </div>`;
+  }
+
   // ===== SEGUIMIENTO (un entrenamiento por vez, con flechas ‹ ›) =====
   let SEG_DIAS = [];   // días con actividad, del más reciente al más viejo
+  let SEG_WL = [];     // wellness del alumno, del más reciente al más viejo
   let segIdx = 0;      // 0 = el último entrenamiento
+  // Día local (YYYY-MM-DD) de un día del seguimiento: viene como fecha+hora UTC de la carga.
+  const segDiaISO = (f) => (String(f || "").length > 10 ? diaC(f) : String(f || ""));
   async function abrirSeguimiento() {
     if (!alumnoActual) return;
     $("seg-nombre").textContent = "Seguimiento de " + alumnoActual.nombre;
@@ -2270,8 +2447,9 @@
     try {
       const data = await api("/alumnos/" + alumnoActual.id + "/diario?tz=" + new Date().getTimezoneOffset(), "GET", null, true);
       SEG_DIAS = (data && data.dias) || [];   // ya viene ordenado del más reciente al más viejo
+      SEG_WL = (data && data.wellness) || [];
       segIdx = 0;
-      if (!SEG_DIAS.length) { $("seg-lista").innerHTML = vacioHTML("calendario", "Sin entrenamientos registrados", `Cuando ${esc(alumnoActual.nombre)} marque ejercicios como hechos, los vas a ver día por día.`, "", true); return; }
+      if (!SEG_DIAS.length) { $("seg-lista").innerHTML = wlTendenciaHTML(SEG_WL) + vacioHTML("calendario", "Sin entrenamientos registrados", `Cuando ${esc(alumnoActual.nombre)} marque ejercicios como hechos, los vas a ver día por día.`, "", true); return; }
       renderSeguimientoDia();
     } catch (e) {
       $("seg-lista").innerHTML = `<div class="empty"><p>${esc(e.message)}</p></div>`;
@@ -2288,13 +2466,15 @@
       <span class="seg-pos">${SEG_DIAS.length - segIdx} de ${SEG_DIAS.length}</span>
       <button class="seg-arrow" id="seg-next" ${hayMasNuevo ? "" : "disabled"} title="Entreno siguiente">›</button>
     </div>`;
-    $("seg-lista").innerHTML = nav + `<div class="seg-scroll">${diaSeguimientoHTML(d)}</div>`;
+    const tend = wlTendenciaHTML(SEG_WL);
+    $("seg-lista").innerHTML = tend + nav + `<div class="seg-scroll${tend ? " con-wl" : ""}">${diaSeguimientoHTML(d)}</div>`;
     const bp = $("seg-prev"), bn = $("seg-next");
     if (bp) bp.onclick = () => { if (segIdx < SEG_DIAS.length - 1) { segIdx++; renderSeguimientoDia(); } };
     if (bn) bn.onclick = () => { if (segIdx > 0) { segIdx--; renderSeguimientoDia(); } };
   }
   function diaSeguimientoHTML(d) {
-    const fechaTxt = d.fecha ? cap(fmtFecha(d.fecha)) : (d.nombre || "Día");
+    const iso = segDiaISO(d.fecha);
+    const fechaTxt = iso ? cap(fmtFecha(iso)) : (d.nombre || "Día");
     const nombre = d.nombre ? `<span class="seg-dianom">${esc(d.nombre)}</span>` : "";
     // Chips de esfuerzo por ejercicio (los que tienen carga percibida se resaltan).
     const ejs = (d.ejercicios || []).map((e) => {
@@ -2306,6 +2486,7 @@
       <div class="seg-head"><span class="seg-fecha">${esc(fechaTxt)}</span>${nombre}</div>
       ${nota}
       ${ejs ? `<div class="seg-ejs">${ejs}</div>` : ""}
+      ${wlSeguimientoHTML(SEG_WL.find((w) => w.fecha === iso), SEG_WL)}
     </div>`;
   }
   $("rut-seguim").onclick = abrirSeguimiento;
@@ -3133,14 +3314,60 @@
            <button class="adm-reset${p.pide_reset ? ' pide-reset' : ''}" data-reset-profe="${p.id}" data-nombre="${esc(p.nombre)}" title="Resetear contraseña"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M17 6l2 2M15 8l2 2"/></svg></button>
            <button class="adm-del" data-del-profe="${p.id}" data-nombre="${esc(p.nombre)}" title="Borrar profe"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button>`;
       return `<div class="adm-row">
-        <div class="adm-info"><div class="adm-n">${esc(p.nombre)} ${badge}${p.pide_reset ? '<span class="tag-reset">Pidió clave</span>' : ''}</div><div class="adm-e">${esc(p.email)} · ${p.alumnos} alumno${p.alumnos !== 1 ? 's' : ''}</div></div>
+        <div class="adm-info"><div class="adm-n">${esc(p.nombre)} ${badge}${p.pide_reset ? '<span class="tag-reset">Pidió clave</span>' : ''}</div><div class="adm-e">${esc(p.email)}</div><div class="adm-e">${topeAdminHTML(p)}</div></div>
         <div class="adm-ctrls">${ctrl}</div>
       </div>`;
     }).join("");
     $("admin-lista").querySelectorAll(".adm-toggle").forEach((b) => (b.onclick = () => toggleProfe(b)));
     $("admin-lista").querySelectorAll(".adm-del").forEach((b) => (b.onclick = () => borrarProfe(Number(b.dataset.delProfe), b.dataset.nombre)));
     $("admin-lista").querySelectorAll(".adm-reset").forEach((b) => (b.onclick = () => resetProfe(Number(b.dataset.resetProfe), b.dataset.nombre)));
+    $("admin-lista").querySelectorAll(".adm-tope").forEach((b) => (b.onclick = () => abrirTope(profes.find((p) => p.id === Number(b.dataset.tope)))));
   }
+  // "12 alumnos · sin tope" / "12 de 20 alumnos". A los admin no se les pone tope.
+  function topeAdminHTML(p) {
+    const n = p.alumnos || 0, tope = p.tope_alumnos;
+    const txt = tope == null ? `${n} alumno${n !== 1 ? "s" : ""} · sin tope` : `${n} de ${tope} alumno${tope !== 1 ? "s" : ""}`;
+    if (p.es_admin) return `${n} alumno${n !== 1 ? "s" : ""}`;
+    return `<button type="button" class="adm-tope${tope != null && n >= tope ? " lleno" : ""}" data-tope="${p.id}" title="Cambiar el tope de alumnos">${txt}</button>`;
+  }
+  // ---- Tope de alumnos de un profe (admin) ----
+  let topeProfe = null, topeModo = "sin";
+  function pintarTope() {
+    $("tope-sin").classList.toggle("on", topeModo === "sin");
+    $("tope-con").classList.toggle("on", topeModo === "con");
+    $("tope-num-wrap").style.display = topeModo === "con" ? "" : "none";
+  }
+  function abrirTope(p) {
+    if (!p) return;
+    topeProfe = p;
+    topeModo = p.tope_alumnos == null ? "sin" : "con";
+    $("tope-h3").textContent = "Tope de alumnos de " + p.nombre;
+    $("tope-sub").textContent = `Hoy tiene ${p.alumnos} alumno${p.alumnos !== 1 ? "s" : ""}. Si le ponés un tope menor, no pierde a nadie: solo no puede sumar más.`;
+    $("tope-num").value = p.tope_alumnos == null ? "" : String(p.tope_alumnos);
+    msg($("tope-msg"), "", "");
+    pintarTope();
+    $("tope-overlay").classList.add("on");
+    if (topeModo === "con") setTimeout(() => $("tope-num").focus(), 60);
+  }
+  $("tope-sin").onclick = () => { topeModo = "sin"; pintarTope(); };
+  $("tope-con").onclick = () => { topeModo = "con"; pintarTope(); $("tope-num").focus(); };
+  $("tope-cancelar").onclick = () => $("tope-overlay").classList.remove("on");
+  $("tope-guardar").onclick = async () => {
+    let tope = null;
+    if (topeModo === "con") {
+      const raw = $("tope-num").value.trim();
+      tope = Number(raw);
+      if (raw === "" || !Number.isInteger(tope) || tope < 0) return msg($("tope-msg"), "Escribí la cantidad con números enteros, por ejemplo 20.", "error");
+    }
+    $("tope-guardar").disabled = true;
+    try {
+      await api("/admin/profesores/" + topeProfe.id, "PUT", { tope_alumnos: tope }, true);
+      $("tope-overlay").classList.remove("on");
+      if (topeProfe.id === adminYoId) PROFE_TOPE = tope;
+      abrirAdmin();
+    } catch (e) { msg($("tope-msg"), e.message, "error"); }
+    finally { $("tope-guardar").disabled = false; }
+  };
   async function resetAlumno(id, nombre) {
     if (!await confirmar(`¿Resetear la contraseña de ${nombre}?\n\nSe genera una nueva; la actual deja de servir y se cierra su sesión.`)) return;
     try {
@@ -3215,7 +3442,7 @@
       }
       // Cargas y mejores marcas en paralelo: son dos consultas independientes,
       // no hace falta esperar una para pedir la otra.
-      await Promise.all([recargarCargas(), cargarMejoresMarcas()]);
+      await Promise.all([recargarCargas(), cargarMejoresMarcas(), cargarMiWellness()]);
       alDiaSel = pickDiaInicial();
       alDiaForzado = null;
       // El calendario arranca en HOY si hoy tiene día cargado; si no, en el
@@ -3414,7 +3641,8 @@
     if (dia.fecha && alDiaForzado == null) alFechaSel = diaISO(dia.fecha);
 
     // Orden fijo: encabezado del día + semana + días sin fecha (si los hay) + bloques abajo.
-    cont.innerHTML = hoyGrandeHTML(dia) + tiraHTML(dia) + sinFechaHTML() + bloquesHTML(dia) + notaDiaHTML(dia);
+    cont.innerHTML = hoyGrandeHTML(dia) + tiraHTML(dia) + sinFechaHTML() + bloquesHTML(dia) + wellnessHTML(dia) + notaDiaHTML(dia);
+    cont.querySelectorAll("[data-wl-abrir]").forEach((el) => (el.onclick = () => abrirWellness(dia, false)));
 
     // Nota para el entrenador (una por día). Se habilita el botón solo si cambió el texto.
     const ta = cont.querySelector("#notadia-txt");
@@ -3566,6 +3794,132 @@
       return `<button class="sfchip${sel}" data-dia-forzado="${d.id}"><span class="sfc-n">${esc(d.nombre)}</span><span class="sfc-b">${done}/${total} bloque${total !== 1 ? "s" : ""}</span></button>`;
     }).join("");
     return `<div class="sfbox"><div class="sfbox-h">Días sin fecha asignada</div><div class="sfbox-row">${chips}</div></div>`;
+  }
+
+  // ===== WELLNESS (alumno) =====
+  //  Se pregunta al TERMINAR el entrenamiento: cuando marca el último ejercicio del día se
+  //  abre solo; si lo saltea ("Ahora no"), queda la tarjeta en el día para responderlo después.
+  //  Una respuesta por día calendario. Sin señal se guarda en la cola, igual que las cargas.
+  let MI_WL = [];        // respuestas del alumno, de la más nueva a la más vieja
+  let WL_ON = true;      // false si el servidor todavía no tiene el wellness (worker viejo)
+  const WL_NO_KEY = "tuprofe_wl_no";   // día en que dijo "Ahora no" (para no insistirle ese día)
+  const wlDe = (fecha) => MI_WL.find((w) => w.fecha === fecha) || null;
+  function wlGuardarLocal(w) {
+    MI_WL = [w, ...MI_WL.filter((x) => x.fecha !== w.fecha)].sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
+  }
+  async function cargarMiWellness() {
+    try {
+      const d = await api("/mi-wellness", "GET", null, true);
+      MI_WL = Array.isArray(d) ? d : [];
+      WL_ON = true;
+    } catch (e) { if (e.status === 404) WL_ON = false; }
+    // Respuestas guardadas sin señal que todavía no salieron: las mostramos ya.
+    for (const it of leerCola()) if (it.clave && it.clave.startsWith("wellness:") && it.body) wlGuardarLocal({ ...it.body });
+  }
+  // Día (local) en que el alumno entrenó ese día de la rutina: la carga más reciente de sus ejercicios.
+  function wlFechaDeDia(dia) {
+    let f = null;
+    for (const b of (dia.bloques || [])) for (const e of (b.ejercicios || [])) {
+      const h = HECHOS[e.id];
+      if (!h) continue;
+      const d = diaC(h.fecha);
+      if (d && (!f || d > f)) f = d;
+    }
+    return f;
+  }
+  // ¿Hizo HOY todos los ejercicios del día? (lo de otra semana no cuenta)
+  function wlDiaCompletoHoy(dia) {
+    const hoy = hoyISO();
+    let total = 0, hechos = 0;
+    for (const b of (dia.bloques || [])) for (const e of (b.ejercicios || [])) {
+      total++;
+      const h = HECHOS[e.id];
+      if (h && diaC(h.fecha) === hoy) hechos++;
+    }
+    return total > 0 && hechos === total;
+  }
+  function wellnessHTML(dia) {
+    if (!WL_ON || !dia || !(dia.bloques || []).length) return "";
+    const f = wlFechaDeDia(dia);
+    if (!f) return "";                       // todavía no hizo nada de este día
+    const w = wlDe(f), esDeHoy = f === hoyISO();
+    if (w) {
+      return `<div class="wl-card">
+        <div class="wl-k"><span>Wellness${esDeHoy ? " de hoy" : ""}</span>${esDeHoy ? `<button type="button" class="wl-link" data-wl-abrir>Cambiar</button>` : `<small>${esc(cap(fmtFecha(f)))}</small>`}</div>
+        ${wlChipsHTML(w)}
+        <div class="wl-tot"><span><b>${wlTotal(w)}</b>/ 28</span><span>cuanto más bajo, mejor</span></div>
+        ${w.zona ? `<div class="wl-zona">Dolor en: <b>${esc(w.zona)}</b></div>` : ""}
+      </div>`;
+    }
+    if (!esDeHoy) return "";                 // un entreno viejo sin responder: no lo pedimos tarde
+    return `<div class="wl-card pend">
+      <div class="wl-k"><span>Wellness</span><small>4 preguntas · 10 segundos</small></div>
+      <div class="wl-t">¿Cómo terminaste hoy?</div>
+      <div class="wl-s">Contale a tu profe cómo estás de sueño, estrés, fatiga y dolor muscular. Lo usa para ajustar tus cargas.</div>
+      <button type="button" class="btn" data-wl-abrir>Responder</button>
+    </div>`;
+  }
+  let wlSel = {}, wlDia = null, wlAuto = false, wlFecha = null;
+  function abrirWellness(dia, auto) {
+    wlDia = dia; wlAuto = !!auto; wlFecha = hoyISO();
+    const prev = wlDe(wlFecha);
+    wlSel = {};
+    WL_PREG.forEach((p) => { if (prev && Number(prev[p.k]) >= 1) wlSel[p.k] = Number(prev[p.k]); });
+    $("wl-h3").textContent = auto ? "¡Entrenamiento terminado!" : "¿Cómo terminaste hoy?";
+    $("wl-zona").value = (prev && prev.zona) || "";
+    $("wl-nomas").textContent = prev ? "Cancelar" : "Ahora no";
+    msg($("wl-msg"), "", "");
+    $("wl-preguntas").innerHTML = WL_PREG.map((p) => `<div class="wl-q">
+        <div class="wl-q-t">${p.t}</div><div class="wl-q-s">${p.q}</div>
+        <div class="wl-scale" data-wl-k="${p.k}">${[1, 2, 3, 4, 5, 6, 7].map((n) => `<button type="button" class="wl-btn${wlSel[p.k] === n ? " on" : ""}" style="--wc:${WL_COL[n - 1]};--wi:${WL_INK[n - 1]}" data-n="${n}" aria-label="${p.t}: ${n} de 7">${n}</button>`).join("")}</div>
+        <div class="wl-ends"><span>${p.a}</span><span>${p.b}</span></div>
+      </div>`).join("");
+    $("wl-preguntas").querySelectorAll(".wl-btn").forEach((b) => (b.onclick = () => {
+      const k = b.parentElement.dataset.wlK, n = Number(b.dataset.n);
+      wlSel[k] = n;
+      b.parentElement.querySelectorAll(".wl-btn").forEach((x) => x.classList.toggle("on", x === b));
+      wlRefrescar();
+    }));
+    wlRefrescar();
+    $("wl-overlay").classList.add("on");
+    const sh = $("wl-overlay").querySelector(".sheet"); if (sh) sh.scrollTop = 0;
+  }
+  function wlRefrescar() {
+    $("wl-guardar").disabled = !WL_PREG.every((p) => wlSel[p.k] >= 1);
+    $("wl-zona-wrap").style.display = wlSel.dolor >= 5 ? "" : "none";   // si duele bastante, preguntamos dónde
+  }
+  function cerrarWellness(saltea) {
+    // Si se abrió solo y lo saltea, hoy no le insistimos más (le queda la tarjeta en el día).
+    if (saltea && wlAuto) lsGuardar(WL_NO_KEY, hoyISO());
+    const a = document.activeElement;
+    if (a && $("wl-overlay").contains(a)) a.blur();
+    $("wl-overlay").classList.remove("on");
+  }
+  $("wl-cerrar").onclick = () => cerrarWellness(true);
+  $("wl-nomas").onclick = () => cerrarWellness(true);
+  $("wl-guardar").onclick = async () => {
+    const btn = $("wl-guardar");
+    if (!WL_PREG.every((p) => wlSel[p.k] >= 1)) return;
+    btn.disabled = true;
+    const body = { fecha: wlFecha, dia_id: (wlDia && wlDia.id) || null, zona: wlSel.dolor >= 5 ? ($("wl-zona").value.trim() || null) : null };
+    WL_PREG.forEach((p) => (body[p.k] = wlSel[p.k]));
+    try {
+      const r = await enviarOEncolar("/mi-wellness", "PUT", body, "wellness:" + wlFecha);
+      wlGuardarLocal({ ...body });
+      cerrarWellness(false);
+      renderMiRutina();
+      mostrarToast(r.encolado ? "Sin señal: tu wellness quedó en el celu y se manda solo cuando vuelva la conexión." : "✓ ¡Listo! Tu profe ya ve cómo terminaste.");
+      if (!r.encolado) cargarMiWellness();   // deja al día lo guardado en el celu para el modo sin señal
+    } catch (e) { msg($("wl-msg"), e.message, "error"); btn.disabled = false; }
+  };
+  // Al guardar un ejercicio: si con ese completó HOY todo el día y todavía no respondió, se lo pedimos.
+  function quizasPedirWellness() {
+    if (!WL_ON || ROL_ACTUAL !== "alumno") return;
+    const dia = diaActualSesion();
+    if (!dia || !wlDiaCompletoHoy(dia)) return;
+    const hoy = hoyISO();
+    if (wlDe(hoy) || lsLeer(WL_NO_KEY, null) === hoy) return;
+    setTimeout(() => { if (!$("wl-overlay").classList.contains("on") && !$("det-overlay").classList.contains("on")) abrirWellness(dia, true); }, 450);
   }
 
   // Nota para el entrenador (una por día de entrenamiento). Solo en días con bloques.
@@ -3895,13 +4249,26 @@
         notas: c.notas || null,
       };
     });
+    // Wellness por día (1 = lo mejor, 7 = lo peor; total 4 a 28).
+    const wellness = MI_WL.map((w) => ({
+      fecha: w.fecha, sueno: w.sueno, estres: w.estres, fatiga: w.fatiga, dolor_muscular: w.dolor,
+      total: wlTotal(w), zona_dolor: w.zona || null,
+    }));
+    const wlPorDia = {};
+    wellness.forEach((w) => (wlPorDia[w.fecha] = w));
+    // Cada fila del historial lleva el wellness de ese día (para cruzarlo en Excel sin fórmulas).
+    historial.forEach((h) => {
+      const w = wlPorDia[h.fecha_dia];
+      h.wl_sueno = w ? w.sueno : null; h.wl_estres = w ? w.estres : null; h.wl_fatiga = w ? w.fatiga : null;
+      h.wl_dolor = w ? w.dolor_muscular : null; h.wl_total = w ? w.total : null; h.wl_zona_dolor = w ? w.zona_dolor : null;
+    });
     const mejores_marcas = Object.entries(MEJORES_MARCAS).map(([cid, peso]) => ({
       catalogo_id: Number(cid), ejercicio: (cat[cid] || {}).nombre || null, peso_kg: peso,
     }));
     return {
       _meta: {
-        app: "tuprofe", version_export: 1, exportado: new Date().toISOString(),
-        descripcion: "Export completo del alumno. 'rutina' es lo planificado por el profe (anidado día>bloque>ejercicio>serie). 'historial' es una fila por serie efectivamente cargada, cruzable por 'fecha_dia'. 'mejores_marcas' es el MAX(peso) por ejercicio.",
+        app: "tuprofe", version_export: 2, exportado: new Date().toISOString(),
+        descripcion: "Export completo del alumno. 'rutina' es lo planificado por el profe (anidado día>bloque>ejercicio>serie). 'historial' es una fila por serie efectivamente cargada, cruzable por 'fecha_dia' (las columnas wl_* repiten el wellness de ese día). 'mejores_marcas' es el MAX(peso) por ejercicio. 'wellness' es el cuestionario de bienestar por día: cada ítem va de 1 (lo mejor) a 7 (lo peor) y 'total' de 4 a 28.",
       },
       alumno: {
         id: (alYo && alYo.id) != null ? alYo.id : null,
@@ -3912,13 +4279,14 @@
         observaciones: (alYo && alYo.observaciones) || null,
         profe: (alYo && alYo.profe_nombre) || null,
       },
-      rutina, historial, mejores_marcas,
+      rutina, historial, mejores_marcas, wellness,
     };
   }
   // CSV para Excel es-AR: separador ';' y decimales con coma. BOM para acentos.
   function historialACSV(data) {
     const sep = ";";
-    const cols = ["fecha", "fecha_dia", "dia", "bloque", "ejercicio", "serie", "peso_kg", "reps_hechas", "rpe", "completado", "notas"];
+    const cols = ["fecha", "fecha_dia", "dia", "bloque", "ejercicio", "serie", "peso_kg", "reps_hechas", "rpe", "completado", "notas",
+                  "wl_sueno", "wl_estres", "wl_fatiga", "wl_dolor", "wl_total", "wl_zona_dolor"];
     const val = (v) => {
       if (v == null) return "";
       let s = typeof v === "number" ? String(v).replace(".", ",") : String(v);
@@ -3936,7 +4304,7 @@
     const orig = btn.textContent; btn.disabled = true; btn.textContent = "Generando...";
     try {
       // Aseguramos que el historial y las marcas estén al día antes de exportar.
-      await Promise.all([recargarCargas(), cargarMejoresMarcas()]);
+      await Promise.all([recargarCargas(), cargarMejoresMarcas(), cargarMiWellness()]);
       const data = construirExport();
       const base = "tuprofe_" + slugNombre(alYo && alYo.nombre) + "_" + hoyISO();
       if (formato === "csv") {
@@ -4211,13 +4579,14 @@
     if (!guardarCola(cola)) {
       // El celu no deja guardar (modo privado / sin espacio): mandamos directo y esperamos.
       const btn = $("det-accion"); btn.disabled = true;
-      try { await api("/cargas", "POST", { ejercicio_id: ej.id, sets, fecha: ahora, tz }, true); await recargarCargas(); cerrarDetalle(); renderMiRutina(); }
+      try { await api("/cargas", "POST", { ejercicio_id: ej.id, sets, fecha: ahora, tz }, true); await recargarCargas(); cerrarDetalle(); renderMiRutina(); quizasPedirWellness(); }
       catch (e) { aviso(e.message); } finally { btn.disabled = false; }
       return;
     }
     reconstruirCargas();
     cerrarDetalle();
     renderMiRutina();
+    quizasPedirWellness();
     // Confirmación en segundo plano.
     enviarCola().then((res) => {
       if (res && res.sinRed && leerCola().some((x) => x.clave === clave)) {
@@ -5226,7 +5595,7 @@
     if (_googleBotones || !_googleListo) return;
     if (!window.google || !google.accounts) return;
     _googleBotones = true;
-    [["g-btn-login", 300], ["g-btn-rp", 300], ["g-btn-ra", 300]].forEach(([id, w]) => {
+    [["g-btn-login", 300], ["g-btn-rp", 300], ["g-btn-ra", 300], ["g-btn-ol", 300]].forEach(([id, w]) => {
       const el = $(id);
       if (el) google.accounts.id.renderButton(el, {
         theme: "filled_black", shape: "pill", size: "large", text: "continue_with", locale: "es", width: w,
@@ -5242,7 +5611,8 @@
     // cual esta activa: si es la de alumno, mandamos el codigo de invitacion.
     const enAlumno = $("s-reg-alumno").classList.contains("active");
     const enProfe  = $("s-reg-profe").classList.contains("active");
-    const contId = enAlumno ? "ra-msg" : (enProfe ? "rp-msg" : "login-msg");
+    const enOlvide = $("s-olvide").classList.contains("active");
+    const contId = enAlumno ? "ra-msg" : (enProfe ? "rp-msg" : (enOlvide ? "ol-msg" : "login-msg"));
     const body = { credential: resp.credential };
     if (enAlumno && codigoInvitacion) body.codigo_invitacion = codigoInvitacion;
     if (enProfe) body.modo = "registro_profe";   // solo desde "Crear cuenta" se puede dar de alta un profe
@@ -5284,24 +5654,63 @@
   $("profe-salir").onclick = salir; $("alumno-salir").onclick = salir;
 
   // ---------- OLVIDÉ MI CONTRASEÑA ----------
-  // No hay mails: el pedido le aparece al admin (profes) o al profe (alumnos),
-  // que resetea con la llave y pasa la clave temporal por WhatsApp.
+  // Tres caminos, del más simple al de respaldo:
+  //   1) Botón de Google: si el mail es de Google, entra directo sin clave.
+  //   2) Código por mail (si el servidor tiene el envío configurado): le llega un código de
+  //      6 dígitos y elige su clave nueva sola. No interviene nadie.
+  //   3) Sin mail configurado (o si falló el envío): el pedido le aparece al admin (profes)
+  //      o al profe (alumnos), que resetea con la llave y pasa la clave temporal.
+  const OL_MSG_PEDIDO = "¡Listo! Si ese mail tiene cuenta, ya le llegó el aviso a tu profe (o al administrador). Te va a pasar una clave nueva; cuando entres con ella vas a elegir una propia.";
+  let olEmail = "";
+  function olPaso(n) {
+    $("ol-paso1").style.display = n === 1 ? "" : "none";
+    $("ol-paso2").style.display = n === 2 ? "" : "none";
+  }
   $("to-olvide").onclick = () => {
     $("ol-email").value = $("login-email").value.trim();
     msg($("ol-msg"), "", "");
     $("ol-btn").disabled = false;
+    olPaso(1);
     showAuth("s-olvide");
   };
   $("to-login-2").onclick = () => showAuth("s-login");
-  $("ol-btn").onclick = async () => {
-    const email = $("ol-email").value.trim();
+  async function olPedir(reenvio) {
+    const email = reenvio ? olEmail : $("ol-email").value.trim();
     if (!email) return msg($("ol-msg"), "Poné tu email", "error");
     $("ol-btn").disabled = true;
     try {
-      await api("/olvide-password", "POST", { email }, false);
-      // Mensaje genérico a propósito: no confirmamos si el mail existe.
-      msg($("ol-msg"), "¡Listo! Si ese mail tiene cuenta, ya le llegó el aviso a tu profe (o al administrador). Te va a pasar una clave nueva; cuando entres con ella vas a elegir una propia.", "ok");
+      const r = await api("/olvide-password", "POST", { email }, false);
+      if (r && r.via === "mail") {
+        olEmail = email;
+        $("ol-mail-txt").textContent = email;
+        if (!reenvio) { $("ol-codigo").value = ""; $("ol-pass").value = ""; $("ol-pass2").value = ""; }
+        olPaso(2);
+        msg($("ol-msg"), reenvio ? "Listo. Si pediste uno hace menos de un minuto, sigue valiendo ese mismo código." : "", reenvio ? "ok" : "");
+        if (!reenvio) setTimeout(() => $("ol-codigo").focus(), 80);
+      } else {
+        // Mensaje genérico a propósito: no confirmamos si el mail existe.
+        olPaso(1);
+        msg($("ol-msg"), OL_MSG_PEDIDO, "ok");
+      }
     } catch (e) { msg($("ol-msg"), e.message, "error"); $("ol-btn").disabled = false; }
+  }
+  $("ol-btn").onclick = () => olPedir(false);
+  $("ol-reenviar").onclick = () => olPedir(true);
+  $("ol-cambiar").onclick = async () => {
+    const codigo = $("ol-codigo").value.replace(/\D/g, ""), nueva = $("ol-pass").value;
+    if (codigo.length !== 6) return msg($("ol-msg"), "El código tiene 6 números. Fijate en el mail que te llegó.", "error");
+    if (nueva.length < 8) return msg($("ol-msg"), "La contraseña nueva necesita 8 caracteres o más", "error");
+    if (nueva !== $("ol-pass2").value) return msg($("ol-msg"), "Las contraseñas no coinciden", "error");
+    $("ol-cambiar").disabled = true;
+    try {
+      const r = await api("/reset-password", "POST", { email: olEmail, codigo, nueva }, false);
+      recordarMail(olEmail);
+      guardarToken(r.token);
+      $("ol-codigo").value = ""; $("ol-pass").value = ""; $("ol-pass2").value = "";
+      msg($("ol-msg"), "", "");
+      await entrar(r.rol);
+    } catch (e) { msg($("ol-msg"), e.message, "error"); }
+    finally { $("ol-cambiar").disabled = false; }
   };
 
   // ---------- CAMBIAR CONTRASEÑA ----------
