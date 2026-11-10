@@ -105,3 +105,13 @@ No hace falta correr ninguna migración: el worker agrega solo la columna `profe
   1. Botón de Google en esa pantalla (si el mail es de Google, entra sin clave).
   2. Código de 6 dígitos por mail: se activa cargando en el Worker los secretos `MAIL_URL` y `MAIL_CLAVE` (ver `apps-script-mail.gs`). Vence a los 15 minutos, 5 intentos, y al usarlo entra directo.
   3. Sin esos secretos (o si el envío falla) sigue el camino de siempre: el pedido le aparece al profe o al admin.
+
+## Inicio del profe (v93)
+
+El profe ahora entra a la pestaña **Inicio** ("Tu día") en vez de caer en el catálogo. Sin migraciones: solo lee.
+
+- **Tu día:** alumnos (contra el tope si tiene), cuántos entrenan hoy y cuántos ya terminaron.
+- **Para atender:** wellness en alerta, evaluaciones para revisar, rutina por cargar (alumno sin rutina, o cuyo último día con fecha es hoy o ya pasó), alumnos que hace 7 días o más no registran nada, y pedidos de clave. Un grupo con un solo alumno abre directo; con varios, se despliega.
+- **Hoy entrenan:** quien tiene un día con fecha de hoy o ya registró algo hoy, con su avance o su wellness.
+- **Últimas notas:** notas de ejercicios y notas para el entrenador de los últimos 14 días.
+- Endpoint nuevo: `GET /inicio?hoy=YYYY-MM-DD&tz=<minutos>` (profe). Si el worker todavía no lo tiene, la pantalla muestra lo que puede con lo ya cargado.

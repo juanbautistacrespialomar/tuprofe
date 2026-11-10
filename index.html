@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- tuprofe · v92 -->
+<!-- tuprofe · v93 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
@@ -645,6 +645,41 @@
   .ovl-back { width: 38px; height: 38px; border-radius: 11px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); font-size: 22px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
   .ovl-back:active { transform: scale(.94); }
   .ovl-scroll { scrollbar-gutter: stable; }
+  /* ===== Inicio del profe ("Tu día") ===== */
+  .ini-fecha { font-size: 13px; color: var(--muted); }
+  .ini-h { font-family: "Anton", sans-serif; font-weight: 400; font-size: 30px; line-height: 36px; letter-spacing: .3px; margin: 2px 0 14px; }
+  .ini-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .ini-stat { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 12px 12px 11px; min-width: 0; }
+  .ini-stat b { display: block; font-family: "Anton", sans-serif; font-weight: 400; font-size: 28px; line-height: 30px; }
+  .ini-stat b small { font-size: 15px; color: var(--muted); font-family: inherit; }
+  .ini-stat span { display: block; font-size: 11.5px; line-height: 15px; color: var(--muted); margin-top: 4px; }
+  .ini-sec { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 11.5px; font-weight: 700; letter-spacing: .7px; text-transform: uppercase; color: var(--accent); margin: 26px 0 10px; }
+  .ini-sec button { background: none; border: none; color: var(--accent); font: inherit; font-size: 13px; font-weight: 600; text-transform: none; letter-spacing: 0; cursor: pointer; padding: 0; }
+  .ini-row { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 14px; margin-bottom: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; color: var(--text); font: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .ini-row:active { background: var(--surface-2); }
+  .ini-ic { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--ic, var(--muted)); }
+  .ini-ic svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .ini-ic.av { border-radius: 50%; font-size: 13px; font-weight: 700; color: var(--accent); }
+  .ini-tx { flex: 1 1 auto; min-width: 0; }
+  .ini-tx b { display: block; font-size: 15px; font-weight: 600; line-height: 20px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ini-tx span { display: block; font-size: 12.5px; line-height: 17px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ini-n { flex: 0 0 auto; min-width: 26px; height: 26px; padding: 0 8px; border-radius: 999px; background: var(--ic, var(--muted)); color: #0a0a0a; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .ini-chev { flex: 0 0 auto; width: 18px; height: 18px; fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform .2s ease; }
+  .ini-row.abierto .ini-chev { transform: rotate(90deg); }
+  .ini-sub { margin: -2px 0 10px 14px; padding-left: 12px; border-left: 2px solid var(--border); }
+  .ini-sub .ini-row { padding: 9px 12px; border-radius: 13px; margin-bottom: 6px; }
+  .ini-sub .ini-tx b { font-size: 14px; }
+  .ini-pill { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700; padding: 4px 10px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; color: var(--muted); }
+  .ini-pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .ini-pill.ok { color: #4ccb6a; } .ini-pill.curso { color: var(--accent); } .ini-pill.rojo { color: #ff6b6b; } .ini-pill.amarillo { color: #ffc233; } .ini-pill.verde { color: #4ccb6a; }
+  .ini-nota { display: block; width: 100%; text-align: left; font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer; }
+  .ini-nota-h { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 6px; }
+  .ini-nota-h b { font-size: 13px; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ini-nota-h span { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .ini-nota p { margin: 0; font-size: 13.5px; line-height: 19px; color: #c9c9c9; white-space: pre-wrap; word-break: break-word; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+  .ini-nota small { display: block; margin-top: 6px; font-size: 11.5px; color: var(--muted); }
+  .ini-ok { display: flex; align-items: center; gap: 12px; padding: 14px; background: var(--surface); border: 1px dashed var(--border); border-radius: 16px; font-size: 13.5px; color: var(--muted); }
+  .ini-acc { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 26px; }
   /* ===== Wellness (cuestionario de bienestar, 1 a 7) ===== */
   .wl-card { margin-top: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px 14px 15px; }
   .wl-card.pend { border-color: rgba(196,240,0,.5); background: rgba(196,240,0,.06); }
@@ -961,7 +996,8 @@
       </div>
     </div>
     <div class="body">
-      <div class="tabview on" id="tv-catalogo">
+      <div class="tabview on" id="tv-inicio"><div id="ini-cont"></div></div>
+      <div class="tabview" id="tv-catalogo">
         <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input type="text" id="cat-buscar" placeholder="Buscar ejercicio..." /></div>
         <div class="toolbar"><button class="btn sm" id="cat-agregar">+ Agregar ejercicio</button><button class="btn sm" id="cat-actualizar" title="Trae los ejercicios de la base que todavía no tengas en tu biblioteca">Base común</button></div>
         <div id="cat-lista"></div>
@@ -986,10 +1022,11 @@
     </div>
     <nav class="bottomnav">
       <div class="bottomnav-inner">
-        <button class="navtab active" data-ptab="catalogo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></svg><span>Ejercicios</span></button>
-        <button class="navtab" data-ptab="planif"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3"/></svg><span>Planificaciones</span></button>
+        <button class="navtab active" data-ptab="inicio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z"/></svg><span>Inicio</span></button>
+        <button class="navtab" data-ptab="catalogo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></svg><span>Ejercicios</span></button>
+        <button class="navtab" data-ptab="planif"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3"/></svg><span>Planif.</span></button>
         <button class="navtab" data-ptab="alumnos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.4 3-5.3 6.5-5.3s6.5 1.9 6.5 5.3"/><path d="M16.5 5.5a3.2 3.2 0 0 1 0 6.4M21.5 20c0-2.7-1.6-4.4-3.9-5"/></svg><span>Alumnos</span></button>
-        <button class="navtab" data-ptab="evals"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M10 2h4M12 2v3"/></svg><span>Evaluaciones</span></button>
+        <button class="navtab" data-ptab="evals"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M10 2h4M12 2v3"/></svg><span>Evaluac.</span></button>
       </div>
     </nav>
   </div>
@@ -1907,6 +1944,8 @@
       $("bloqueo").classList.remove("on");
       pintarAvisosReset(yo.pedidos_reset);
       if (yo.debe_cambiar) abrirCambioPass(true);
+      INICIO = null; INI_ABIERTO = null;
+      profeSwitchTab("inicio");   // el profe arranca en "Tu día" (también pide los datos del inicio)
       await cargarCatalogo();
       cargarAlumnos();
       cargarPlantillas();     // planificaciones generales (en segundo plano)
@@ -2010,6 +2049,7 @@
     HAY_PENDIENTES = pend.length > 0;
     ALUMNOS_PROF = await api("/alumnos", "GET", null, true);
     renderListaAlumnos();
+    renderInicio();
   }
 
   // Cache de alumnos + estado de invitaciones, para el buscador.
@@ -2211,7 +2251,10 @@
     if (enPlantilla()) return plBack();
     if (rutNav.bloqueId != null) { rutNav.bloqueId = null; renderRutina(); }
     else if (rutNav.diaId != null) { rutNav.diaId = null; renderRutina(); }
-    else { $("profe-rutina").style.display = "none"; $("profe-main").style.display = "flex"; }
+    else {
+      $("profe-rutina").style.display = "none"; $("profe-main").style.display = "flex";
+      if ($("tv-inicio").classList.contains("on")) cargarInicio();   // al volver de un alumno, refrescamos "Tu día"
+    }
   }
   $("rut-volver").onclick = rutBack;
 
@@ -2431,6 +2474,185 @@
       ${wlChipsHTML(w)}
       ${w.zona ? `<div class="wl-zona">Le duele: <b>${esc(w.zona)}</b></div>` : ""}
     </div>`;
+  }
+
+  // ============================================================
+  //  INICIO DEL PROFE ("Tu día")
+  //  ------------------------------------------------------------
+  //  Qué mirar hoy: lo que pide una acción ("Para atender"), quién entrena hoy y cómo va,
+  //  y las últimas notas de los alumnos. Los datos salen de /inicio (un solo pedido) más lo
+  //  que ya está cargado: alumnos (con su wellness) y evaluaciones.
+  // ============================================================
+  const INI_DIAS_INACTIVO = 7;    // desde cuántos días sin registrar nada avisamos
+  let INICIO = null;              // respuesta de /inicio (null = todavía no llegó o worker viejo)
+  let INI_ABIERTO = null;         // grupo de "Para atender" desplegado
+  let iniCargando = false;
+  const IC_INI = {
+    pulso: '<path d="M3 12h4l2-6 4 12 2-6h6"/>',
+    reloj: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M10 2h4"/>',
+    cal: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/>',
+    pausa: '<circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/>',
+    llave: '<circle cx="8" cy="15" r="4"/><path d="M10.800 12.200L20 3M17 6l2 2"/>',
+    ok: '<circle cx="12" cy="12" r="9"/><path d="M8 12.500l2.800 2.800L16 9.500"/>',
+  };
+  const INI_CHEV = '<svg class="ini-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+  const iniIniciales = (n) => String(n || "?").trim().split(/\s+/).slice(0, 2).map((x) => x[0] || "").join("").toUpperCase();
+  const iniFechaUTC = (f) => new Date(String(f || "").replace(" ", "T") + "Z");
+  const iniHora = (f) => { const d = iniFechaUTC(f); return isNaN(d) ? "" : d.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false }); };
+  const iniDiasDesde = (iso) => Math.round((new Date(hoyISO() + "T00:00:00") - new Date(iso + "T00:00:00")) / 86400000);
+  const iniCorta = (iso) => { const d = new Date(iso + "T00:00:00"); return isNaN(d) ? "" : d.toLocaleDateString("es-AR", { day: "numeric", month: "short" }).replace(/\./g, ""); };
+
+  async function cargarInicio() {
+    if (iniCargando || ROL_ACTUAL !== "profe") return;
+    iniCargando = true;
+    try {
+      INICIO = await api("/inicio?hoy=" + hoyISO() + "&tz=" + new Date().getTimezoneOffset(), "GET", null, true);
+    } catch (e) { /* worker viejo o sin señal: mostramos lo que se puede con lo ya cargado */ }
+    finally { iniCargando = false; }
+    renderInicio();
+  }
+
+  // Arma los grupos de "Para atender". Cada grupo: { k, icono, color, titulo, items:[{id,nombre,detalle}], accion }
+  function iniGrupos() {
+    const grupos = [];
+    // 1) Wellness en alerta (respuestas de los últimos 3 días en rojo o amarillo)
+    const wl = ALUMNOS_PROF.filter((a) => a.wellness && a.wellness.fecha && wlDiasDesde(a.wellness.fecha) <= 3)
+      .map((a) => ({ a, niv: wlNivel(a.wellness, a.wellness.prom, a.wellness.n) }))
+      .filter((x) => x.niv !== "verde")
+      .sort((x, y) => (x.niv === y.niv ? wlTotal(y.a.wellness) - wlTotal(x.a.wellness) : x.niv === "rojo" ? -1 : 1));
+    if (wl.length) grupos.push({
+      k: "wl", icono: "pulso", color: wl.some((x) => x.niv === "rojo") ? "#ff6b6b" : "#ffc233", titulo: "Wellness en alerta",
+      items: wl.map((x) => ({ id: x.a.id, nombre: x.a.nombre, detalle: `${wlTotal(x.a.wellness)}/28 · ${wlMotivo(x.a.wellness, x.a.wellness.prom, x.a.wellness.n) || WL_NIV_TXT[x.niv]}${x.a.wellness.zona ? " (" + x.a.wellness.zona + ")" : ""}` })),
+      accion: (it) => abrirAlumno(it.id, it.nombre).then(() => abrirSeguimiento()),
+    });
+    // 2) Evaluaciones que los alumnos ya hicieron y esperan devolución
+    const evs = EVALS_PROF.filter((e) => e.estado === "realizada");
+    if (evs.length) {
+      const nombres = [...new Set(evs.map((e) => e.alumno_nombre || "").filter(Boolean))];
+      grupos.push({ k: "ev", icono: "reloj", color: "var(--accent)", titulo: "Evaluaciones para revisar", n: evs.length,
+        detalle: nombres.length <= 2 ? nombres.join(" y ") : `${nombres.slice(0, 2).join(", ")} y ${nombres.length - 2} más`,
+        directo: () => profeSwitchTab("evals") });
+    }
+    const hoy = hoyISO();
+    const alus = (INICIO && INICIO.alumnos) || [];
+    const diasSinEntrenar = (a) => (a.ult_carga ? iniDiasDesde(diaC(a.ult_carga)) : null);
+    // "Viene entrenando": registró algo esta semana, o es un alumno recién sumado. Los demás van a "Sin entrenar".
+    const esNuevo = (a) => a.creado && iniDiasDesde(diaC(a.creado)) < INI_DIAS_INACTIVO;
+    const vieneEntrenando = (a) => { const d = diasSinEntrenar(a); return (d != null && d < INI_DIAS_INACTIVO) || (d == null && esNuevo(a)); };
+    // 3) Rutina: sin nada cargado, o el último día con fecha es hoy o ya pasó (solo quien viene entrenando)
+    const rut = [];
+    for (const a of alus) {
+      if (!vieneEntrenando(a)) continue;
+      if (!a.n_dias) rut.push({ id: a.id, nombre: a.nombre, detalle: "Todavía no tiene rutina cargada", o: 0 });
+      else if (a.ult_dia && a.ult_dia <= hoy) rut.push({ id: a.id, nombre: a.nombre, detalle: a.ult_dia === hoy ? "Su último día cargado es hoy" : `Su último día cargado fue el ${iniCorta(a.ult_dia)}`, o: a.ult_dia === hoy ? 2 : 1 });
+    }
+    rut.sort((x, y) => x.o - y.o);
+    if (rut.length) grupos.push({ k: "rut", icono: "cal", color: "#ffc233", titulo: "Rutina por cargar", items: rut, accion: (it) => abrirAlumno(it.id, it.nombre) });
+    // 4) Sin entrenar hace una semana o más (con rutina cargada)
+    const ina = [];
+    for (const a of alus) {
+      if (!a.n_dias) continue;
+      const d = diasSinEntrenar(a);
+      if (d != null && d >= INI_DIAS_INACTIVO) ina.push({ id: a.id, nombre: a.nombre, detalle: `Hace ${d} días que no registra nada`, o: d });
+      else if (d == null && a.creado && iniDiasDesde(diaC(a.creado)) >= INI_DIAS_INACTIVO) ina.push({ id: a.id, nombre: a.nombre, detalle: "Todavía no registró ningún entrenamiento", o: 9999 });
+    }
+    ina.sort((x, y) => x.o - y.o);
+    if (ina.length) grupos.push({ k: "ina", icono: "pausa", color: "#b5b5b5", titulo: `Hace ${INI_DIAS_INACTIVO}+ días sin entrenar`, items: ina, accion: (it) => abrirAlumno(it.id, it.nombre) });
+    // 5) Pedidos de clave nueva
+    const cl = ALUMNOS_PROF.filter((a) => a.pide_reset);
+    if (cl.length) grupos.push({ k: "cl", icono: "llave", color: "#ffc233", titulo: "Pidieron clave nueva", n: cl.length,
+      detalle: cl.map((a) => a.nombre).slice(0, 2).join(", ") + (cl.length > 2 ? ` y ${cl.length - 2} más` : ""), directo: () => profeSwitchTab("alumnos") });
+    return grupos;
+  }
+
+  function renderInicio() {
+    const cont = $("ini-cont");
+    if (!cont || ROL_ACTUAL !== "profe") return;
+    const fecha = cap(new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" }).replace(",", ""));
+    const nAl = ALUMNOS_PROF.length;
+    const hoyL = (INICIO && INICIO.hoy) || [];
+    const terminaron = hoyL.filter((h) => h.total > 0 && h.hechos >= h.total).length;
+    let h = `<div class="ini-fecha">${esc(fecha)}</div><h2 class="ini-h">Tu día</h2>
+      <div class="ini-stats">
+        <div class="ini-stat"><b>${nAl}${PROFE_TOPE != null ? `<small> / ${PROFE_TOPE}</small>` : ""}</b><span>Alumno${nAl !== 1 ? "s" : ""}</span></div>
+        <div class="ini-stat"><b>${INICIO ? hoyL.length : "–"}</b><span>Entrenan hoy</span></div>
+        <div class="ini-stat"><b>${INICIO ? terminaron : "–"}${INICIO && hoyL.length ? `<small> / ${hoyL.length}</small>` : ""}</b><span>Ya terminaron</span></div>
+      </div>`;
+
+    // --- Para atender ---
+    const grupos = iniGrupos();
+    h += `<div class="ini-sec"><span>Para atender</span></div>`;
+    if (!grupos.length) {
+      h += `<div class="ini-ok"><span class="ini-ic" style="--ic:#4ccb6a"><svg viewBox="0 0 24 24">${IC_INI.ok}</svg></span><span>${nAl ? "Todo al día: no hay nada pendiente de tu lado." : "Cuando tengas alumnos, acá vas a ver lo que necesite tu atención."}</span></div>`;
+    } else {
+      h += grupos.map((g) => {
+        const n = g.items ? g.items.length : g.n;
+        const uno = g.items && g.items.length === 1;
+        const det = g.items ? (uno ? `${g.items[0].nombre} · ${g.items[0].detalle}` : g.items.slice(0, 2).map((i) => i.nombre).join(", ") + (g.items.length > 2 ? ` y ${g.items.length - 2} más` : "")) : g.detalle;
+        const abierto = INI_ABIERTO === g.k && g.items && !uno;
+        return `<button type="button" class="ini-row${abierto ? " abierto" : ""}" data-ini-g="${g.k}" style="--ic:${g.color}"${g.items && !uno ? ` aria-expanded="${abierto}"` : ""}>
+            <span class="ini-ic"><svg viewBox="0 0 24 24" aria-hidden="true">${IC_INI[g.icono]}</svg></span>
+            <span class="ini-tx"><b>${esc(g.titulo)}</b><span>${esc(det)}</span></span>
+            <span class="ini-n">${n}</span>${INI_CHEV}
+          </button>` + (abierto ? `<div class="ini-sub">` + g.items.map((it, i) => `<button type="button" class="ini-row" data-ini-it="${g.k}:${i}"><span class="ini-tx"><b>${esc(it.nombre)}</b><span>${esc(it.detalle)}</span></span>${INI_CHEV}</button>`).join("") + `</div>` : "");
+      }).join("");
+    }
+
+    // --- Hoy entrenan ---
+    if (INICIO) {
+      h += `<div class="ini-sec"><span>Hoy entrenan</span>${nAl ? `<button type="button" id="ini-ver-al">Ver alumnos</button>` : ""}</div>`;
+      if (!hoyL.length) h += `<div class="ini-ok"><span>Nadie tiene un día cargado para hoy ni registró entrenamiento todavía.</span></div>`;
+      else h += hoyL.map((x) => {
+        const al = ALUMNOS_PROF.find((a) => a.id === x.alumno_id);
+        const w = al && al.wellness && al.wellness.fecha === hoyISO() ? al.wellness : null;
+        const listo = x.total > 0 && x.hechos >= x.total;
+        let pill;
+        if (w) { const niv = wlNivel(w, w.prom, w.n); pill = `<span class="ini-pill ${niv}">Wellness ${wlTotal(w)}</span>`; }
+        else if (listo) pill = `<span class="ini-pill ok">Terminó</span>`;
+        else if (x.hechos > 0) pill = `<span class="ini-pill curso">${x.hechos} de ${x.total}</span>`;
+        else pill = `<span class="ini-pill">Pendiente</span>`;
+        const sub = (x.dia || "Entrenamiento") + (listo && x.ultima ? ` · terminó ${iniHora(x.ultima)}` : (w && !listo ? ` · ${x.hechos} de ${x.total}` : ""));
+        return `<button type="button" class="ini-row" data-ini-al="${x.alumno_id}" data-nombre="${esc(x.nombre)}">
+            <span class="ini-ic av" aria-hidden="true">${esc(iniIniciales(x.nombre))}</span>
+            <span class="ini-tx"><b>${esc(x.nombre)}</b><span>${esc(sub)}</span></span>${pill}
+          </button>`;
+      }).join("");
+    }
+
+    // --- Últimas notas ---
+    const notas = (INICIO && INICIO.notas) || [];
+    if (notas.length) {
+      h += `<div class="ini-sec"><span>Últimas notas de alumnos</span></div>` + notas.map((n) => {
+        const dia = diaC(n.fecha), d = iniDiasDesde(dia);
+        const cuando = d <= 0 ? ("hoy" + (n.sin_hora ? "" : " " + iniHora(n.fecha))) : d === 1 ? "ayer" : iniCorta(dia);
+        return `<button type="button" class="ini-nota" data-ini-al="${n.alumno_id}" data-nombre="${esc(n.nombre)}">
+            <div class="ini-nota-h"><b>${esc(n.nombre)}</b><span>${esc(cuando)}</span></div>
+            <p>${esc(n.texto)}</p>${n.donde ? `<small>${esc(n.donde)}</small>` : ""}
+          </button>`;
+      }).join("");
+    }
+
+    h += `<div class="ini-acc"><button type="button" class="btn sm" id="ini-invitar">+ Invitar alumno</button><button type="button" class="btn ghost sm" id="ini-planif">Nueva planificación</button></div>`;
+    cont.innerHTML = h;
+
+    // --- Acciones ---
+    cont.querySelectorAll("[data-ini-g]").forEach((b) => (b.onclick = () => {
+      const g = grupos.find((x) => x.k === b.dataset.iniG);
+      if (!g) return;
+      if (g.directo) return g.directo();
+      if (g.items.length === 1) return g.accion(g.items[0]);
+      INI_ABIERTO = INI_ABIERTO === g.k ? null : g.k;
+      renderInicio();
+    }));
+    cont.querySelectorAll("[data-ini-it]").forEach((b) => (b.onclick = () => {
+      const [k, i] = b.dataset.iniIt.split(":");
+      const g = grupos.find((x) => x.k === k);
+      if (g && g.items[Number(i)]) g.accion(g.items[Number(i)]);
+    }));
+    cont.querySelectorAll("[data-ini-al]").forEach((b) => (b.onclick = () => abrirAlumno(Number(b.dataset.iniAl), b.dataset.nombre)));
+    if ($("ini-ver-al")) $("ini-ver-al").onclick = () => profeSwitchTab("alumnos");
+    $("ini-invitar").onclick = () => { profeSwitchTab("alumnos"); $("al-invitar").click(); };
+    $("ini-planif").onclick = () => { profeSwitchTab("planif"); $("pl-nueva").click(); };
   }
 
   // ===== SEGUIMIENTO (un entrenamiento por vez, con flechas ‹ ›) =====
@@ -5393,6 +5615,7 @@
     try { EVALS_PROF = (await api("/evaluaciones", "GET", null, true)) || []; EVALS_ERR = null; }
     catch (e) { EVALS_PROF = []; EVALS_ERR = e.message; }
     pintarDotsEvalsProfe();
+    renderInicio();
     if ($("tv-evals").classList.contains("on")) renderEvalsProfe();
     if ($("tv-alumnos").classList.contains("on") && ALUMNOS_PROF.length) renderListaAlumnos();
     if ($("eval-al-overlay").classList.contains("on")) renderEvalAlumno();
@@ -5556,12 +5779,14 @@
   // ---------- Tabs ----------
   function profeSwitchTab(tab) {
     document.querySelectorAll("#profe-main .navtab").forEach((t) => t.classList.toggle("active", t.dataset.ptab === tab));
+    $("tv-inicio").classList.toggle("on", tab === "inicio");
     $("tv-catalogo").classList.toggle("on", tab === "catalogo");
     $("tv-alumnos").classList.toggle("on", tab === "alumnos");
     $("tv-planif").classList.toggle("on", tab === "planif");
     $("tv-evals").classList.toggle("on", tab === "evals");
     if (tab === "planif") renderPlantillas();
     if (tab === "evals") renderEvalsProfe();
+    if (tab === "inicio") { renderInicio(); cargarInicio(); }
   }
   document.querySelectorAll("#profe-main .navtab").forEach((t) => (t.onclick = () => profeSwitchTab(t.dataset.ptab)));
 
