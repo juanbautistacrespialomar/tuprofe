@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- tuprofe · v95 -->
+<!-- tuprofe · v96 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
@@ -321,6 +321,68 @@
   .rol-pill svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .rol-pill:active { background: rgba(196,240,0,.16); }
   .rol-pill:disabled { opacity: .5; }
+  /* ===== MI PERFIL (v96) ===== */
+  .pf2-hero { display: flex; align-items: center; gap: 16px; padding: 6px 0 20px; }
+  .pf2-hero .pf-avatar-wrap { margin: 0; flex: 0 0 auto; }
+  .pf2-hero .pf-avatar { width: 84px; height: 84px; font-size: 34px; border-color: rgba(196,240,0,.35); }
+  .pf2-id { flex: 1; min-width: 0; }
+  .pf2-name { font-family: "Anton", sans-serif; font-weight: 400; font-size: 28px; line-height: 32px; letter-spacing: .3px; word-break: break-word; }
+  .pf2-sub { font-size: 13.5px; color: var(--muted); margin-top: 3px; }
+  .pf2-sub b { color: var(--text); font-weight: 600; }
+  .pf2-hero .pf-edit { position: static; flex: 0 0 auto; align-self: flex-start; }
+  .pf2-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pf2-chip { height: 38px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; font-size: 13.5px; font-weight: 500; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .pf2-chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 700; }
+  .pf2-obs { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 4px; }
+  .pf2-obs textarea { border: none; background: transparent; min-height: 84px; resize: vertical; padding: 10px 12px; }
+  .pf2-obs textarea:focus { border: none; }
+  .pf2-obs-pie { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 4px 8px 6px 12px; font-size: 12px; color: var(--muted); min-height: 38px; }
+  .pf2-obs-pie button { height: 32px; padding: 0 14px; border-radius: 10px; border: none; background: var(--accent); color: var(--accent-ink); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+  .pf2-lista { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .pf2-row { width: 100%; display: flex; align-items: center; gap: 12px; padding: 14px; background: none; border: none; border-bottom: 1px solid var(--border); color: var(--text); font: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .pf2-row:last-child { border-bottom: none; }
+  .pf2-row:active { background: var(--surface-2); }
+  .pf2-row .ri { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 10px; background: var(--surface-2); display: flex; align-items: center; justify-content: center; color: var(--muted); }
+  .pf2-row .ri svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .pf2-row .rt { flex: 1; min-width: 0; }
+  .pf2-row .rt b { display: block; font-size: 15px; font-weight: 500; }
+  .pf2-row .rt span { display: block; font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .pf2-row .rc { flex: 0 0 auto; color: #4a4a4a; font-size: 20px; line-height: 1; }
+  .pf2-row.acento .ri { background: rgba(196,240,0,.12); color: var(--accent); }
+  .pf2-row.peligro, .pf2-row.peligro .ri { color: var(--danger); }
+  .pf2-row.peligro .ri { background: rgba(255,93,93,.1); }
+  .pf2-desc { display: none; gap: 8px; padding: 0 14px 14px; border-bottom: 1px solid var(--border); }
+  .pf2-desc.on { display: flex; }
+  .pf2-desc button { flex: 1; height: 40px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+  /* ===== PERFIL del alumno ===== */
+  .pf2-hero { display: flex; align-items: center; gap: 16px; padding: 6px 0 18px; }
+  .pf2-hero .pf-avatar-wrap { margin: 0; flex: 0 0 auto; }
+  .pf2-id { flex: 1; min-width: 0; }
+  .pf2-name { font-family: "Anton", sans-serif; font-size: 28px; line-height: 1.05; letter-spacing: .3px; word-break: break-word; }
+  .pf2-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .pf2-sub b { color: var(--text); font-weight: 600; }
+  .pf2-edit { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); color: var(--text); display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
+  .pf2-edit svg { width: 18px; height: 18px; }
+  .pf2-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pf2-chip { height: 38px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; font-size: 13.5px; font-weight: 500; cursor: pointer; }
+  .pf2-chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 700; }
+  .pf2-obs textarea { min-height: 92px; }
+  .pf2-obs .btn { margin-top: 10px; display: none; }
+  .pf2-obs.sucio .btn { display: block; }
+  .pf2-list { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; overflow: hidden; }
+  .pf2-row { width: 100%; display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: none; border: none; border-bottom: 1px solid var(--border); color: var(--text); font: inherit; font-size: 15px; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .pf2-row:last-child { border-bottom: none; }
+  .pf2-row:active { background: var(--surface-2); }
+  .pf2-row svg { flex: 0 0 auto; width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .pf2-row .tx { flex: 1; min-width: 0; }
+  .pf2-row .tx small { display: block; font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .pf2-row .chev { width: 16px; height: 16px; color: var(--muted); }
+  .pf2-row.acento { color: var(--accent); }
+  .pf2-row.peligro { color: var(--danger); }
+  .pf2-desc { display: none; gap: 8px; padding: 0 16px 14px; border-bottom: 1px solid var(--border); }
+  .pf2-desc.on { display: flex; }
+  .pf2-desc .btn { flex: 1; }
+  .pf2-ver { text-align: center; font-size: 11.5px; color: #555; margin: 18px 0 6px; }
   /* ===== Vista ADMIN ===== */
   #app-admin .body { padding-top: 18px; }
   .adm-alerta { display: flex; gap: 12px; align-items: center; margin-top: 14px; padding: 12px 14px; border-radius: 16px; background: rgba(196,240,0,.07); border: 1px solid rgba(196,240,0,.28); font-size: 13.5px; line-height: 19px; }
@@ -1797,6 +1859,13 @@
   const token = () => localStorage.getItem(TOKEN_KEY);
   const guardarToken = (t) => { try { localStorage.setItem(TOKEN_KEY, t); } catch {} };
   const borrarToken = () => localStorage.removeItem(TOKEN_KEY);
+  // Cuenta doble (admin + alumno): guardamos también la sesión del "otro lado" para cambiar al instante.
+  const TOKEN_GEMELO_KEY = "tuprofe_token_gemelo";
+  const tokenGemelo = () => { try { return localStorage.getItem(TOKEN_GEMELO_KEY); } catch { return null; } };
+  const guardarTokenGemelo = (t) => { try { localStorage.setItem(TOKEN_GEMELO_KEY, t); } catch {} };
+  const borrarTokenGemelo = () => { try { localStorage.removeItem(TOKEN_GEMELO_KEY); } catch {} };
+  // Qué vistas ya están armadas en pantalla (para volver sin recargar).
+  const VISTAS = { alumno: false, admin: false };
 
   // --- Mails recordados EN ESTE CELULAR (solo el email, nunca la contraseña) ---
   const MAILS_KEY = "tuprofe_mails";
@@ -1866,8 +1935,9 @@
   async function api(path, method, body, auth) {
     method = method || "GET";
     const headers = { "Content-Type": "application/json" };
-    if (auth) headers["Authorization"] = "Bearer " + token();
-    const cacheable = auth && method === "GET" && LECTURAS_ALUMNO.includes(path);
+    // auth === true -> token de la sesión actual; auth = "texto" -> ese token (la cuenta gemela).
+    if (auth) headers["Authorization"] = "Bearer " + (typeof auth === "string" ? auth : token());
+    const cacheable = auth === true && method === "GET" && LECTURAS_ALUMNO.includes(path);
     let res;
     try {
       res = await fetch(API + path, { method, headers, body: body ? JSON.stringify(body) : undefined });
@@ -1983,10 +2053,7 @@
     if (rol === "profe" && yo.es_admin) {
       showApp("admin");
       $("bloqueo").classList.remove("on");
-      $("admin-nombre").textContent = (yo.nombre || "Admin").split(" ")[0];
-      ADMIN_ABIERTO = null;
-      adminYoId = yo.id;
-      $("admin-a-alumno").style.display = yo.puede_cambiar === "alumno" ? "" : "none";
+      prepararAdmin(yo);
       if (yo.debe_cambiar) abrirCambioPass(true);
       cargarAdmin();
       return;
@@ -2023,8 +2090,11 @@
       cargarMisEvals();       // evaluaciones (en segundo plano: prende el puntito si hay pendientes)
       cargarMiFoto(yo);       // la foto viaja aparte (no demora la entrada)
       await cargarMiRutina();
+      VISTAS.alumno = true;
       pintarSinSenal();
       enviarCola();           // si quedó algo guardado sin señal, lo mandamos
+      // Cuenta doble: dejamos el panel de admin armado por detrás, así el cambio es instantáneo.
+      if (yo.puede_cambiar === "profe" && yo.cambio_rapido) precargarAdmin();
     }
   }
 
@@ -2118,7 +2188,7 @@
   // Normaliza para buscar sin importar mayúsculas ni tildes (María == maria, Muñoz == munoz).
   const normaliza = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   function itemAlumnoHTML(a) {
-    return `<div class="ex click" data-alumno="${a.id}"><div class="thumb ph" style="width:44px;height:44px;border-radius:50%"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div><div class="info"><div class="n">${esc(a.nombre)}</div><div class="m">${a.pide_reset ? '<span class="tag-reset" style="margin:0 6px 0 0">Pidió clave nueva</span>' : ""}${evalsParaRevisar(a.id) ? `<span class="tag-eval">${evalsParaRevisar(a.id)} eval. para revisar</span>` : ""}${tagWellnessHTML(a)}${edadDesde(a.fecha_nac) != null ? edadDesde(a.fecha_nac) + " años" : esc(a.objetivo || "Sin datos")}</div></div><div class="acts"><button class="reset-al${a.pide_reset ? ' pide-reset' : ''}" data-reset-alumno="${a.id}" title="${a.pide_reset ? 'Pidió clave nueva: tocá para generarla' : 'Resetear contraseña'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M17 6l2 2M15 8l2 2"/></svg></button><button class="del-al" data-del-alumno="${a.id}" title="Borrar alumno"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button></div></div>`;
+    return `<div class="ex click" data-alumno="${a.id}"><div class="thumb ph" style="width:44px;height:44px;border-radius:50%"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div><div class="info"><div class="n">${esc(a.nombre)}</div><div class="m">${a.pide_reset ? '<span class="tag-reset" style="margin:0 6px 0 0">Pidió clave nueva</span>' : ""}${evalsParaRevisar(a.id) ? `<span class="tag-eval">${evalsParaRevisar(a.id)} eval. para revisar</span>` : ""}${tagWellnessHTML(a)}${edadDesde(a.fecha_nac) != null ? edadDesde(a.fecha_nac) + " años" : esc(a.objetivo || "Sin datos")}</div></div><div class="acts">${a.pide_reset ? `<button class="reset-al pide-reset" data-reset-alumno="${a.id}" title="Pidió clave nueva: tocá para generarla"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M17 6l2 2M15 8l2 2"/></svg></button>` : ""}<button class="del-al" data-del-alumno="${a.id}" title="Borrar alumno"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button></div></div>`;
   }
   function renderListaAlumnos() {
     const cont = $("al-lista");
@@ -3592,6 +3662,7 @@
     api("/admin/profesores", "GET", null, true).then((data) => {
       ADMIN_PROFES = (data.profesores || []).filter((p) => !p.es_admin);
       renderAdmin();
+      VISTAS.admin = true;
     }).catch((e) => { cont.innerHTML = `<div class="adm-vacio">${esc(e.message)}</div>`; });
   }
   const inicialesDe = (n) => String(n || "?").trim().split(/\s+/).slice(0, 2).map((x) => x.charAt(0).toUpperCase()).join("") || "?";
@@ -3611,14 +3682,14 @@
       </div>`;
     if (piden.length) {
       const quien = piden.length === 1 ? `${esc(piden[0].nombre)} pidió` : `${piden.length} profes pidieron`;
-      h += `<div class="adm-alerta">${SVG_ADM.aviso}<div>${quien} una clave nueva. Abrí su tarjeta y tocá "Resetear clave".</div></div>`;
+      h += `<div class="adm-alerta">${SVG_ADM.aviso}<div>${quien} una clave nueva. Abrí su tarjeta y tocá "Darle clave nueva".</div></div>`;
     }
     h += `<div class="ini-sec"><span>Profes</span></div>`;
     if (!P.length) {
       h += `<div class="adm-vacio">Todavía no hay profes. Cuando alguien cree su cuenta de profe, aparece acá en pausa hasta que lo habilites.</div>`;
       cont.innerHTML = h; return;
     }
-    h += `<div class="adm-ayuda">Tocá un profe para ponerle tope, resetearle la clave o borrarlo.</div>`;
+    h += `<div class="adm-ayuda">Tocá un profe para ponerle tope de alumnos o borrarlo.</div>`;
     // Primero los que pidieron clave, después activos, después en pausa; dentro, por nombre.
     const orden = [...P].sort((a, b) => (b.pide_reset - a.pide_reset) || (b.habilitado - a.habilitado) || String(a.nombre).localeCompare(String(b.nombre)));
     h += orden.map((p) => {
@@ -3638,7 +3709,7 @@
         <div class="apc-cap" data-abrir="${p.id}"><div class="apc-cap-l">${capTxt}</div>${barra}</div>
         <div class="apc-acc">
           <button data-acc="tope" data-pid="${p.id}">${SVG_ADM.tope}Tope</button>
-          <button data-acc="clave" data-pid="${p.id}"${p.pide_reset ? ' class="dest"' : ""}>${SVG_ADM.clave}Resetear clave</button>
+          ${p.pide_reset ? `<button data-acc="clave" data-pid="${p.id}" class="dest">${SVG_ADM.clave}Darle clave nueva</button>` : ""}
           <button data-acc="borrar" data-pid="${p.id}" class="peligro" aria-label="Borrar a ${esc(p.nombre)}">${SVG_ADM.borrar}</button>
         </div>
       </div>`;
@@ -3757,22 +3828,71 @@
   $("alumno-a-admin").onclick = cambiarRol;
 
   // ---------- CAMBIO DE ROL (cuenta doble del admin) ----------
-  // Pasa de admin a alumno (o al revés) sin pedir contraseña: el servidor solo lo permite
-  // si las dos cuentas tienen el mismo mail y el lado profe es admin.
+  // El celu guarda las DOS sesiones (la actual y la "gemela") y las dos vistas quedan armadas
+  // en pantalla. Cambiar = intercambiar sesiones y mostrar la otra vista: instantáneo.
+  // Por detrás refrescamos los datos; si la sesión gemela venció, caemos al camino largo.
+  function prepararAdmin(yo) {
+    $("admin-nombre").textContent = (yo.nombre || "Admin").split(" ")[0];
+    adminYoId = yo.id;
+    $("admin-a-alumno").style.display = yo.puede_cambiar === "alumno" ? "" : "none";
+  }
+  async function precargarAdmin() {
+    try {
+      let tg = tokenGemelo();
+      if (!tg) {
+        const actual = token();
+        const r = await api("/cambiar-rol", "POST", null, true);
+        if (!r.conserva) { guardarToken(r.token); await api("/cambiar-rol", "POST", null, r.token).then((v) => guardarToken(v.token)).catch(() => {}); return; }
+        if (token() !== actual) return;   // mientras tanto cambió algo: no tocamos nada
+        tg = r.token; guardarTokenGemelo(tg);
+      }
+      const [yoA, data] = await Promise.all([api("/yo", "GET", null, tg), api("/admin/profesores", "GET", null, tg)]);
+      if (yoA.rol !== "profe" || !yoA.es_admin) return;
+      prepararAdmin(yoA);
+      ADMIN_ABIERTO = null;
+      ADMIN_PROFES = (data.profesores || []).filter((p) => !p.es_admin);
+      renderAdmin();
+      VISTAS.admin = true;
+    } catch (e) { if (e && e.status === 401) borrarTokenGemelo(); }
+  }
+  // Volver a la vista de alumno: refresco silencioso (sin el cartel de "Cargando...").
+  async function refrescarAlumnoAlVolver() {
+    const yo = await api("/yo", "GET", null, true);
+    alYo = { ...alYo, ...yo };
+    $("alumno-a-admin").style.display = yo.puede_cambiar === "profe" ? "" : "none";
+    cargarMiRutina(true); cargarMisEvals();
+    pintarSinSenal(); enviarCola();
+    if ($("al-view-perfil").classList.contains("on")) renderPerfil();
+  }
   async function cambiarRol() {
-    // Si quedaron cargas guardadas sin señal, intentamos mandarlas antes de cambiar.
-    if (ROL_ACTUAL === "alumno" && leerCola().length) {
-      try { await enviarCola(); } catch {}
-      const pend = leerCola().length;
-      if (pend && !await confirmar(`Tenés ${pend} registro${pend !== 1 ? "s" : ""} sin enviar (sin señal). Si cambiás de cuenta ahora, se pierden.`, { ok: "Cambiar igual", no: "Quedarme", peligro: true })) return;
+    const destino = ROL_ACTUAL === "alumno" ? "admin" : "alumno";
+    const tg = tokenGemelo();
+    if (tg && VISTAS[destino]) {
+      const actual = token(), rolPrevio = ROL_ACTUAL;
+      guardarToken(tg); guardarTokenGemelo(actual);
+      ROL_ACTUAL = destino === "admin" ? "profe" : "alumno";
+      showApp(destino);
+      try {
+        if (destino === "admin") { const yo = await api("/yo", "GET", null, true); prepararAdmin(yo); cargarAdmin(); }
+        else await refrescarAlumnoAlVolver();
+      } catch (e) {
+        if (e && e.status === 401) {
+          // La sesión guardada ya no sirve (ej. cambiaste la clave): volvemos y hacemos el cambio completo.
+          guardarToken(actual); borrarTokenGemelo(); ROL_ACTUAL = rolPrevio; VISTAS[destino] = false;
+          showApp(rolPrevio === "alumno" ? "alumno" : "admin");
+          return cambiarRol();
+        }
+      }
+      return;
     }
+    // Camino largo (la primera vez, o si no hay sesión gemela guardada).
     const btns = [$("admin-a-alumno"), $("alumno-a-admin"), $("pf-a-admin")].filter(Boolean);
     btns.forEach((b) => (b.disabled = true));
     try {
+      const actual = token();
       const r = await api("/cambiar-rol", "POST", null, true);
-      limpiarDatosOffline();
       guardarToken(r.token);
-      SIN_SENAL = false; pintarSinSenal();
+      if (r.conserva) guardarTokenGemelo(actual); else borrarTokenGemelo();
       await entrar(r.rol);
     } catch (e) { aviso(e.message); }
     finally { btns.forEach((b) => (b.disabled = false)); }
@@ -3798,8 +3918,9 @@
   let alBloqueSel = null; // bloque abierto (drill dentro del día); null = lista de bloques
   let alDiaForzado = null; // id de un día "sin fecha" abierto a mano (no tiene casillero en el calendario)
 
-  async function cargarMiRutina() {
-    $("al-sesion").innerHTML = `<div class="empty" style="padding:40px"><p>Cargando tu rutina...</p></div>`;
+  async function cargarMiRutina(silencioso) {
+    // silencioso = refresco de fondo (al volver de admin): no borra la pantalla ni la selección.
+    if (!silencioso) $("al-sesion").innerHTML = `<div class="empty" style="padding:40px"><p>Cargando tu rutina...</p></div>`;
     alBloqueSel = null;
     try {
       const data = await api("/mi-rutina", "GET", null, true);
@@ -3812,13 +3933,16 @@
       // Cargas y mejores marcas en paralelo: son dos consultas independientes,
       // no hace falta esperar una para pedir la otra.
       await Promise.all([recargarCargas(), cargarMejoresMarcas(), cargarMiWellness()]);
-      alDiaSel = pickDiaInicial();
-      alDiaForzado = null;
-      // El calendario arranca en HOY si hoy tiene día cargado; si no, en el
-      // entreno cargado más cercano (así no ves "descanso" con laburo cargado al lado).
-      alFechaSel = fechaInicialSesion();
+      if (!silencioso || alFechaSel == null) {
+        alDiaSel = pickDiaInicial();
+        alDiaForzado = null;
+        // El calendario arranca en HOY si hoy tiene día cargado; si no, en el
+        // entreno cargado más cercano (así no ves "descanso" con laburo cargado al lado).
+        alFechaSel = fechaInicialSesion();
+      }
       renderSesion();
     } catch (e) {
+      if (silencioso) return;   // refresco de fondo: si falla, queda lo que ya se veía
       $("al-sesion").innerHTML = `<div class="empty" style="padding:40px"><p>No pudimos cargar tu rutina.<br>${esc(e.message)}</p></div>`;
     }
   }
@@ -4462,63 +4586,80 @@
     // Cargas registradas = sesiones de ejercicio distintas (ejercicio + día), no cada serie
     const nCargas = new Set(CARGAS.map((c) => c.ejercicio_id + "|" + diaC(c.fecha))).size;
     const edad = alYo && alYo.fecha_nac ? edadDesde(alYo.fecha_nac) : null;
-    const sub = [edad != null ? edad + " años" : null, alYo && alYo.profe_nombre ? "Profe: " + alYo.profe_nombre : null].filter(Boolean).join("  ·  ");
     const avatar = alYo && alYo.foto
       ? `<img src="${alYo.foto}" alt="Foto de perfil" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
       : esc(inicial);
+    const OBJ = ["Fuerza máxima", "Hipertrofia", "Recomposición corporal", "Rendimiento deportivo", "Otro"];
+    const objActual = (alYo && alYo.objetivo) || "";
+    const CHEV = '<svg class="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>';
+    const gemelo = alYo && alYo.puede_cambiar === "profe";
     cont.innerHTML = `
-      <div class="pf-card" style="position:relative">
-        <button class="pf-edit" id="pf-editar" title="Editar perfil"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
+      <div class="pf2-hero">
         <div class="pf-avatar-wrap">
           <div class="pf-avatar">${avatar}</div>
           <button class="pf-cam" id="pf-cam" title="Cambiar foto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></button>
           <input type="file" id="pf-file" accept="image/*" style="display:none" />
         </div>
-        <div class="pf-name">${esc(nombre)}</div>
-        ${sub ? `<div class="pf-mail">${esc(sub)}</div>` : ""}
-        <div class="pf-mail">${esc((alYo && alYo.email) || "")}</div>
+        <div class="pf2-id">
+          <div class="pf2-name">${esc(nombre)}</div>
+          ${alYo && alYo.profe_nombre ? `<div class="pf2-sub">Entrena con <b>${esc(alYo.profe_nombre)}</b></div>` : ""}
+          ${edad != null ? `<div class="pf2-sub">${edad} años</div>` : ""}
+        </div>
+        <button class="pf2-edit" id="pf-editar" title="Editar nombre y fecha de nacimiento"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
       </div>
-      <div class="pf-stats">
-        <div class="pf-stat"><div class="ps-v">${MI_RUTINA.length}</div><div class="ps-l">Días</div></div>
-        <div class="pf-stat"><div class="ps-v">${totalEj}</div><div class="ps-l">Ejercicios</div></div>
-        <div class="pf-stat"><div class="ps-v">${nCargas}</div><div class="ps-l">Cargas</div></div>
+      <div class="ini-stats">
+        <div class="ini-stat"><b>${MI_RUTINA.length}</b><span>día${MI_RUTINA.length !== 1 ? "s" : ""} de rutina</span></div>
+        <div class="ini-stat"><b>${totalEj}</b><span>ejercicio${totalEj !== 1 ? "s" : ""}</span></div>
+        <div class="ini-stat"><b>${nCargas}</b><span>carga${nCargas !== 1 ? "s" : ""} registrada${nCargas !== 1 ? "s" : ""}</span></div>
       </div>
-      <div class="pf-card" style="text-align:left;margin-top:14px">
-        <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:7px">Tu objetivo</label>
-        <select id="pf-objetivo" style="margin-bottom:14px">
-          <option value="">Sin definir</option>
-          <option>Fuerza máxima</option><option>Hipertrofia</option><option>Recomposición corporal</option><option>Rendimiento deportivo</option><option>Otro</option>
-        </select>
-        <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:7px">Observaciones (lesiones, condiciones)</label>
-        <textarea id="pf-obs" placeholder="Ej: molestia en hombro derecho, evitar impacto..." style="margin-bottom:14px"></textarea>
-        <button class="btn sm" id="pf-guardar">Guardar cambios</button>
-      </div>
-      <div class="pf-card" style="text-align:left;margin-top:14px">
-        <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:4px">Descargar mis datos</label>
-        <p style="font-size:12px;color:var(--muted);margin:0 0 12px">Todo tu historial: días, ejercicios, series, kilos, carga percibida, notas y récords.</p>
-        <button class="btn sm" id="pf-export-json" style="margin-bottom:8px">Descargar JSON (completo)</button>
-        <button class="btn sm ghost" id="pf-export-csv">Descargar CSV (historial)</button>
+      <div class="ini-sec"><span>Tu objetivo</span></div>
+      <div class="pf2-chips">${OBJ.map((o) => `<button class="pf2-chip${o === objActual ? " on" : ""}" data-obj="${esc(o)}">${esc(o)}</button>`).join("")}</div>
+      <div class="ini-sec"><span>Para tu profe</span></div>
+      <div class="pf2-obs" id="pf-obs-wrap">
+        <textarea id="pf-obs" placeholder="Lesiones, molestias o algo que tu profe tenga que saber"></textarea>
+        <button class="btn sm" id="pf-guardar">Guardar nota</button>
       </div>
       <div class="msg" id="pf-msg"></div>
-      ${alYo && alYo.puede_cambiar === "profe" ? `<button class="btn-rol" id="pf-a-admin"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h13l-4-4M17 17H4l4 4"/></svg>Volver a admin</button>` : ""}
-      <button class="btn ghost" id="pf-clave" style="margin-bottom:10px">Cambiar contraseña</button>
-      <button class="btn ghost" id="pf-salir">Cerrar sesión</button>`;
-    $("pf-objetivo").value = (alYo && alYo.objetivo) || "";
-    $("pf-obs").value = (alYo && alYo.observaciones) || "";
+      <div class="ini-sec"><span>Tu cuenta</span></div>
+      <div class="pf2-list">
+        ${gemelo ? `<button class="pf2-row acento" id="pf-a-admin"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/></svg><span class="tx">Panel de admin<small>Gestionar profes</small></span>${CHEV}</button>` : ""}
+        <button class="pf2-row" id="pf-clave"><svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M17 6l2 2M15 8l2 2"/></svg><span class="tx">Cambiar contraseña<small>${esc((alYo && alYo.email) || "")}</small></span>${CHEV}</button>
+        <button class="pf2-row" id="pf-descargar"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg><span class="tx">Descargar mis datos<small>Todo tu historial de cargas</small></span>${CHEV}</button>
+        <div class="pf2-desc" id="pf-desc">
+          <button class="btn sm" id="pf-export-csv">Excel (CSV)</button>
+          <button class="btn sm ghost" id="pf-export-json">Completo (JSON)</button>
+        </div>
+        <button class="pf2-row peligro" id="pf-salir"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg><span class="tx">Cerrar sesión</span></button>
+      </div>
+      <div class="pf2-ver">Tu Profe · v96</div>`;
+    // Objetivo: un toque y queda guardado.
+    cont.querySelectorAll("[data-obj]").forEach((b) => (b.onclick = async () => {
+      const nuevo = b.dataset.obj === objActual ? null : b.dataset.obj;   // tocar el elegido lo desmarca
+      const previo = alYo ? alYo.objetivo : null;
+      if (alYo) alYo.objetivo = nuevo;
+      renderPerfil();
+      try { await api("/mi-perfil", "PUT", { objetivo: nuevo }, true); }
+      catch (e) { if (alYo) alYo.objetivo = previo; renderPerfil(); msg($("pf-msg"), e.message, "error"); }
+    }));
+    // Nota para el profe: el botón aparece solo si cambiaste algo.
+    const obsInicial = (alYo && alYo.observaciones) || "";
+    $("pf-obs").value = obsInicial;
+    $("pf-obs").oninput = () => $("pf-obs-wrap").classList.toggle("sucio", $("pf-obs").value.trim() !== obsInicial.trim());
     $("pf-guardar").onclick = async () => {
       $("pf-guardar").disabled = true;
       try {
-        const objetivo = $("pf-objetivo").value || null;
         const observaciones = $("pf-obs").value.trim();
-        await api("/mi-perfil", "PUT", { objetivo, observaciones }, true);
-        if (alYo) { alYo.objetivo = objetivo; alYo.observaciones = observaciones; }
-        msg($("pf-msg"), "¡Guardado!", "ok");
+        await api("/mi-perfil", "PUT", { observaciones }, true);
+        if (alYo) alYo.observaciones = observaciones;
+        renderPerfil();
+        msg($("pf-msg"), "Nota guardada", "ok");
       } catch (e) { msg($("pf-msg"), e.message, "error"); }
-      finally { $("pf-guardar").disabled = false; }
+      finally { if ($("pf-guardar")) $("pf-guardar").disabled = false; }
     };
     $("pf-salir").onclick = salir;
     $("pf-clave").onclick = () => abrirCambioPass(false);
     if ($("pf-a-admin")) $("pf-a-admin").onclick = cambiarRol;
+    $("pf-descargar").onclick = () => $("pf-desc").classList.toggle("on");
     $("pf-export-json").onclick = () => exportarDatos("json");
     $("pf-export-csv").onclick = () => exportarDatos("csv");
     $("pf-cam").onclick = () => $("pf-file").click();
@@ -6021,6 +6162,9 @@
     const pend = ROL_ACTUAL === "alumno" ? leerCola().length : 0;
     if (pend && !await confirmar(`¿Salir igual?\nTenés ${pend} registro${pend !== 1 ? "s" : ""} guardado${pend !== 1 ? "s" : ""} sin señal que todavía no se enviaron. Si salís, se pierden.`, { ok: "Salir igual", no: "Quedarme", peligro: true })) return;
     try { await api("/logout", "POST", null, true); } catch {}
+    const tg = tokenGemelo();
+    if (tg) { try { await api("/logout", "POST", null, tg); } catch {} borrarTokenGemelo(); }
+    VISTAS.alumno = false; VISTAS.admin = false; ADMIN_PROFES = [];
     limpiarDatosOffline();
     borrarToken(); ROL_ACTUAL = null; SIN_SENAL = false; pintarSinSenal();
     showAuth("s-login");
@@ -6161,7 +6305,19 @@
           // Cuenta doble (admin + alumno): al abrir la app siempre arrancamos como alumno.
           // Si falla el cambio (sin señal, etc.), entramos como estaba.
           if (yo.rol === "profe" && yo.puede_cambiar === "alumno") {
-            try { const r = await api("/cambiar-rol", "POST", null, true); limpiarDatosOffline(); guardarToken(r.token); await entrar(r.rol); ocultarSplash(); return; } catch {}
+            const actual = token(), tg = tokenGemelo();
+            if (tg) {
+              // Ya tenemos guardada la sesión de alumno: la usamos directo.
+              guardarToken(tg); guardarTokenGemelo(actual);
+              try { await entrar("alumno"); ocultarSplash(); return; }
+              catch { guardarToken(actual); borrarTokenGemelo(); }
+            }
+            try {
+              const r = await api("/cambiar-rol", "POST", null, true);
+              guardarToken(r.token);
+              if (r.conserva) guardarTokenGemelo(actual);
+              await entrar(r.rol); ocultarSplash(); return;
+            } catch {}
           }
           await entrar(yo.rol); ocultarSplash(); return;
         }
