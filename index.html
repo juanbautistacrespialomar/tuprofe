@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- tuprofe · v103 -->
+<!-- tuprofe · v104 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
@@ -41,7 +41,12 @@
      Las vistas (.app / .wrap) llenan el body con height: 100%: no van fijas ni con alto propio. */
   body { height: 100vh; height: 100dvh; padding-top: env(safe-area-inset-top); position: relative; }
   html.sa body { height: var(--saH, 100vh); }
-  .statusbar-bg { position: fixed; top: 0; left: 0; right: 0; height: env(safe-area-inset-top); background: var(--bg); z-index: 99; pointer-events: none; }
+  /* v104: SIN pointer-events: none. Para decidir si pone el vidrio, iOS 26 hace un "toque de
+     prueba" 4px debajo del borde de arriba, al medio: si ahí encuentra un elemento FIJO, de casi
+     todo el ancho, de más de 10px de alto y con color de fondo, usa ese color y NO difumina.
+     Con pointer-events: none la franja era invisible para ese toque y el vidrio aparecía igual.
+     No molesta a los toques: el body ya arranca debajo de la franja, ahí no hay nada tocable. */
+  .statusbar-bg { position: fixed; top: 0; left: 0; right: 0; height: env(safe-area-inset-top); background: var(--bg); z-index: 99; }
   body {
     background: var(--bg); color: var(--text);
     font-family: "Inter", system-ui, -apple-system, sans-serif;
@@ -4639,7 +4644,7 @@
         </div>
         <button class="pf2-row peligro" id="pf-salir"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg><span class="tx">Cerrar sesión</span></button>
       </div>
-      <div class="pf2-ver">Tu Profe · v103</div>`;
+      <div class="pf2-ver">Tu Profe · v104</div>`;
     // Objetivo: un toque y queda guardado.
     cont.querySelectorAll("[data-obj]").forEach((b) => (b.onclick = async () => {
       const nuevo = b.dataset.obj === objActual ? null : b.dataset.obj;   // tocar el elegido lo desmarca
