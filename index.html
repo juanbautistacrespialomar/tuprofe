@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- tuprofe · v106 -->
+<!-- tuprofe · v107 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
@@ -55,6 +55,16 @@
      Las vistas (.app / .wrap) llenan el body con height: 100%: no van fijas ni con alto propio. */
   body { height: 100vh; height: 100dvh; padding-top: env(safe-area-inset-top); position: relative; }
   html.sa body { height: var(--saH, 100vh); }
+  /* v107 — iOS instalado con la barra de la hora OPACA (íconos instalados desde la v105):
+     al abrir, iOS reporta un instante el alto de la pantalla ENTERA (con la barra incluida); con
+     un alto calculado la app quedaba ~56pt más alta y iOS la corría para arriba (header cortado).
+     Solución sin cálculos: el body va FIJO contra los bordes del área visible. Así mide justo lo
+     que se ve, y como es fijo, aunque iOS quiera scrollear la página no se mueve nada. */
+  html.sa-op body { position: fixed; top: 0; left: 0; right: 0; bottom: 0; height: auto; }
+  /* El logo de carga: el área visible arranca debajo de la barra de la hora, que es del mismo
+     color que el fondo. Centrado en el área, a la vista queda bajo. Lo subimos media barra para
+     que quede centrado en la PANTALLA (--sbMitad lo calcula el script del final). */
+  html.sa-op #splash > * { transform: translateY(calc(var(--sbMitad, 0px) * -1)); }
   /* v104: SIN pointer-events: none. Para decidir si pone el vidrio, iOS 26 hace un "toque de
      prueba" 4px debajo del borde de arriba, al medio: si ahí encuentra un elemento FIJO, de casi
      todo el ancho, de más de 10px de alto y con color de fondo, usa ese color y NO difumina.
@@ -4659,7 +4669,7 @@
         </div>
         <button class="pf2-row peligro" id="pf-salir"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg><span class="tx">Cerrar sesión</span></button>
       </div>
-      <div class="pf2-ver">Tu Profe · v106</div>`;
+      <div class="pf2-ver">Tu Profe · v107</div>`;
     // Objetivo: un toque y queda guardado.
     cont.querySelectorAll("[data-obj]").forEach((b) => (b.onclick = async () => {
       const nuevo = b.dataset.obj === objActual ? null : b.dataset.obj;   // tocar el elegido lo desmarca
@@ -6392,31 +6402,50 @@
   }
 </script>
 
-<!-- ===== Altura real de pantalla en iOS instalado (evita el hueco de abajo) ===== -->
+<!-- ===== Altura real de pantalla en iOS instalado ===== -->
 <script>
 (function () {
   var sa = (window.navigator.standalone === true) ||
            (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
   var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
               (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-  // Parche EXCLUSIVO de iOS instalado: allá innerHeight viene corto y hay que forzar el alto real.
-  // En Android/navegador, 100dvh ya funciona bien; no lo tocamos.
+  // Parche EXCLUSIVO de iOS instalado. En Android/navegador, 100dvh ya funciona bien.
   if (!(sa && isIOS)) return;
-  document.documentElement.classList.add('sa');
+  var html = document.documentElement;
+  function medir(css) {
+    var probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;left:0;width:0;visibility:hidden;pointer-events:none;' + css;
+    document.body.appendChild(probe);
+    var h = Math.round(probe.getBoundingClientRect().height); probe.remove();
+    return h;
+  }
+  var top = medir('top:0;height:env(safe-area-inset-top)');
+
+  if (top === 0) {
+    // v107 — BARRA DE LA HORA OPACA (instalado desde la v105). El body va fijo (ver CSS .sa-op):
+    // no hace falta calcular el alto. Solo calculamos media barra para centrar el logo de carga.
+    html.classList.add('sa-op');
+    var setMitad = function () {
+      var visible = medir('top:0;bottom:0');          // alto real del área visible
+      var barra = (window.screen && screen.height) ? screen.height - visible : 0;
+      if (barra < 0 || barra > 80) barra = 0;          // medida rara de arranque: no movemos nada
+      html.style.setProperty('--sbMitad', Math.round(barra / 2) + 'px');
+    };
+    setMitad();
+    [60, 200, 500, 1000].forEach(function (t) { setTimeout(setMitad, t); });
+    window.addEventListener('resize', setMitad);
+    return;
+  }
+
+  // ÍCONOS VIEJOS (instalados con black-translucent): la app se dibuja debajo de la hora y
+  // 100dvh viene corto → forzamos el alto real con screen.height (parche de siempre).
+  html.classList.add('sa');
   var maxSaH = 0;
   function setH() {
-    var probe = document.createElement('div');
-    probe.style.cssText = 'position:fixed;top:0;left:0;width:0;visibility:hidden;height:env(safe-area-inset-top)';
-    document.body.appendChild(probe);
-    var top = Math.round(probe.getBoundingClientRect().height); probe.remove();
     var real = (window.screen && window.screen.height ? window.screen.height : window.innerHeight) - top;
-    // v105: con la barra de la hora OPACA (status-bar-style default) la franja de arriba mide 0 y
-    // innerHeight ya es el alto correcto: si usáramos screen.height la app quedaría más alta que
-    // la pantalla y la barra de abajo se cortaría. El parche de screen.height queda SOLO para los
-    // íconos viejos que siguen instalados con black-translucent (franja > 0).
-    var h = top > 0 ? Math.max(window.innerHeight, real) + 6 : window.innerHeight;
+    var h = Math.max(window.innerHeight, real) + 6;
     if (h > maxSaH) maxSaH = h; // nunca achicar: evita que la barra "rebote" hacia arriba
-    document.documentElement.style.setProperty('--saH', maxSaH + 'px');
+    html.style.setProperty('--saH', maxSaH + 'px');
   }
   setH();
   [60, 200, 500, 1000].forEach(function (t) { setTimeout(setH, t); });
