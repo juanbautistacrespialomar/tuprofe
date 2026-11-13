@@ -1,3 +1,4 @@
+// tuprofe-api · v97 · CUENTA DOBLE ADMIN/ALUMNO (cambio de rol instantáneo: conserva las dos sesiones)
 // ============================================================
 //  tuprofe · Worker (la API que corre en Cloudflare)
 // ============================================================
@@ -10,6 +11,7 @@
 //  Toda escritura verifica que el recurso pertenezca a quien lo toca.
 // ============================================================
 
+const VERSION_API = "v97";
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
@@ -980,6 +982,39 @@ async function cuentaPorMail(email, env) {
   const a = await env.DB.prepare("SELECT id, nombre FROM alumnos WHERE lower(email) = lower(?)").bind(email).first();
   return a ? { rol: "alumno", id: a.id, nombre: a.nombre } : null;
 }
+// ------------------------------------------------------------
+//  CUENTA DOBLE DEL ADMIN (admin + alumno con el mismo mail)
+// ------------------------------------------------------------
+//  Solo el creador de la plataforma puede tener las dos cuentas con el mismo mail:
+//  el registro común no lo permite (emailEnUso), así que el "gemelo" solo existe si
+//  lo armamos a mano en la base. Además exigimos que el lado profe sea admin.
+//  Devuelve { rol, id } de la OTRA cuenta, o null si no hay gemelo.
+async function gemeloDe(rol, id, env) {
+  try {
+    if (rol === "profe") {
+      const p = await env.DB.prepare("SELECT email FROM profesores WHERE id = ? AND es_admin = 1 AND borrado = 0").bind(id).first();
+      if (!p) return null;
+      const a = await env.DB.prepare("SELECT id FROM alumnos WHERE lower(email) = lower(?)").bind(p.email).first();
+      return a ? { rol: "alumno", id: a.id } : null;
+    }
+    const a = await env.DB.prepare("SELECT email FROM alumnos WHERE id = ?").bind(id).first();
+    if (!a) return null;
+    const p = await env.DB.prepare("SELECT id FROM profesores WHERE lower(email) = lower(?) AND es_admin = 1 AND borrado = 0").bind(a.email).first();
+    return p ? { rol: "profe", id: p.id } : null;
+  } catch (e) { return null; }
+}
+// Copia la clave a la cuenta gemela, así hay UNA sola contraseña para las dos.
+// Cierra las sesiones del gemelo (como cualquier cambio de clave cierra los otros dispositivos).
+async function sincronizarClaveGemelo(rol, id, hash, salt, env) {
+  const g = await gemeloDe(rol, id, env);
+  if (!g) return;
+  const tabla = g.rol === "profe" ? "profesores" : "alumnos";   // nombre fijo, nunca viene del cliente
+  await env.DB.batch([
+    env.DB.prepare(`UPDATE ${tabla} SET password_hash = ?, password_salt = ?, debe_cambiar = 0 WHERE id = ?`).bind(hash, salt, g.id),
+    env.DB.prepare("DELETE FROM sesiones WHERE rol = ? AND usuario_id = ?").bind(g.rol, g.id),
+    env.DB.prepare("DELETE FROM pedidos_reset WHERE rol = ? AND usuario_id = ?").bind(g.rol, g.id),
+  ]);
+}
 
 // ============================================================
 //  ROUTER
@@ -995,6 +1030,8 @@ export default {
 
     try {
       // ================= PÚBLICO =================
+      // Qué versión del servidor está publicada (para chequear que el deploy salió bien).
+      if (path === "/version" && method === "GET") return json({ version: VERSION_API, mails: mailActivo(env) });   // mails: true = "Olvidé mi contraseña" manda el código por mail
       if (path === "/registro/profe" && method === "POST") {
         const { nombre, email, password } = await request.json();
         if (!nombre || !emailOk(email) || !password)
@@ -1048,19 +1085,25 @@ export default {
       if (path === "/login" && method === "POST") {
         const { email, password } = await request.json();
         if (!emailOk(email) || !password) return json({ error: "Datos incompletos" }, 400);
-        let rol = "profe";
-        let user = await env.DB.prepare("SELECT id, password_hash, password_salt FROM profesores WHERE email = ?")
+        // Primero profe, después alumno: entra a la primera cuya clave coincida.
+        // Cuenta doble del admin: aunque la clave sea la del admin, arranca como ALUMNO
+        // (es lo que más usa en el celu); al panel se pasa con el botón "Admin".
+        const candidatos = [];
+        const pr = await env.DB.prepare("SELECT id, password_hash, password_salt FROM profesores WHERE email = ?")
           .bind(email).first();
-        if (!user) {
-          rol = "alumno";
-          user = await env.DB.prepare("SELECT id, password_hash, password_salt FROM alumnos WHERE email = ?")
-            .bind(email).first();
+        if (pr) candidatos.push(["profe", pr]);
+        const al = await env.DB.prepare("SELECT id, password_hash, password_salt FROM alumnos WHERE email = ?")
+          .bind(email).first();
+        if (al) candidatos.push(["alumno", al]);
+        for (const [rol, user] of candidatos) {
+          if (await verifyPassword(password, user.password_salt, user.password_hash)) {
+            const g = rol === "profe" ? await gemeloDe("profe", user.id, env) : null;
+            const fin = g && g.rol === "alumno" ? g : { rol, id: user.id };
+            const token = await crearSesion(fin.rol, fin.id, env);
+            return json({ token, rol: fin.rol, id: fin.id });
+          }
         }
-        if (!user) return json({ error: "Email o contraseña incorrectos" }, 401);
-        if (!(await verifyPassword(password, user.password_salt, user.password_hash)))
-          return json({ error: "Email o contraseña incorrectos" }, 401);
-        const token = await crearSesion(rol, user.id, env);
-        return json({ token, rol, id: user.id });
+        return json({ error: "Email o contraseña incorrectos" }, 401);
       }
 
       // Login / registro con Google. body: { credential, codigo_invitacion?, modo? }
@@ -1213,6 +1256,7 @@ export default {
           env.DB.prepare("DELETE FROM codigos_reset WHERE rol = ? AND usuario_id = ?").bind(u.rol, u.id),
           env.DB.prepare("DELETE FROM pedidos_reset WHERE rol = ? AND usuario_id = ?").bind(u.rol, u.id),
         ]);
+        await sincronizarClaveGemelo(u.rol, u.id, hash, salt, env);
         const token = await crearSesion(u.rol, u.id, env);
         return json({ token, rol: u.rol, id: u.id });
       }
@@ -1229,6 +1273,23 @@ export default {
       const perfilProfe = esProfe ? auth.perfilProfe : null;
       const esAdmin = !!(perfilProfe && perfilProfe.es_admin);
       const profeHabilitado = !perfilProfe || perfilProfe.habilitado !== 0;
+
+      // Pasar de admin a alumno (y volver) sin contraseña. Solo existe para la cuenta doble
+      // del creador (ver gemeloDe). Abre una sesión del otro lado y CONSERVA la actual:
+      // el celu guarda las dos y después cambia de una a otra al instante, sin ir al servidor.
+      if (path === "/cambiar-rol" && method === "POST") {
+        const g = await gemeloDe(sesion.rol, sesion.id, env);
+        if (!g) return json({ error: "No autorizado" }, 403);
+        const token = await crearSesion(g.rol, g.id, env);
+        return json({ token, rol: g.rol, id: g.id, conserva: 1 });
+      }
+
+      // La cuenta de administrador solo gestiona profes: no tiene alumnos, catálogo,
+      // rutinas, planificaciones ni evaluaciones propias.
+      const RUTAS_ADMIN = ["/yo", "/logout", "/mi-password"];
+      if (esAdmin && seg[0] !== "admin" && !RUTAS_ADMIN.includes(path)) {
+        return json({ error: "La cuenta de administrador solo gestiona profes." }, 403);
+      }
 
       // Profe deshabilitado (y no admin): solo puede consultar /yo y salir.
       if (esProfe && !esAdmin && !profeHabilitado && path !== "/yo" && path !== "/logout" && path !== "/mi-password") {
@@ -1263,7 +1324,9 @@ export default {
             profesPend = pp ? pp.n : 0;
           }
           const cupo = await cupoProfe(sesion.id, env);
+          const gP = esAdmin ? await gemeloDe("profe", sesion.id, env) : null;
           return json({ rol: "profe", ...p, habilitado: profeHabilitado ? 1 : 0, es_admin: esAdmin ? 1 : 0,
+                        puede_cambiar: gP ? "alumno" : null, cambio_rapido: 1,
                         tope_alumnos: cupo.tope,
                         pedidos_reset: { alumnos: pa ? pa.n : 0, profes: profesPend } });
         } else {
@@ -1274,7 +1337,8 @@ export default {
                     p.nombre AS profe_nombre
              FROM alumnos a LEFT JOIN profesores p ON p.id = a.profe_id
              WHERE a.id = ?`).bind(sesion.id).first();
-          return json({ rol: "alumno", ...a, profe_en_pausa: profeDelAlumnoHabilitado ? 0 : 1 });
+          const gA = await gemeloDe("alumno", sesion.id, env);
+          return json({ rol: "alumno", ...a, profe_en_pausa: profeDelAlumnoHabilitado ? 0 : 1, puede_cambiar: gA ? "profe" : null, cambio_rapido: 1 });
         }
       }
 
@@ -1309,6 +1373,7 @@ export default {
           .bind(sesion.rol, sesion.id, tokenActual).run();
         await env.DB.prepare("DELETE FROM pedidos_reset WHERE rol = ? AND usuario_id = ?")
           .bind(sesion.rol, sesion.id).run();
+        await sincronizarClaveGemelo(sesion.rol, sesion.id, hash, salt, env);
         return json({ ok: true });
       }
 
