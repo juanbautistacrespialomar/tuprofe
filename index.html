@@ -1,9 +1,18 @@
 <!DOCTYPE html>
-<!-- tuprofe · v105 -->
+<!-- tuprofe · v106 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<!-- v106: SIN ZOOM en ninguna parte (es una app, no una página). maximum-scale=1 + user-scalable=no
+     apagan el zoom por doble toque, el pellizco y el zoom automático al tocar un campo de texto. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<script>
+  // Refuerzo para iPhone: iOS a veces ignora user-scalable=no. Estos eventos son SOLO del gesto de
+  // zoom (pellizco con dos dedos); cancelarlos no afecta toques, scroll ni botones.
+  ["gesturestart", "gesturechange", "gestureend"].forEach(function (ev) {
+    document.addEventListener(ev, function (e) { e.preventDefault(); }, { passive: false });
+  });
+</script>
 <meta name="theme-color" content="#0a0a0a" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <!-- v105: "default" y NO "black-translucent". Con black-translucent iOS 26 pone SIEMPRE su vidrio
@@ -914,7 +923,7 @@
   #dlg .dlg-t { font-size: 17px; font-weight: 600; line-height: 1.3; margin-bottom: 8px; }
   #dlg .dlg-m { font-size: 14px; color: var(--muted); line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 50dvh; overflow-y: auto; user-select: text; -webkit-user-select: text; }
   #dlg .dlg-copia { margin-top: 12px; display: flex; gap: 8px; }
-  #dlg .dlg-copia input { height: 44px; font-size: 14px; font-family: ui-monospace, Menlo, monospace; }
+  #dlg .dlg-copia input { height: 44px; font-size: 16px; font-family: ui-monospace, Menlo, monospace; }
   #dlg .dlg-copia button { flex: 0 0 auto; height: 44px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--accent); background: rgba(196,240,0,.08); color: var(--accent); font-weight: 600; cursor: pointer; }
   #dlg .dlg-acts { display: flex; gap: 8px; margin-top: 18px; }
   #dlg .dlg-acts button { flex: 1; height: 46px; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--text); }
@@ -4650,7 +4659,7 @@
         </div>
         <button class="pf2-row peligro" id="pf-salir"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg><span class="tx">Cerrar sesión</span></button>
       </div>
-      <div class="pf2-ver">Tu Profe · v105</div>`;
+      <div class="pf2-ver">Tu Profe · v106</div>`;
     // Objetivo: un toque y queda guardado.
     cont.querySelectorAll("[data-obj]").forEach((b) => (b.onclick = async () => {
       const nuevo = b.dataset.obj === objActual ? null : b.dataset.obj;   // tocar el elegido lo desmarca
