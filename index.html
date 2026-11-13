@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- tuprofe · v94 -->
+<!-- tuprofe · v95 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
@@ -316,7 +316,43 @@
   .btn-rol { width: 100%; height: 48px; border-radius: var(--radius); border: 1.5px solid var(--accent); background: transparent; color: var(--accent); font-size: 15px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; margin-bottom: 10px; }
   .btn-rol svg { width: 18px; height: 18px; stroke: currentColor; }
   .btn-rol:disabled { opacity: .5; }
-  .adm-titulo { font-size: 18px; font-weight: 600; margin: 6px 0 4px; }
+  /* Píldora de cambio de modo (header): "Alumno" en el admin, "Admin" en el alumno */
+  .rol-pill { height: 40px; padding: 0 14px 0 11px; border-radius: 12px; border: 1px solid rgba(196,240,0,.35); background: rgba(196,240,0,.08); color: var(--accent); font: inherit; font-size: 13.5px; font-weight: 600; display: inline-flex; align-items: center; gap: 7px; cursor: pointer; flex-shrink: 0; -webkit-tap-highlight-color: transparent; }
+  .rol-pill svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .rol-pill:active { background: rgba(196,240,0,.16); }
+  .rol-pill:disabled { opacity: .5; }
+  /* ===== Vista ADMIN ===== */
+  #app-admin .body { padding-top: 18px; }
+  .adm-alerta { display: flex; gap: 12px; align-items: center; margin-top: 14px; padding: 12px 14px; border-radius: 16px; background: rgba(196,240,0,.07); border: 1px solid rgba(196,240,0,.28); font-size: 13.5px; line-height: 19px; }
+  .adm-alerta svg { flex: 0 0 auto; width: 20px; height: 20px; fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .adm-ayuda { font-size: 12.5px; color: var(--muted); margin: -4px 0 12px; }
+  .apc { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; margin-bottom: 10px; overflow: hidden; transition: border-color .15s; }
+  .apc.abierta { border-color: #3a3a3a; }
+  .apc-top { display: flex; align-items: center; gap: 12px; padding: 14px 14px 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .apc-av { flex: 0 0 auto; width: 44px; height: 44px; border-radius: 50%; background: var(--surface-2); border: 1px solid rgba(196,240,0,.35); color: var(--accent); display: flex; align-items: center; justify-content: center; font-family: "Anton", sans-serif; font-size: 17px; letter-spacing: .5px; }
+  .apc-tx { flex: 1 1 auto; min-width: 0; }
+  .apc-tx b { display: block; font-size: 15.5px; font-weight: 600; line-height: 20px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .apc-tx > span { display: block; font-size: 12.5px; line-height: 17px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .apc-cap { padding: 12px 14px 14px; cursor: pointer; }
+  .apc-cap-l { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 12.5px; color: var(--muted); }
+  .apc-cap-l strong { font-family: "Anton", sans-serif; font-weight: 400; font-size: 20px; color: var(--text); letter-spacing: .3px; margin-right: 4px; }
+  .apc-bar { height: 5px; border-radius: 3px; background: var(--surface-2); margin-top: 8px; overflow: hidden; }
+  .apc-bar i { display: block; height: 100%; border-radius: 3px; background: var(--accent); }
+  .apc-bar.lleno i { background: var(--danger); }
+  .apc-tags { display: flex; gap: 6px; margin-top: 6px; }
+  .apc-tag { display: inline-block; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; vertical-align: 2px; }
+  .apc-tag.pausa { color: var(--muted); background: var(--surface-2); border: 1px solid var(--border); }
+  .apc-tag.clave { color: var(--accent-ink); background: var(--accent); }
+  .apc.off .apc-av { color: var(--muted); border-color: var(--border); }
+  .apc.off .apc-tx b, .apc.off .apc-cap-l strong { color: var(--muted); }
+  .apc.off .apc-bar i { background: #4a4a4a; }
+  .apc-acc { display: none; gap: 8px; padding: 0 14px 14px; }
+  .apc.abierta .apc-acc { display: flex; }
+  .apc-acc button { flex: 1; height: 42px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); font: inherit; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; }
+  .apc-acc button svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .apc-acc button.dest { border-color: rgba(196,240,0,.45); color: var(--accent); }
+  .apc-acc button.peligro { color: var(--danger); flex: 0 0 48px; }
+  .adm-vacio { text-align: center; color: var(--muted); font-size: 14px; line-height: 20px; padding: 34px 20px; border: 1px dashed var(--border); border-radius: 18px; }
   .adm-info { flex: 1; min-width: 0; }
   .adm-n { font-size: 14.5px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
   .adm-e { font-size: 12px; color: var(--muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1059,24 +1095,20 @@
 <!-- ============ PANEL ADMIN (solo creador): solo gestiona profes ============ -->
 <div class="app" id="app-admin">
   <div class="app-header">
-    <div class="hi">Hola<b id="admin-nombre">Admin</b></div>
+    <div class="hi">Panel de admin<b id="admin-nombre">Admin</b></div>
     <div style="display:flex;gap:8px;align-items:center">
+      <button class="rol-pill" id="admin-a-alumno" style="display:none" title="Pasar a tu cuenta de alumno"><svg viewBox="0 0 24 24"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></svg>Alumno</button>
       <div class="icon-btn" id="admin-clave" title="Cambiar contraseña"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M17 6l2 2M15 8l2 2"/></svg></div>
       <div class="icon-btn" id="admin-salir" title="Salir"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></div>
     </div>
   </div>
-  <div class="body">
-    <button class="btn-rol" id="admin-a-alumno" style="display:none;margin-top:6px"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h13l-4-4M17 17H4l4 4"/></svg>Ver como alumno</button>
-    <div class="adm-titulo">Profes de la plataforma</div>
-    <p class="hint">Habilitá o pausá el acceso de cada profe. Un profe en pausa no puede entrar a la app. Tocá la cantidad de alumnos para ponerle un tope.</p>
-    <div id="admin-lista"></div>
-  </div>
+  <div class="body"><div id="admin-cont"></div></div>
 </div>
 
 <div class="app" id="app-alumno">
   <!-- VISTA: SESIÓN (rutina del día) -->
   <div class="alview on" id="al-view-sesion">
-    <div class="app-header"><div class="hi">Hola<b id="alumno-nombre">Alumno</b></div><div class="icon-btn" id="alumno-salir" title="Salir"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></div></div>
+    <div class="app-header"><div class="hi">Hola<b id="alumno-nombre">Alumno</b></div><div style="display:flex;gap:8px;align-items:center"><button class="rol-pill" id="alumno-a-admin" style="display:none" title="Pasar al panel de admin"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/></svg>Admin</button><div class="icon-btn" id="alumno-salir" title="Salir"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></div></div></div>
     <div class="body" id="al-sesion"></div>
   </div>
   <!-- VISTA: CARGAS (historial) -->
@@ -1952,6 +1984,7 @@
       showApp("admin");
       $("bloqueo").classList.remove("on");
       $("admin-nombre").textContent = (yo.nombre || "Admin").split(" ")[0];
+      ADMIN_ABIERTO = null;
       adminYoId = yo.id;
       $("admin-a-alumno").style.display = yo.puede_cambiar === "alumno" ? "" : "none";
       if (yo.debe_cambiar) abrirCambioPass(true);
@@ -1978,6 +2011,7 @@
     } else {
       alYo = yo;
       $("alumno-nombre").textContent = yo.nombre || "Alumno";
+      $("alumno-a-admin").style.display = yo.puede_cambiar === "profe" ? "" : "none";
       // Profe en pausa: mostramos bloqueo y no cargamos la rutina.
       if (yo.profe_en_pausa === 1) {
         mostrarBloqueo("Tu profe está en pausa", "Tu profe pausó la cuenta por el momento. Cuando la reactive vas a poder volver a entrenar. Cualquier cosa, escribile.");
@@ -3544,30 +3578,95 @@
   };
 
   // ---------- PANEL ADMIN (creador de la plataforma) ----------
+  // Lista de profes del panel (sin el propio admin) + qué tarjeta está abierta.
+  let ADMIN_PROFES = [], ADMIN_ABIERTO = null;
+  const SVG_ADM = {
+    tope: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.4 3-5.3 6.5-5.3s6.5 1.9 6.5 5.3M17 8v6M14 11h6"/></svg>',
+    clave: '<svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M17 6l2 2M15 8l2 2"/></svg>',
+    borrar: '<svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg>',
+    aviso: '<svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M17 6l2 2M15 8l2 2"/></svg>',
+  };
   function cargarAdmin() {
-    $("admin-lista").innerHTML = `<div class="empty" style="padding:24px"><p>Cargando profes...</p></div>`;
-    api("/admin/profesores", "GET", null, true).then((data) => renderAdmin(data.profesores || [])).catch((e) => {
-      $("admin-lista").innerHTML = `<div class="empty" style="padding:24px"><p>${esc(e.message)}</p></div>`;
-    });
+    const cont = $("admin-cont");
+    if (!ADMIN_PROFES.length) cont.innerHTML = `<div class="empty" style="padding:40px"><p>Cargando profes...</p></div>`;
+    api("/admin/profesores", "GET", null, true).then((data) => {
+      ADMIN_PROFES = (data.profesores || []).filter((p) => !p.es_admin);
+      renderAdmin();
+    }).catch((e) => { cont.innerHTML = `<div class="adm-vacio">${esc(e.message)}</div>`; });
   }
-  function renderAdmin(profes) {
-    if (!profes.length) { $("admin-lista").innerHTML = vacioHTML("alumnos", "Todavía no hay profes", "", "", true); return; }
-    $("admin-lista").innerHTML = profes.map((p) => {
-      const badge = p.es_admin ? `<span class="adm-badge">admin</span>` : "";
-      const ctrl = p.es_admin
-        ? `<span class="adm-vos">${p.id === adminYoId ? 'vos' : ''}</span>`
-        : `<button class="adm-toggle${p.habilitado ? ' on' : ''}" data-id="${p.id}" data-hab="${p.habilitado ? 1 : 0}" role="switch" aria-checked="${p.habilitado ? 'true' : 'false'}" title="${p.habilitado ? 'Habilitado' : 'En pausa'}"><span class="knob"></span></button>
-           <button class="adm-reset${p.pide_reset ? ' pide-reset' : ''}" data-reset-profe="${p.id}" data-nombre="${esc(p.nombre)}" title="Resetear contraseña"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M17 6l2 2M15 8l2 2"/></svg></button>
-           <button class="adm-del" data-del-profe="${p.id}" data-nombre="${esc(p.nombre)}" title="Borrar profe"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button>`;
-      return `<div class="adm-row">
-        <div class="adm-info"><div class="adm-n">${esc(p.nombre)} ${badge}${p.pide_reset ? '<span class="tag-reset">Pidió clave</span>' : ''}</div><div class="adm-e">${esc(p.email)}</div><div class="adm-e">${topeAdminHTML(p)}</div></div>
-        <div class="adm-ctrls">${ctrl}</div>
+  const inicialesDe = (n) => String(n || "?").trim().split(/\s+/).slice(0, 2).map((x) => x.charAt(0).toUpperCase()).join("") || "?";
+  function renderAdmin() {
+    const cont = $("admin-cont");
+    const P = ADMIN_PROFES;
+    const activos = P.filter((p) => p.habilitado).length;
+    const pausa = P.length - activos;
+    const alumnos = P.reduce((t, p) => t + (p.alumnos || 0), 0);
+    const piden = P.filter((p) => p.pide_reset);
+    const fecha = cap(new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" }).replace(",", ""));
+    let h = `<div class="ini-fecha">${esc(fecha)}</div><h2 class="ini-h">Tu plataforma</h2>
+      <div class="ini-stats">
+        <div class="ini-stat"><b>${activos}</b><span>profe${activos !== 1 ? "s" : ""} activo${activos !== 1 ? "s" : ""}</span></div>
+        <div class="ini-stat"><b>${pausa}</b><span>en pausa</span></div>
+        <div class="ini-stat"><b>${alumnos}</b><span>alumno${alumnos !== 1 ? "s" : ""} en total</span></div>
+      </div>`;
+    if (piden.length) {
+      const quien = piden.length === 1 ? `${esc(piden[0].nombre)} pidió` : `${piden.length} profes pidieron`;
+      h += `<div class="adm-alerta">${SVG_ADM.aviso}<div>${quien} una clave nueva. Abrí su tarjeta y tocá "Resetear clave".</div></div>`;
+    }
+    h += `<div class="ini-sec"><span>Profes</span></div>`;
+    if (!P.length) {
+      h += `<div class="adm-vacio">Todavía no hay profes. Cuando alguien cree su cuenta de profe, aparece acá en pausa hasta que lo habilites.</div>`;
+      cont.innerHTML = h; return;
+    }
+    h += `<div class="adm-ayuda">Tocá un profe para ponerle tope, resetearle la clave o borrarlo.</div>`;
+    // Primero los que pidieron clave, después activos, después en pausa; dentro, por nombre.
+    const orden = [...P].sort((a, b) => (b.pide_reset - a.pide_reset) || (b.habilitado - a.habilitado) || String(a.nombre).localeCompare(String(b.nombre)));
+    h += orden.map((p) => {
+      const n = p.alumnos || 0, tope = p.tope_alumnos;
+      const abierta = ADMIN_ABIERTO === p.id;
+      const tags = (p.habilitado ? "" : `<span class="apc-tag pausa">En pausa</span>`) + (p.pide_reset ? `<span class="apc-tag clave">Pidió clave</span>` : "");
+      const capTxt = tope == null
+        ? `<span><strong>${n}</strong>alumno${n !== 1 ? "s" : ""}</span><span>Sin tope</span>`
+        : `<span><strong>${n}</strong>de ${tope} alumno${tope !== 1 ? "s" : ""}</span><span>${n >= tope ? "Lleno" : `Quedan ${tope - n}`}</span>`;
+      const barra = tope == null ? "" : `<div class="apc-bar${n >= tope ? " lleno" : ""}"><i style="width:${tope > 0 ? Math.min(100, Math.round(n / tope * 100)) : 100}%"></i></div>`;
+      return `<div class="apc${p.habilitado ? "" : " off"}${abierta ? " abierta" : ""}" data-id="${p.id}">
+        <div class="apc-top" data-abrir="${p.id}">
+          <div class="apc-av">${esc(inicialesDe(p.nombre))}</div>
+          <div class="apc-tx"><b>${esc(p.nombre)}</b><span>${esc(p.email)}</span>${tags ? `<div class="apc-tags">${tags}</div>` : ""}</div>
+          <button class="adm-toggle${p.habilitado ? " on" : ""}" data-hab-id="${p.id}" role="switch" aria-checked="${p.habilitado ? "true" : "false"}" aria-label="${p.habilitado ? "Pausar" : "Habilitar"} a ${esc(p.nombre)}"><span class="knob"></span></button>
+        </div>
+        <div class="apc-cap" data-abrir="${p.id}"><div class="apc-cap-l">${capTxt}</div>${barra}</div>
+        <div class="apc-acc">
+          <button data-acc="tope" data-pid="${p.id}">${SVG_ADM.tope}Tope</button>
+          <button data-acc="clave" data-pid="${p.id}"${p.pide_reset ? ' class="dest"' : ""}>${SVG_ADM.clave}Resetear clave</button>
+          <button data-acc="borrar" data-pid="${p.id}" class="peligro" aria-label="Borrar a ${esc(p.nombre)}">${SVG_ADM.borrar}</button>
+        </div>
       </div>`;
     }).join("");
-    $("admin-lista").querySelectorAll(".adm-toggle").forEach((b) => (b.onclick = () => toggleProfe(b)));
-    $("admin-lista").querySelectorAll(".adm-del").forEach((b) => (b.onclick = () => borrarProfe(Number(b.dataset.delProfe), b.dataset.nombre)));
-    $("admin-lista").querySelectorAll(".adm-reset").forEach((b) => (b.onclick = () => resetProfe(Number(b.dataset.resetProfe), b.dataset.nombre)));
-    $("admin-lista").querySelectorAll(".adm-tope").forEach((b) => (b.onclick = () => abrirTope(profes.find((p) => p.id === Number(b.dataset.tope)))));
+    cont.innerHTML = h;
+    cont.querySelectorAll("[data-abrir]").forEach((el) => (el.onclick = (ev) => {
+      if (ev.target.closest(".adm-toggle")) return;
+      const id = Number(el.dataset.abrir);
+      ADMIN_ABIERTO = ADMIN_ABIERTO === id ? null : id;
+      renderAdmin();
+    }));
+    cont.querySelectorAll("[data-hab-id]").forEach((b) => (b.onclick = (ev) => { ev.stopPropagation(); toggleProfeAdmin(Number(b.dataset.habId)); }));
+    cont.querySelectorAll("[data-acc]").forEach((b) => (b.onclick = () => {
+      const p = ADMIN_PROFES.find((x) => x.id === Number(b.dataset.pid));
+      if (!p) return;
+      if (b.dataset.acc === "tope") abrirTope(p);
+      else if (b.dataset.acc === "clave") resetProfe(p.id, p.nombre);
+      else borrarProfe(p.id, p.nombre);
+    }));
+  }
+  // Habilitar / pausar: cambia en pantalla al toque y, si el servidor falla, vuelve atrás.
+  async function toggleProfeAdmin(id) {
+    const p = ADMIN_PROFES.find((x) => x.id === id);
+    if (!p) return;
+    const nuevo = p.habilitado ? 0 : 1;
+    p.habilitado = nuevo; renderAdmin();
+    try { await api("/admin/profesores/" + id, "PUT", { habilitado: !!nuevo }, true); }
+    catch (e) { p.habilitado = nuevo ? 0 : 1; renderAdmin(); aviso(e.message); }
   }
   // "12 alumnos · sin tope" / "12 de 20 alumnos". A los admin no se les pone tope.
   function topeAdminHTML(p) {
@@ -3655,6 +3754,7 @@
   $("profe-admin").onclick = cargarAdmin;   // (oculto: el admin ya no usa la vista de profe)
   $("admin-clave").onclick = () => abrirCambioPass(false);
   $("admin-a-alumno").onclick = cambiarRol;
+  $("alumno-a-admin").onclick = cambiarRol;
 
   // ---------- CAMBIO DE ROL (cuenta doble del admin) ----------
   // Pasa de admin a alumno (o al revés) sin pedir contraseña: el servidor solo lo permite
@@ -3666,7 +3766,7 @@
       const pend = leerCola().length;
       if (pend && !await confirmar(`Tenés ${pend} registro${pend !== 1 ? "s" : ""} sin enviar (sin señal). Si cambiás de cuenta ahora, se pierden.`, { ok: "Cambiar igual", no: "Quedarme", peligro: true })) return;
     }
-    const btns = [$("admin-a-alumno"), $("pf-a-admin")].filter(Boolean);
+    const btns = [$("admin-a-alumno"), $("alumno-a-admin"), $("pf-a-admin")].filter(Boolean);
     btns.forEach((b) => (b.disabled = true));
     try {
       const r = await api("/cambiar-rol", "POST", null, true);
@@ -6056,7 +6156,15 @@
     if (token()) {
       // Reintentos: si el worker está frío o la red parpadea, NO deslogueamos.
       for (let intento = 0; intento < 4; intento++) {
-        try { const yo = await api("/yo", "GET", null, true); await entrar(yo.rol); ocultarSplash(); return; }
+        try {
+          const yo = await api("/yo", "GET", null, true);
+          // Cuenta doble (admin + alumno): al abrir la app siempre arrancamos como alumno.
+          // Si falla el cambio (sin señal, etc.), entramos como estaba.
+          if (yo.rol === "profe" && yo.puede_cambiar === "alumno") {
+            try { const r = await api("/cambiar-rol", "POST", null, true); limpiarDatosOffline(); guardarToken(r.token); await entrar(r.rol); ocultarSplash(); return; } catch {}
+          }
+          await entrar(yo.rol); ocultarSplash(); return;
+        }
         catch (e) {
           if (e.status === 401) { borrarToken(); break; }        // token inválido -> a login
           if (intento < 3) { await new Promise((r) => setTimeout(r, 800 * (intento + 1))); continue; } // red: reintentar
