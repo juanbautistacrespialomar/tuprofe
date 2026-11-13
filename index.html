@@ -1,12 +1,16 @@
 <!DOCTYPE html>
-<!-- tuprofe · v104 -->
+<!-- tuprofe · v105 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#0a0a0a" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<!-- v105: "default" y NO "black-translucent". Con black-translucent iOS 26 pone SIEMPRE su vidrio
+     borroso arriba: WebKit solo lo reemplaza por un color sólido cuando la barra de la hora "tapa"
+     la página, y con translucent eso nunca pasa. Con default la app arranca debajo de la hora.
+     OJO: iOS guarda este estilo al INSTALAR → hay que borrar el ícono y volver a agregarlo. -->
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="Tu Profe" />
 <link rel="apple-touch-icon" href="icon-192.png" />
 <link rel="manifest" href="manifest.json" />
@@ -32,6 +36,7 @@
      y eran justamente los que disparaban el doble-tap-zoom al tocarlos. Cubre profe, alumno y admin. */
   * { touch-action: manipulation; }
   html, body { width: 100%; max-width: 100%; overflow: hidden; overscroll-behavior: none; }
+  html { background: #0a0a0a; }
   /* v103 — MISMO ESQUEMA QUE TU CONTADOR (el que anda bien en iPhone):
      1) el body mide la pantalla (100dvh; en iOS instalado, el alto real medido por JS en --saH,
         porque ahí 100dvh viene corto y deja la franja negra abajo);
@@ -111,7 +116,8 @@
   #profe-main, #profe-rutina { display: flex; flex-direction: column; flex: 1; min-height: 0; }
   #profe-main { position: relative; }
   #profe-main > .body { padding-bottom: calc(118px + env(safe-area-inset-bottom)); }
-  .app-header { flex-shrink: 0; z-index: 5; background: var(--bg); display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+  /* sticky: iOS 26 busca arriba de todo un elemento fijo/sticky de fondo sólido para NO poner el vidrio. */
+  .app-header { position: sticky; top: 0; flex-shrink: 0; z-index: 5; background: var(--bg); display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border); }
   .app-header .hi { font-size: 13px; color: var(--muted); }
   .app-header .hi b { display: block; color: var(--text); font-size: 18px; font-weight: 600; margin-top: 1px; }
   .app-header .title { font-size: 18px; font-weight: 600; }
@@ -4644,7 +4650,7 @@
         </div>
         <button class="pf2-row peligro" id="pf-salir"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg><span class="tx">Cerrar sesión</span></button>
       </div>
-      <div class="pf2-ver">Tu Profe · v104</div>`;
+      <div class="pf2-ver">Tu Profe · v105</div>`;
     // Objetivo: un toque y queda guardado.
     cont.querySelectorAll("[data-obj]").forEach((b) => (b.onclick = async () => {
       const nuevo = b.dataset.obj === objActual ? null : b.dataset.obj;   // tocar el elegido lo desmarca
@@ -6395,7 +6401,11 @@
     document.body.appendChild(probe);
     var top = Math.round(probe.getBoundingClientRect().height); probe.remove();
     var real = (window.screen && window.screen.height ? window.screen.height : window.innerHeight) - top;
-    var h = Math.max(window.innerHeight, real) + 6;
+    // v105: con la barra de la hora OPACA (status-bar-style default) la franja de arriba mide 0 y
+    // innerHeight ya es el alto correcto: si usáramos screen.height la app quedaría más alta que
+    // la pantalla y la barra de abajo se cortaría. El parche de screen.height queda SOLO para los
+    // íconos viejos que siguen instalados con black-translucent (franja > 0).
+    var h = top > 0 ? Math.max(window.innerHeight, real) + 6 : window.innerHeight;
     if (h > maxSaH) maxSaH = h; // nunca achicar: evita que la barra "rebote" hacia arriba
     document.documentElement.style.setProperty('--saH', maxSaH + 'px');
   }
