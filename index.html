@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- tuprofe · v93 -->
+<!-- tuprofe · v94 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
@@ -312,6 +312,11 @@
   /* ===== Panel admin ===== */
   .adm-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
   .adm-row:last-of-type { border-bottom: none; }
+  /* Cambio de rol (cuenta doble del admin): admin <-> alumno */
+  .btn-rol { width: 100%; height: 48px; border-radius: var(--radius); border: 1.5px solid var(--accent); background: transparent; color: var(--accent); font-size: 15px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; margin-bottom: 10px; }
+  .btn-rol svg { width: 18px; height: 18px; stroke: currentColor; }
+  .btn-rol:disabled { opacity: .5; }
+  .adm-titulo { font-size: 18px; font-weight: 600; margin: 6px 0 4px; }
   .adm-info { flex: 1; min-width: 0; }
   .adm-n { font-size: 14.5px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
   .adm-e { font-size: 12px; color: var(--muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1051,6 +1056,23 @@
 </div>
 
 <!-- ============ PANEL ALUMNO ============ -->
+<!-- ============ PANEL ADMIN (solo creador): solo gestiona profes ============ -->
+<div class="app" id="app-admin">
+  <div class="app-header">
+    <div class="hi">Hola<b id="admin-nombre">Admin</b></div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <div class="icon-btn" id="admin-clave" title="Cambiar contraseña"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M17 6l2 2M15 8l2 2"/></svg></div>
+      <div class="icon-btn" id="admin-salir" title="Salir"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></div>
+    </div>
+  </div>
+  <div class="body">
+    <button class="btn-rol" id="admin-a-alumno" style="display:none;margin-top:6px"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h13l-4-4M17 17H4l4 4"/></svg>Ver como alumno</button>
+    <div class="adm-titulo">Profes de la plataforma</div>
+    <p class="hint">Habilitá o pausá el acceso de cada profe. Un profe en pausa no puede entrar a la app. Tocá la cantidad de alumnos para ponerle un tope.</p>
+    <div id="admin-lista"></div>
+  </div>
+</div>
+
 <div class="app" id="app-alumno">
   <!-- VISTA: SESIÓN (rutina del día) -->
   <div class="alview on" id="al-view-sesion">
@@ -1137,15 +1159,6 @@
   </div>
 </div>
 
-<!-- ============ PANEL ADMIN (solo creador) ============ -->
-<div class="overlay" id="admin-overlay">
-  <div class="sheet">
-    <h3>Profes de la plataforma</h3>
-    <p class="hint">Habilitá o pausá el acceso de cada profe. Un profe en pausa no puede entrar a la app. Tocá la cantidad de alumnos para ponerle un tope.</p>
-    <div id="admin-lista"></div>
-    <button class="btn ghost sm" id="admin-cerrar" style="margin-top:14px">Cerrar</button>
-  </div>
-</div>
 
 <!-- ============ MODAL tope de alumnos de un profe (admin) ============ -->
 <div class="overlay" id="tope-overlay">
@@ -1721,7 +1734,7 @@
     _authVisible = true;
     $("auth-wrap").style.display = "flex";
     $("auth-wrap").classList.toggle("scrollable", id !== "s-login"); // login sin scroll; registros sí
-    $("app-profe").classList.remove("active"); $("app-alumno").classList.remove("active");
+    $("app-profe").classList.remove("active"); $("app-alumno").classList.remove("active"); $("app-admin").classList.remove("active");
     screens.forEach((s) => $(s).classList.toggle("active", s === id));
     const subs = { "s-login": "Entrá a tu cuenta", "s-reg-profe": "Creá tu cuenta de profe", "s-reg-alumno": "Creá tu cuenta", "s-olvide": "Recuperá tu acceso" };
     $("brand-sub").textContent = subs[id] || "";
@@ -1733,6 +1746,7 @@
     $("auth-wrap").style.display = "none";
     $("app-profe").classList.toggle("active", rol === "profe");
     $("app-alumno").classList.toggle("active", rol === "alumno");
+    $("app-admin").classList.toggle("active", rol === "admin");
   }
   function msg(el, t, tipo) { el.textContent = t; el.className = "msg " + (tipo || ""); }
   // Toast flotante para avisos puntuales (hoy: nueva marca personal). Se pisa solo si se llama de nuevo.
@@ -1932,8 +1946,19 @@
 
   async function entrar(rol) {
     ROL_ACTUAL = rol;
-    showApp(rol);
     const yo = await api("/yo", "GET", null, true);
+    // El admin no es un profe más: tiene su propia vista, que solo gestiona profes.
+    if (rol === "profe" && yo.es_admin) {
+      showApp("admin");
+      $("bloqueo").classList.remove("on");
+      $("admin-nombre").textContent = (yo.nombre || "Admin").split(" ")[0];
+      adminYoId = yo.id;
+      $("admin-a-alumno").style.display = yo.puede_cambiar === "alumno" ? "" : "none";
+      if (yo.debe_cambiar) abrirCambioPass(true);
+      cargarAdmin();
+      return;
+    }
+    showApp(rol);
     if (rol === "profe") {
       $("profe-nombre").textContent = yo.nombre || "Profe";
       adminYoId = yo.id;
@@ -3519,9 +3544,8 @@
   };
 
   // ---------- PANEL ADMIN (creador de la plataforma) ----------
-  function abrirAdmin() {
+  function cargarAdmin() {
     $("admin-lista").innerHTML = `<div class="empty" style="padding:24px"><p>Cargando profes...</p></div>`;
-    $("admin-overlay").classList.add("on");
     api("/admin/profesores", "GET", null, true).then((data) => renderAdmin(data.profesores || [])).catch((e) => {
       $("admin-lista").innerHTML = `<div class="empty" style="padding:24px"><p>${esc(e.message)}</p></div>`;
     });
@@ -3549,7 +3573,7 @@
   function topeAdminHTML(p) {
     const n = p.alumnos || 0, tope = p.tope_alumnos;
     const txt = tope == null ? `${n} alumno${n !== 1 ? "s" : ""} · sin tope` : `${n} de ${tope} alumno${tope !== 1 ? "s" : ""}`;
-    if (p.es_admin) return `${n} alumno${n !== 1 ? "s" : ""}`;
+    if (p.es_admin) return "Administrador";
     return `<button type="button" class="adm-tope${tope != null && n >= tope ? " lleno" : ""}" data-tope="${p.id}" title="Cambiar el tope de alumnos">${txt}</button>`;
   }
   // ---- Tope de alumnos de un profe (admin) ----
@@ -3586,7 +3610,7 @@
       await api("/admin/profesores/" + topeProfe.id, "PUT", { tope_alumnos: tope }, true);
       $("tope-overlay").classList.remove("on");
       if (topeProfe.id === adminYoId) PROFE_TOPE = tope;
-      abrirAdmin();
+      cargarAdmin();
     } catch (e) { msg($("tope-msg"), e.message, "error"); }
     finally { $("tope-guardar").disabled = false; }
   };
@@ -3605,12 +3629,12 @@
       const r = await api("/admin/profesores/" + id + "/reset-password", "POST", {}, true);
       let copiada = false; try { await navigator.clipboard.writeText(r.password); copiada = true; } catch {}
       aviso(`${copiada ? "Ya la copié al portapapeles. " : ""}Pasásela para que pueda entrar. Al entrar, la app le va a pedir que elija una propia.`, { titulo: `Nueva contraseña de ${nombre}`, copiar: r.password });
-      abrirAdmin(); refrescarAvisosReset();
+      cargarAdmin(); refrescarAvisosReset();
     } catch (e) { aviso(e.message); }
   }
   async function borrarProfe(id, nombre) {
     if (!await confirmar(`¿Borrar al profe ${nombre}?\n\nQueda deshabilitado y se oculta de la lista. Sus datos se conservan por si hay que recuperarlo.`)) return;
-    try { await api("/admin/profesores/" + id, "DELETE", null, true); abrirAdmin(); }
+    try { await api("/admin/profesores/" + id, "DELETE", null, true); cargarAdmin(); }
     catch (e) { aviso("No se pudo borrar: " + e.message); }
   }
   async function toggleProfe(btn) {
@@ -3628,8 +3652,31 @@
     }
   }
   let adminYoId = null;
-  $("profe-admin").onclick = abrirAdmin;
-  $("admin-cerrar").onclick = () => $("admin-overlay").classList.remove("on");
+  $("profe-admin").onclick = cargarAdmin;   // (oculto: el admin ya no usa la vista de profe)
+  $("admin-clave").onclick = () => abrirCambioPass(false);
+  $("admin-a-alumno").onclick = cambiarRol;
+
+  // ---------- CAMBIO DE ROL (cuenta doble del admin) ----------
+  // Pasa de admin a alumno (o al revés) sin pedir contraseña: el servidor solo lo permite
+  // si las dos cuentas tienen el mismo mail y el lado profe es admin.
+  async function cambiarRol() {
+    // Si quedaron cargas guardadas sin señal, intentamos mandarlas antes de cambiar.
+    if (ROL_ACTUAL === "alumno" && leerCola().length) {
+      try { await enviarCola(); } catch {}
+      const pend = leerCola().length;
+      if (pend && !await confirmar(`Tenés ${pend} registro${pend !== 1 ? "s" : ""} sin enviar (sin señal). Si cambiás de cuenta ahora, se pierden.`, { ok: "Cambiar igual", no: "Quedarme", peligro: true })) return;
+    }
+    const btns = [$("admin-a-alumno"), $("pf-a-admin")].filter(Boolean);
+    btns.forEach((b) => (b.disabled = true));
+    try {
+      const r = await api("/cambiar-rol", "POST", null, true);
+      limpiarDatosOffline();
+      guardarToken(r.token);
+      SIN_SENAL = false; pintarSinSenal();
+      await entrar(r.rol);
+    } catch (e) { aviso(e.message); }
+    finally { btns.forEach((b) => (b.disabled = false)); }
+  }
   $("bloqueo-salir").onclick = () => { $("bloqueo").classList.remove("on"); salir(); };
   function mostrarBloqueo(titulo, texto) {
     const card = $("bloqueo").querySelector(".bloqueo-card");
@@ -4353,6 +4400,7 @@
         <button class="btn sm ghost" id="pf-export-csv">Descargar CSV (historial)</button>
       </div>
       <div class="msg" id="pf-msg"></div>
+      ${alYo && alYo.puede_cambiar === "profe" ? `<button class="btn-rol" id="pf-a-admin"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h13l-4-4M17 17H4l4 4"/></svg>Volver a admin</button>` : ""}
       <button class="btn ghost" id="pf-clave" style="margin-bottom:10px">Cambiar contraseña</button>
       <button class="btn ghost" id="pf-salir">Cerrar sesión</button>`;
     $("pf-objetivo").value = (alYo && alYo.objetivo) || "";
@@ -4370,6 +4418,7 @@
     };
     $("pf-salir").onclick = salir;
     $("pf-clave").onclick = () => abrirCambioPass(false);
+    if ($("pf-a-admin")) $("pf-a-admin").onclick = cambiarRol;
     $("pf-export-json").onclick = () => exportarDatos("json");
     $("pf-export-csv").onclick = () => exportarDatos("csv");
     $("pf-cam").onclick = () => $("pf-file").click();
@@ -5876,7 +5925,7 @@
     borrarToken(); ROL_ACTUAL = null; SIN_SENAL = false; pintarSinSenal();
     showAuth("s-login");
   };
-  $("profe-salir").onclick = salir; $("alumno-salir").onclick = salir;
+  $("profe-salir").onclick = salir; $("alumno-salir").onclick = salir; $("admin-salir").onclick = salir;
 
   // ---------- OLVIDÉ MI CONTRASEÑA ----------
   // Tres caminos, del más simple al de respaldo:
