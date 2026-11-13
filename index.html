@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- tuprofe · v101 -->
+<!-- tuprofe · v102 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
@@ -34,8 +34,11 @@
   html, body { height: 100%; width: 100%; max-width: 100%; overflow: hidden; overscroll-behavior: none; }
   /* iOS instalado: 100dvh viene corto y deja un hueco abajo (la barra queda flotando arriba).
      El script del final mide la altura real y la expone en --saH; acá la forzamos. */
-  html.sa, html.sa body { height: var(--saH, 100dvh); }
-  html.sa .app, html.sa .wrap { height: var(--saH, 100dvh); }
+  /* v102 (mismo esquema que Soy Bostero): la app ya NO se estira con un alto calculado por JS.
+     Ese alto venía MÁS GRANDE que la pantalla, la página quedaba "scrolleable" por debajo y
+     iOS 26 le ponía su vidrio borroso arriba (el "Hola" difuminado). Ahora la app va FIJA
+     contra los bordes reales de la pantalla (arriba, abajo y costados): mide exactamente la
+     pantalla, sin cálculos, y la barra de abajo llega al borde igual. */
   body {
     background: var(--bg); color: var(--text);
     font-family: "Inter", system-ui, -apple-system, sans-serif;
@@ -47,7 +50,7 @@
   }
   input, select, button, textarea { font-family: inherit; font-variant-numeric: inherit; }
 
-  .wrap { height: 100dvh; overflow: hidden; overscroll-behavior: none; display: flex; flex-direction: column; justify-content: safe center; max-width: 440px; width: 100%; margin: 0 auto; padding: 32px 22px calc(32px + env(safe-area-inset-bottom)); touch-action: pan-y; }
+  .wrap { position: fixed; top: 0; bottom: 0; left: 0; right: 0; overflow: hidden; overscroll-behavior: none; display: flex; flex-direction: column; justify-content: safe center; max-width: 440px; width: 100%; margin: 0 auto; padding: 32px 22px calc(32px + env(safe-area-inset-bottom)); touch-action: pan-y; }
   /* En login queda 100% bloqueado. En los registros (más campos + teclado) habilitamos SOLO scroll vertical. */
   .wrap.scrollable { overflow-y: auto; overflow-x: hidden; touch-action: pan-y; }
   .brand { text-align: center; margin-bottom: 30px; }
@@ -92,7 +95,7 @@
   .screen { display: none; } .screen.active { display: block; }
 
   /* PANEL (centrado también en desktop) */
-  .app { display: none; flex-direction: column; height: 100dvh; overflow: hidden; max-width: 560px; margin: 0 auto; border-left: 1px solid var(--border); border-right: 1px solid var(--border); touch-action: pan-y; }
+  .app { display: none; flex-direction: column; position: fixed; top: 0; bottom: 0; left: 0; right: 0; overflow: hidden; max-width: 560px; margin: 0 auto; border-left: 1px solid var(--border); border-right: 1px solid var(--border); touch-action: pan-y; }
   .app.active { display: flex; }
   /* FIX scroll: estos wrappers deben ser columnas flex que llenen el alto del .app.
      Si no, el .body { flex:1 } no tiene altura acotada y el overflow:hidden del .app
@@ -457,7 +460,7 @@
   .bloqueo-card .btn { width: auto; padding: 0 24px; display: inline-flex; align-items: center; justify-content: center; }
 
   /* ================= REDISEÑO VISTA ALUMNO ================= */
-  #app-alumno { position: relative; }
+  /* #app-alumno ya es position: fixed (ver .app): sirve igual de referencia para las vistas absolutas de adentro. */
   .alview { position: absolute; inset: 0; display: none; flex-direction: column; }
   .alview.on { display: flex; }
   /* deja aire abajo para la barra flotante */
@@ -4639,7 +4642,7 @@
         </div>
         <button class="pf2-row peligro" id="pf-salir"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg><span class="tx">Cerrar sesión</span></button>
       </div>
-      <div class="pf2-ver">Tu Profe · v101</div>`;
+      <div class="pf2-ver">Tu Profe · v102</div>`;
     // Objetivo: un toque y queda guardado.
     cont.querySelectorAll("[data-obj]").forEach((b) => (b.onclick = async () => {
       const nuevo = b.dataset.obj === objActual ? null : b.dataset.obj;   // tocar el elegido lo desmarca
